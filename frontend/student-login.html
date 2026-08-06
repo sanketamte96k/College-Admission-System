@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Login - Zeal College Admission Portal</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="login.css">
+    <style>
+        :root {
+            --primary: #0d9488; /* Teal Accent for Student Portal */
+            --primary-hover: #0f766e;
+            --bg-gradient: linear-gradient(135deg, #0f172a 0%, #115e59 50%, #1e1b4b 100%);
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Background Ambient Shapes -->
+    <div class="bg-shape shape-1"></div>
+    <div class="bg-shape shape-2"></div>
+
+    <div class="login-wrapper">
+
+        <!-- Header Branding -->
+        <div class="login-header">
+            <div class="logo">👨‍🎓</div>
+            <h1>Zeal College of Engineering</h1>
+            <p>Student Admission Portal</p>
+        </div>
+
+        <!-- Glassmorphism Card -->
+        <div class="login-card">
+
+            <h2>Student Sign In</h2>
+            <p class="login-subtitle">Enter your Application ID & Date of Birth to track your admission status</p>
+
+            <div id="loginErrorMessage" style="display: none; background: #fee2e2; color: #991b1b; border-left: 4px solid #ef4444; padding: 10px 14px; border-radius: 6px; font-size: 13px; margin-bottom: 16px;"></div>
+
+            <form class="login-form" id="studentLoginForm">
+
+                <!-- Application ID Input -->
+                <div class="input-group">
+                    <label for="appId">Application ID</label>
+                    <div class="input-field">
+                        <span class="icon">🆔</span>
+                        <input type="number" id="appId" placeholder="e.g. 1" required autocomplete="off">
+                    </div>
+                </div>
+
+                <!-- Date of Birth Input -->
+                <div class="input-group">
+                    <label for="dob">Date of Birth</label>
+                    <div class="input-field">
+                        <span class="icon">📅</span>
+                        <input type="date" id="dob" required>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <button type="submit" id="studentLoginBtn" class="login-btn" style="background: linear-gradient(135deg, #0d9488 0%, #2563eb 100%);">
+                    <span id="btnText">Track Admission</span>
+                    <span id="btnArrow" class="btn-arrow">➔</span>
+                </button>
+
+            </form>
+
+            <!-- Card Footer -->
+            <div class="login-footer">
+                <p>Have not submitted an application yet? <a href="index.html" class="signup-link">Apply Now</a></p>
+                <p style="margin-top: 8px;"><a href="login.html" style="color: #64748b; font-size: 12px; text-decoration: underline;">Admin Sign In</a></p>
+            </div>
+
+        </div>
+
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const form = document.getElementById("studentLoginForm");
+            const appIdInput = document.getElementById("appId");
+            const dobInput = document.getElementById("dob");
+            const errorBox = document.getElementById("loginErrorMessage");
+            const submitBtn = document.getElementById("studentLoginBtn");
+            const btnText = document.getElementById("btnText");
+            const btnArrow = document.getElementById("btnArrow");
+
+            // Check if already authenticated as student
+            fetch("/api/check-auth")
+                .then(res => res.json())
+                .then(data => {
+                    if (data.authenticated && data.user_type === "student") {
+                        window.location.href = "student-dashboard.html";
+                    }
+                })
+                .catch(() => {});
+
+            if (form) {
+                form.addEventListener("submit", function (e) {
+                    e.preventDefault();
+
+                    errorBox.style.display = "none";
+                    errorBox.textContent = "";
+
+                    const appId = appIdInput.value.trim();
+                    const dob = dobInput.value.trim();
+
+                    if (!appId || !dob) {
+                        errorBox.textContent = "Please fill in all fields.";
+                        errorBox.style.display = "block";
+                        return;
+                    }
+
+                    submitBtn.disabled = true;
+                    btnText.textContent = "Authenticating...";
+                    btnArrow.textContent = "⌛";
+
+                    fetch("/api/student-login", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            application_id: appId,
+                            dob: dob
+                        })
+                    })
+                    .then(res => {
+                        if (!res.ok) {
+                            return res.json().then(err => { throw new Error(err.error || "Invalid Application ID or Date of Birth"); });
+                        }
+                        return res.json();
+                    })
+                    .then(data => {
+                        btnText.textContent = "Success!";
+                        btnArrow.textContent = "✓";
+                        setTimeout(() => {
+                            window.location.href = "student-dashboard.html";
+                        }, 400);
+                    })
+                    .catch(err => {
+                        errorBox.textContent = err.message || "Unable to sign in. Please verify your credentials.";
+                        errorBox.style.display = "block";
+                        submitBtn.disabled = false;
+                        btnText.textContent = "Track Admission";
+                        btnArrow.textContent = "➔";
+                    });
+                });
+            }
+        });
+    </script>
+
+</body>
+
+</html>

@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Records</title>
+
+    <link rel="stylesheet" href="style.css">
+    <!-- jsPDF Library for generating Admission Form PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- Chart.js Library for Analytics Charts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+
+<header>
+
+    <div class="logo">🎓</div>
+
+    <div class="college-name">
+        <h1>Zeal College of Engineering</h1>
+        <p>Student Admission Records</p>
+    </div>
+
+</header>
+
+<div class="container view-container">
+
+    <h2>Student Admission Records</h2>
+
+    <!-- Admin Analytics Dashboard Overview -->
+    <div class="dashboard-grid">
+        <div class="stat-card card-total">
+            <div class="stat-icon">👥</div>
+            <div class="stat-info">
+                <h3 id="totalCount">0</h3>
+                <p>Total Students</p>
+                <span class="growth-tag tag-positive">↑ Active Students</span>
+            </div>
+        </div>
+        <div class="stat-card card-comp">
+            <div class="stat-icon">🏛️</div>
+            <div class="stat-info">
+                <h3 id="totalDeptsCount">0</h3>
+                <p>Total Departments</p>
+                <span class="growth-tag tag-neutral">Academic Branches</span>
+            </div>
+        </div>
+        <div class="stat-card card-it">
+            <div class="stat-icon">📅</div>
+            <div class="stat-info">
+                <h3 id="todayCount">0</h3>
+                <p>Today's Admissions</p>
+                <span class="growth-tag tag-positive">New Today</span>
+            </div>
+        </div>
+        <div class="stat-card card-aids">
+            <div class="stat-icon">📊</div>
+            <div class="stat-info">
+                <h3 id="monthCount">0</h3>
+                <p>This Month</p>
+                <span class="growth-tag tag-positive">Monthly Count</span>
+            </div>
+        </div>
+        <div class="stat-card card-mech">
+            <div class="stat-icon">👨‍🎓</div>
+            <div class="stat-info">
+                <h3 id="maleCount">0</h3>
+                <p>Male Students</p>
+                <span class="growth-tag tag-info">Gender Ratio</span>
+            </div>
+        </div>
+        <div class="stat-card card-civil">
+            <div class="stat-icon">👩‍🎓</div>
+            <div class="stat-info">
+                <h3 id="femaleCount">0</h3>
+                <p>Female Students</p>
+                <span class="growth-tag tag-info">Gender Ratio</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Analytics Charts Grid (2x2) -->
+    <div class="charts-grid">
+        <div class="chart-card">
+            <h4>📊 Department-wise Admissions</h4>
+            <div class="chart-container">
+                <canvas id="deptChart"></canvas>
+            </div>
+        </div>
+        <div class="chart-card">
+            <h4>🍩 Gender Ratio (Male vs Female)</h4>
+            <div class="chart-container">
+                <canvas id="genderChart"></canvas>
+            </div>
+        </div>
+        <div class="chart-card">
+            <h4>📈 Monthly Registration Trends</h4>
+            <div class="chart-container">
+                <canvas id="monthlyChart"></canvas>
+            </div>
+        </div>
+        <div class="chart-card">
+            <h4>🍰 Admission Type Distribution</h4>
+            <div class="chart-container">
+                <canvas id="admissionTypeChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Key Statistics Highlights Panel -->
+    <div class="key-stats-panel">
+        <div class="key-stat-box">
+            <span class="key-stat-icon">🏆</span>
+            <div>
+                <small>Top Department</small>
+                <h4 id="highestDept">Loading...</h4>
+            </div>
+        </div>
+        <div class="key-stat-box">
+            <span class="key-stat-icon">📉</span>
+            <div>
+                <small>Lowest Department</small>
+                <h4 id="lowestDept">Loading...</h4>
+            </div>
+        </div>
+        <div class="key-stat-box">
+            <span class="key-stat-icon">🎯</span>
+            <div>
+                <small>Avg Entrance Score</small>
+                <h4 id="avgScore">0.0</h4>
+            </div>
+        </div>
+        <div class="key-stat-box">
+            <span class="key-stat-icon">🎓</span>
+            <div>
+                <small>Avg 12th Percentage</small>
+                <h4 id="avgPerc12">0.0%</h4>
+            </div>
+        </div>
+        <div class="key-stat-box">
+            <span class="key-stat-icon">👤</span>
+            <div>
+                <small>Latest Registered</small>
+                <h4 id="latestStudent">Loading...</h4>
+            </div>
+        </div>
+    </div>
+
+    <!-- Multi-Filter & Top Action Bar -->
+    <div class="controls-bar">
+        <div class="search-box">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="searchInput" placeholder="Search student name..." autocomplete="off">
+        </div>
+
+        <div class="filter-controls">
+            <select id="deptFilter" class="filter-select">
+                <option value="">All Departments</option>
+                <option>Computer Engineering</option>
+                <option>Information Technology</option>
+                <option>Artificial Intelligence & Data Science</option>
+                <option>Electronics & Telecommunication</option>
+                <option>Mechanical Engineering</option>
+                <option>Civil Engineering</option>
+            </select>
+
+            <select id="admissionTypeFilter" class="filter-select">
+                <option value="">All Admission Types</option>
+                <option>CAP</option>
+                <option>Management</option>
+                <option>NRI</option>
+            </select>
+
+            <select id="genderFilter" class="filter-select">
+                <option value="">All Genders</option>
+                <option>Male</option>
+                <option>Female</option>
+                <option>Other</option>
+            </select>
+        </div>
+
+        <div class="header-actions">
+            <button id="exportBtn" class="export-btn" onclick="exportToExcel()">📊 Export Excel</button>
+            <a href="index.html" class="add-btn">+ New Admission</a>
+            <button id="logoutBtn" class="logout-btn" onclick="logoutAdmin()">🚪 Logout</button>
+        </div>
+    </div>
+
+    <!-- Responsive Table Wrapper -->
+    <div class="table-responsive">
+        <table id="studentTable">
+
+            <thead>
+
+                <tr>
+
+                    <th>Sr No</th>
+                    <th>Name</th>
+                    <th>Department</th>
+                    <th>Mobile</th>
+                    <th>Email</th>
+                    <th>12th %</th>
+                    <th>Entrance Score</th>
+                    <th>Actions</th>
+
+                </tr>
+
+            </thead>
+
+            <tbody id="studentTableBody">
+                <!-- Records injected dynamically via view.js -->
+            </tbody>
+
+        </table>
+    </div>
+
+</div>
+
+<!-- Modal Popup for Viewing Complete Student Details -->
+<div id="viewModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>🎓 Student Details</h3>
+            <span class="close-btn" id="closeModal">&times;</span>
+        </div>
+        <div class="modal-body" id="modalDetails">
+            <!-- Student details injected dynamically -->
+        </div>
+        <div class="modal-footer">
+            <button class="modal-close-btn" id="closeModalFooter">Close</button>
+        </div>
+</div>
+
+<!-- Delete Confirmation Modal Popup -->
+<div id="deleteModal" class="modal">
+    <div class="modal-content delete-modal-content">
+        <div class="delete-modal-header">
+            <span class="delete-icon">⚠️</span>
+            <h3>Confirm Deletion</h3>
+        </div>
+        <div class="delete-modal-body">
+            <p id="deleteModalMessage">Are you sure you want to delete this student record?</p>
+        </div>
+        <div class="delete-modal-footer">
+            <button class="btn-cancel" id="cancelDeleteBtn">Cancel</button>
+            <button class="btn-confirm-delete" id="confirmDeleteBtn">Delete</button>
+        </div>
+    </div>
+</div>
+
+<!-- Notification Toast Container -->
+<div id="toastContainer" class="toast-container"></div>
+
+<script src="view.js"></script>
+
+</body>
+
+</html>
