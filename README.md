@@ -211,24 +211,6 @@ Run multi-container app + MySQL database locally:
 ```bash
 docker-compose up --build -d
 ```
-
-### Deploy to Render / Railway
-1. Push project repository to GitHub.
-2. Create a **Web Service** on Render or Railway.
-3. Connect repository and configure build parameters:
-   - **Environment**: Python / Docker
-   - **Build Command**: `pip install -r requirements.txt`
-   - **Start Command**: `gunicorn --bind 0.0.0.0:$PORT backend.wsgi:app`
-4. Set Environment Variables (`MYSQL_HOST`, `MYSQL_USER`, `MYSQL_PASSWORD`, `MYSQL_DB`, `SECRET_KEY`).
-
-### Deploy to PythonAnywhere
-1. Upload code or clone repository via Web Console.
-2. Create virtual environment and install `requirements.txt`.
-3. In PythonAnywhere **Web** tab, configure WSGI file pointing to `backend/wsgi.py`.
-4. Reload app.
-
----
-
 ## 🧪 Testing
 
 Execute automated unit & integration test suite:
