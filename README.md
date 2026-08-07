@@ -203,14 +203,6 @@ Access in Browser:
 | `created_at` | DATETIME | DEFAULT Current Timestamp | Account Creation Timestamp |
 
 ---
-
-## 🐳 Docker & Cloud Deployment Guide
-
-### Docker Compose Deployment
-Run multi-container app + MySQL database locally:
-```bash
-docker-compose up --build -d
-```
 ## 🧪 Testing
 
 Execute automated unit & integration test suite:
