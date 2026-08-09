@@ -34,6 +34,7 @@ const modalDetails = document.getElementById("modalDetails");
 const closeModal = document.getElementById("closeModal");
 const closeModalFooter = document.getElementById("closeModalFooter");
 
+const statusFilter = document.getElementById("statusFilter");
 const deptFilter = document.getElementById("deptFilter");
 const admissionTypeFilter = document.getElementById("admissionTypeFilter");
 const genderFilter = document.getElementById("genderFilter");
@@ -128,6 +129,11 @@ function renderStudents() {
             ? searchInput.value.toLowerCase().trim()
             : "";
 
+    const statusVal =
+        statusFilter
+            ? statusFilter.value.trim()
+            : "";
+
     const deptVal =
         deptFilter
             ? deptFilter.value.trim()
@@ -155,6 +161,11 @@ function renderStudents() {
                 .toLowerCase()
                 .includes(nameQuery);
 
+        const matchesStatus =
+            !statusVal ||
+            (student.status === statusVal) ||
+            (!student.status && statusVal === "Pending Verification");
+
         const matchesDept =
             !deptVal ||
             student.department === deptVal;
@@ -169,6 +180,7 @@ function renderStudents() {
 
         return (
             matchesName &&
+            matchesStatus &&
             matchesDept &&
             matchesType &&
             matchesGender
@@ -184,7 +196,7 @@ function renderStudents() {
 
         tbody.innerHTML = `
             <tr>
-                <td colspan="8" class="empty-state">
+                <td colspan="9" class="empty-state">
 
                     <div class="empty-icon">
                         📂
@@ -209,6 +221,21 @@ function renderStudents() {
     filteredStudents.forEach((student, index) => {
 
         const studentId = Number(student.id);
+
+        let statusBadgeClass = "badge-status-pending";
+        let statusIcon = "⌛";
+        const currentStatus = student.status || "Pending Verification";
+
+        if (currentStatus === "Verified") {
+            statusBadgeClass = "badge-status-verified";
+            statusIcon = "✅";
+        } else if (currentStatus === "Under Review") {
+            statusBadgeClass = "badge-status-review";
+            statusIcon = "🔍";
+        } else if (currentStatus === "Rejected") {
+            statusBadgeClass = "badge-status-rejected";
+            statusIcon = "❌";
+        }
 
         const tr = document.createElement("tr");
 
@@ -245,6 +272,13 @@ function renderStudents() {
             <td>
                 <span class="badge badge-score">
                     ${escapeHtml(student.entranceScore)}
+                </span>
+            </td>
+
+            <td>
+                <span class="badge-status ${statusBadgeClass}">
+                    <span>${statusIcon}</span>
+                    <span>${escapeHtml(currentStatus)}</span>
                 </span>
             </td>
 
@@ -292,6 +326,7 @@ function renderStudents() {
 
 [
     searchInput,
+    statusFilter,
     deptFilter,
     admissionTypeFilter,
     genderFilter
@@ -398,339 +433,249 @@ function openViewModal(studentId) {
 // POPULATE VIEW MODAL
 // ============================================================
 
+function renderDocumentCard(label, filename, icon = "📄") {
+    if (!filename) {
+        return `
+            <div class="document-item-card">
+                <div class="document-item-header">
+                    <span>${icon}</span>
+                    <span>${escapeHtml(label)}</span>
+                </div>
+                <span class="doc-btn doc-btn-disabled">Document Not Uploaded</span>
+            </div>
+        `;
+    }
+
+    const fileUrl = `/uploads/${encodeURIComponent(filename)}`;
+    return `
+        <div class="document-item-card">
+            <div class="document-item-header">
+                <span>${icon}</span>
+                <span>${escapeHtml(label)}</span>
+            </div>
+            <div class="doc-btn-group">
+                <a href="${fileUrl}" target="_blank" class="doc-action-btn btn-doc-preview" title="Preview Document">
+                    👁 Preview
+                </a>
+                <a href="${fileUrl}" target="_blank" class="doc-action-btn btn-doc-open" title="Open in New Tab">
+                    ↗ Open
+                </a>
+                <a href="${fileUrl}" download="${escapeHtml(filename)}" class="doc-action-btn btn-doc-download" title="Download File">
+                    📥 Download
+                </a>
+            </div>
+        </div>
+    `;
+}
+
+function handleModalStatusChange() {
+    const statusSelect = document.getElementById("modalVerificationStatus");
+    const requiredTag = document.getElementById("remarksRequiredTag");
+    if (statusSelect && requiredTag) {
+        requiredTag.style.display = (statusSelect.value === "Rejected") ? "inline" : "none";
+    }
+}
+
+async function saveVerificationDecision(studentId) {
+    const statusSelect = document.getElementById("modalVerificationStatus");
+    const remarksTextarea = document.getElementById("modalVerificationRemarks");
+    const saveBtn = document.getElementById("saveVerificationBtn");
+
+    if (!statusSelect) return;
+
+    const newStatus = statusSelect.value;
+    const remarks = remarksTextarea ? remarksTextarea.value.trim() : "";
+
+    if (newStatus === "Rejected" && !remarks) {
+        showToast("Please provide verification remarks explaining the reason for rejection.", "error");
+        if (remarksTextarea) remarksTextarea.focus();
+        return;
+    }
+
+    try {
+        if (saveBtn) {
+            saveBtn.disabled = true;
+            saveBtn.textContent = "Saving Decision...";
+        }
+
+        const response = await fetch(`/api/students/${studentId}/verification`, {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            body: JSON.stringify({
+                status: newStatus,
+                remarks: remarks
+            })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || data.message || `HTTP error ${response.status}`);
+        }
+
+        showToast(data.message || `Status updated to '${newStatus}' successfully.`, "success");
+
+        // Update local student in students array
+        const localStudent = students.find(s => Number(s.id) === Number(studentId));
+        if (localStudent && data.student) {
+            Object.assign(localStudent, data.student);
+        }
+
+        // Re-render table rows
+        renderStudents();
+
+        // Update dashboard metrics
+        updateDashboard();
+
+        // Refresh single student details in modal
+        if (data.student) {
+            populateViewModal(data.student);
+        }
+
+    } catch (err) {
+        console.error("Verification update error:", err);
+        showToast("Failed to save verification decision: " + err.message, "error");
+    } finally {
+        if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.textContent = "💾 Save Verification Decision";
+        }
+    }
+}
+
 function populateViewModal(student) {
+    const currentStatus = student.status || "Pending Verification";
 
     const photoHtml = student.photo
-
         ? `
             <div class="passport-photo-wrapper">
-
                 <img
                     src="/uploads/${escapeHtml(student.photo)}"
                     alt="Passport Photo"
                     class="passport-photo-img"
                 >
-
             </div>
           `
-
         : `
             <div class="passport-photo-wrapper">
-
                 <span class="passport-photo-placeholder">
                     👤
                 </span>
-
             </div>
           `;
 
-
-    const photoBtn = student.photo
-
-        ? `
-            <a
-                href="/uploads/${escapeHtml(student.photo)}"
-                target="_blank"
-                class="doc-btn doc-btn-photo">
-
-                🖼 View Passport Photo
-
-            </a>
-          `
-
-        : `
-            <span class="doc-btn doc-btn-disabled">
-                Document Not Uploaded
-            </span>
-          `;
-
-
-    const marksheet10Btn = student.marksheet10
-
-        ? `
-            <a
-                href="/uploads/${escapeHtml(student.marksheet10)}"
-                target="_blank"
-                class="doc-btn doc-btn-pdf">
-
-                📄 View 10th Marksheet
-
-            </a>
-          `
-
-        : `
-            <span class="doc-btn doc-btn-disabled">
-                Document Not Uploaded
-            </span>
-          `;
-
-
-    const marksheet12Btn = student.marksheet12
-
-        ? `
-            <a
-                href="/uploads/${escapeHtml(student.marksheet12)}"
-                target="_blank"
-                class="doc-btn doc-btn-pdf">
-
-                📄 View 12th Marksheet
-
-            </a>
-          `
-
-        : `
-            <span class="doc-btn doc-btn-disabled">
-                Document Not Uploaded
-            </span>
-          `;
-
-
-    const lcBtn = student.leavingCertificate
-
-        ? `
-            <a
-                href="/uploads/${escapeHtml(student.leavingCertificate)}"
-                target="_blank"
-                class="doc-btn doc-btn-pdf">
-
-                📄 View Leaving Certificate
-
-            </a>
-          `
-
-        : `
-            <span class="doc-btn doc-btn-disabled">
-                Document Not Uploaded
-            </span>
-          `;
-
+    const photoCard = renderDocumentCard("Passport Photo", student.photo, "🖼️");
+    const marksheet10Card = renderDocumentCard("10th Marksheet", student.marksheet10, "📄");
+    const marksheet12Card = renderDocumentCard("12th Marksheet", student.marksheet12, "📄");
+    const lcCard = renderDocumentCard("Leaving Certificate", student.leavingCertificate, "📜");
 
     modalDetails.innerHTML = `
+        <!-- APPLICATION & VERIFICATION WORKFLOW CARD -->
+        <div class="verification-decision-card">
+            <div class="verification-decision-header">
+                <h4>📋 Application Details & Verification Decision</h4>
+                <div class="verification-meta">
+                    <span>App ID: <strong>#${student.id}</strong></span> | 
+                    <span>Date: ${escapeHtml(student.created_at || "N/A")}</span>
+                    ${student.verified_by ? ` | <span>Verified By: <strong>${escapeHtml(student.verified_by)}</strong> (${escapeHtml(student.verified_at || '')})</span>` : ''}
+                </div>
+            </div>
+
+            <div class="verification-form-grid">
+                <div class="verification-input-group">
+                    <label for="modalVerificationStatus">Admission Status:</label>
+                    <select id="modalVerificationStatus" class="verification-status-select" onchange="handleModalStatusChange()">
+                        <option value="Pending Verification" ${currentStatus === "Pending Verification" ? "selected" : ""}>⌛ Pending Verification</option>
+                        <option value="Under Review" ${currentStatus === "Under Review" ? "selected" : ""}>🔍 Under Review</option>
+                        <option value="Verified" ${currentStatus === "Verified" ? "selected" : ""}>✅ Verified / Approved</option>
+                        <option value="Rejected" ${currentStatus === "Rejected" ? "selected" : ""}>❌ Rejected</option>
+                    </select>
+                </div>
+
+                <div class="verification-input-group">
+                    <label for="modalVerificationRemarks">
+                        Verification Remarks:
+                        <span id="remarksRequiredTag" style="display:${currentStatus === 'Rejected' ? 'inline' : 'none'}; color:#dc2626; font-size:12px;">(Required for Rejection)</span>
+                    </label>
+                    <textarea id="modalVerificationRemarks" class="verification-remarks-textarea" placeholder="Enter verification notes, document inspection remarks, or rejection reason...">${escapeHtml(student.verification_remarks || "")}</textarea>
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; margin-top: 12px;">
+                <button id="saveVerificationBtn" class="verification-btn-save" onclick="saveVerificationDecision(${student.id})">
+                    💾 Save Verification Decision
+                </button>
+            </div>
+        </div>
 
         <div class="modal-profile-card">
-
             ${photoHtml}
-
             <div class="modal-profile-info">
-
-                <h3>
-                    ${escapeHtml(student.fullName)}
-                </h3>
-
-                <p>
-                    🎓
-                    ${escapeHtml(student.department)}
-                    |
-                    ${escapeHtml(student.admissionType)}
-                    Admission
-                </p>
-
-                <p>
-                    📧
-                    ${escapeHtml(student.email)}
-                    |
-                    📱
-                    ${escapeHtml(student.mobile)}
-                </p>
-
+                <h3>${escapeHtml(student.fullName)}</h3>
+                <p>🎓 ${escapeHtml(student.department)} | ${escapeHtml(student.admissionType)} Admission</p>
+                <p>📧 ${escapeHtml(student.email)} | 📱 ${escapeHtml(student.mobile)}</p>
             </div>
-
         </div>
 
-
         <div class="detail-section">
-
-            <h4>
-                👤 Personal Information
-            </h4>
-
+            <h4>👤 Personal Information</h4>
             <div class="detail-grid">
-
-                <div>
-                    <strong>Full Name:</strong>
-                    ${escapeHtml(student.fullName)}
-                </div>
-
-                <div>
-                    <strong>Father's Name:</strong>
-                    ${escapeHtml(student.fatherName)}
-                </div>
-
-                <div>
-                    <strong>Mother's Name:</strong>
-                    ${escapeHtml(student.motherName)}
-                </div>
-
-                <div>
-                    <strong>Date of Birth:</strong>
-                    ${escapeHtml(student.dob)}
-                </div>
-
-                <div>
-                    <strong>Gender:</strong>
-                    ${escapeHtml(student.gender)}
-                </div>
-
-                <div>
-                    <strong>Blood Group:</strong>
-                    ${escapeHtml(student.bloodGroup)}
-                </div>
-
+                <div><strong>Full Name:</strong> ${escapeHtml(student.fullName)}</div>
+                <div><strong>Father's Name:</strong> ${escapeHtml(student.fatherName)}</div>
+                <div><strong>Mother's Name:</strong> ${escapeHtml(student.motherName)}</div>
+                <div><strong>Date of Birth:</strong> ${escapeHtml(student.dob)}</div>
+                <div><strong>Gender:</strong> ${escapeHtml(student.gender)}</div>
+                <div><strong>Blood Group:</strong> ${escapeHtml(student.bloodGroup)}</div>
             </div>
-
         </div>
 
-
         <div class="detail-section">
-
-            <h4>
-                📞 Contact Information
-            </h4>
-
+            <h4>📞 Contact Information</h4>
             <div class="detail-grid">
-
-                <div>
-                    <strong>Mobile:</strong>
-                    ${escapeHtml(student.mobile)}
-                </div>
-
-                <div>
-                    <strong>Alt Mobile:</strong>
-                    ${escapeHtml(student.altMobile || "N/A")}
-                </div>
-
-                <div>
-                    <strong>Email:</strong>
-                    ${escapeHtml(student.email)}
-                </div>
-
-                <div>
-                    <strong>Aadhaar:</strong>
-                    ${escapeHtml(student.aadhaar)}
-                </div>
-
-                <div>
-                    <strong>Address:</strong>
-                    ${escapeHtml(student.address)}
-                </div>
-
-                <div>
-                    <strong>City:</strong>
-                    ${escapeHtml(student.city)}
-                </div>
-
-                <div>
-                    <strong>State:</strong>
-                    ${escapeHtml(student.state)}
-                </div>
-
-                <div>
-                    <strong>Pincode:</strong>
-                    ${escapeHtml(student.pincode)}
-                </div>
-
-                <div>
-                    <strong>Nationality:</strong>
-                    ${escapeHtml(student.nationality)}
-                </div>
-
+                <div><strong>Mobile:</strong> ${escapeHtml(student.mobile)}</div>
+                <div><strong>Alt Mobile:</strong> ${escapeHtml(student.altMobile || "N/A")}</div>
+                <div><strong>Email:</strong> ${escapeHtml(student.email)}</div>
+                <div><strong>Aadhaar:</strong> ${escapeHtml(student.aadhaar)}</div>
+                <div><strong>Address:</strong> ${escapeHtml(student.address)}</div>
+                <div><strong>City:</strong> ${escapeHtml(student.city)}</div>
+                <div><strong>State:</strong> ${escapeHtml(student.state)}</div>
+                <div><strong>Pincode:</strong> ${escapeHtml(student.pincode)}</div>
+                <div><strong>Nationality:</strong> ${escapeHtml(student.nationality)}</div>
             </div>
-
         </div>
 
-
         <div class="detail-section">
-
-            <h4>
-                🎓 Academic Information
-            </h4>
-
+            <h4>🎓 Academic Information</h4>
             <div class="detail-grid">
-
-                <div>
-                    <strong>10th Board:</strong>
-                    ${escapeHtml(student.board10)}
-                </div>
-
-                <div>
-                    <strong>10th Percentage:</strong>
-                    ${escapeHtml(student.percentage10)}%
-                </div>
-
-                <div>
-                    <strong>12th Board:</strong>
-                    ${escapeHtml(student.board12)}
-                </div>
-
-                <div>
-                    <strong>12th Percentage:</strong>
-                    ${escapeHtml(student.percentage12)}%
-                </div>
-
-                <div>
-                    <strong>Entrance Exam:</strong>
-                    ${escapeHtml(student.entranceExam)}
-                </div>
-
-                <div>
-                    <strong>Entrance Score:</strong>
-                    ${escapeHtml(student.entranceScore)}
-                </div>
-
+                <div><strong>10th Board:</strong> ${escapeHtml(student.board10)}</div>
+                <div><strong>10th Percentage:</strong> ${escapeHtml(student.percentage10)}%</div>
+                <div><strong>12th Board:</strong> ${escapeHtml(student.board12)}</div>
+                <div><strong>12th Percentage:</strong> ${escapeHtml(student.percentage12)}%</div>
+                <div><strong>Entrance Exam:</strong> ${escapeHtml(student.entranceExam)}</div>
+                <div><strong>Entrance Score:</strong> ${escapeHtml(student.entranceScore)}</div>
             </div>
-
         </div>
 
-
         <div class="detail-section">
-
-            <h4>
-                📚 Course Information
-            </h4>
-
+            <h4>📚 Course & Admission Information</h4>
             <div class="detail-grid">
-
-                <div>
-                    <strong>Department:</strong>
-                    ${escapeHtml(student.department)}
-                </div>
-
-                <div>
-                    <strong>Admission Type:</strong>
-                    ${escapeHtml(student.admissionType)}
-                </div>
-
+                <div><strong>Department:</strong> ${escapeHtml(student.department)}</div>
+                <div><strong>Admission Type:</strong> ${escapeHtml(student.admissionType)}</div>
+                <div><strong>Application Status:</strong> <strong>${escapeHtml(currentStatus)}</strong></div>
             </div>
-
         </div>
 
-
         <div class="detail-section">
-
-            <h4>
-                📁 Uploaded Documents
-            </h4>
-
+            <h4>📁 Uploaded Documents</h4>
             <div class="document-grid">
-
-                <div>
-                    ${photoBtn}
-                </div>
-
-                <div>
-                    ${marksheet10Btn}
-                </div>
-
-                <div>
-                    ${marksheet12Btn}
-                </div>
-
-                <div>
-                    ${lcBtn}
-                </div>
-
+                ${photoCard}
+                ${marksheet10Card}
+                ${marksheet12Card}
+                ${lcCard}
             </div>
-
         </div>
     `;
 
@@ -1820,6 +1765,23 @@ function updateDashboard() {
                 femaleCount.textContent =
                     stats.female_count || 0;
             }
+
+
+            // ==================================================
+            // ADMISSION VERIFICATION WORKFLOW STATS
+            // ==================================================
+
+            const vTotal = document.getElementById("vTotalCount");
+            const vPending = document.getElementById("vPendingCount");
+            const vReview = document.getElementById("vReviewCount");
+            const vVerified = document.getElementById("vVerifiedCount");
+            const vRejected = document.getElementById("vRejectedCount");
+
+            if (vTotal) vTotal.textContent = stats.total || 0;
+            if (vPending) vPending.textContent = stats.pending_count || 0;
+            if (vReview) vReview.textContent = stats.review_count || 0;
+            if (vVerified) vVerified.textContent = stats.verified_count || 0;
+            if (vRejected) vRejected.textContent = stats.rejected_count || 0;
 
 
             // ==================================================

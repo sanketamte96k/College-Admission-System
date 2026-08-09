@@ -1,10 +1,18 @@
 import os
+from datetime import datetime
 
 from models import db, Student
 from utils import sanitize_input
 
 
 class StudentService:
+
+    ALLOWED_STATUSES = [
+        "Pending Verification",
+        "Under Review",
+        "Verified",
+        "Rejected"
+    ]
 
     # =========================================================
     # GET ALL STUDENTS
@@ -17,7 +25,8 @@ class StudentService:
         search_query="",
         department="",
         admission_type="",
-        gender=""
+        gender="",
+        status=""
     ):
         query = Student.query
 
@@ -41,6 +50,11 @@ class StudentService:
         if gender:
             query = query.filter(
                 Student.gender == gender
+            )
+
+        if status:
+            query = query.filter(
+                Student.status == status
             )
 
         query = query.order_by(
@@ -664,3 +678,51 @@ class StudentService:
             raise
 
         return True
+
+    # =========================================================
+    # UPDATE ADMISSION VERIFICATION DECISION
+    # =========================================================
+
+    @staticmethod
+    def update_verification(
+        student_id,
+        status,
+        remarks="",
+        admin_username="admin"
+    ):
+        student = Student.query.get(student_id)
+        if not student:
+            return None
+
+        # Validate status
+        if status not in StudentService.ALLOWED_STATUSES:
+            raise ValueError(
+                f"Invalid status '{status}'. Allowed statuses: {', '.join(StudentService.ALLOWED_STATUSES)}"
+            )
+
+        # Sanitize remarks
+        clean_remarks = sanitize_input(remarks or "")
+
+        # Rejection requires a meaningful remark/reason
+        if status == "Rejected" and not clean_remarks:
+            raise ValueError(
+                "Verification remarks are required when rejecting an admission application."
+            )
+
+        student.status = status
+        student.verification_remarks = clean_remarks
+
+        if status in ["Verified", "Rejected", "Under Review"]:
+            student.verified_at = datetime.utcnow()
+            student.verified_by = admin_username or "admin"
+        elif status == "Pending Verification":
+            # Retain history or reset if reopened
+            student.verified_at = None
+            student.verified_by = None
+
+        try:
+            db.session.commit()
+            return student
+        except Exception:
+            db.session.rollback()
+            raise

@@ -66,6 +66,30 @@ class AnalyticsService:
             "status": s.status or "Pending Verification"
         } for s in recent_objs]
 
+        # Status Statistics
+        pending_count = 0
+        review_count = 0
+        verified_count = 0
+        rejected_count = 0
+
+        for s in all_students:
+            st = s.status or "Pending Verification"
+            if st == "Verified":
+                verified_count += 1
+            elif st == "Under Review":
+                review_count += 1
+            elif st == "Rejected":
+                rejected_count += 1
+            else:
+                pending_count += 1
+
+        status_stats = {
+            "Pending Verification": pending_count,
+            "Under Review": review_count,
+            "Verified": verified_count,
+            "Rejected": rejected_count
+        }
+
         return {
             "total": total,
             "total_departments": total_departments,
@@ -73,6 +97,11 @@ class AnalyticsService:
             "month_admissions": month_admissions,
             "male_count": male_count,
             "female_count": female_count,
+            "pending_count": pending_count,
+            "review_count": review_count,
+            "verified_count": verified_count,
+            "rejected_count": rejected_count,
+            "status_stats": status_stats,
             "comp": dept_counts.get("Computer Engineering", 0),
             "it": dept_counts.get("Information Technology", 0),
             "aids": dept_counts.get("Artificial Intelligence & Data Science", 0),

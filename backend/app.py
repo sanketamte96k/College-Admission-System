@@ -121,6 +121,18 @@ def create_app(config_name=None):
                         conn.commit()
                     except Exception:
                         pass
+                
+                # Migration for Admission Verification Workflow
+                for col_name, col_type in [
+                    ("verification_remarks", "TEXT NULL"),
+                    ("verified_at", "DATETIME NULL"),
+                    ("verified_by", "VARCHAR(100) NULL")
+                ]:
+                    try:
+                        conn.execute(db.text(f"ALTER TABLE students ADD COLUMN {col_name} {col_type}"))
+                        conn.commit()
+                    except Exception:
+                        pass
         except Exception as e:
             app.logger.info(f"Migration note: {e}")
 

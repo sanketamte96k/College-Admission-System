@@ -149,6 +149,45 @@
         </div>
     </div>
 
+    <!-- Admission Verification Workflow Overview Panel -->
+    <div class="verification-stats-panel">
+        <div class="vstat-card vcard-total">
+            <div class="vstat-icon">📑</div>
+            <div class="vstat-info">
+                <small>Total Applications</small>
+                <h3 id="vTotalCount">0</h3>
+            </div>
+        </div>
+        <div class="vstat-card vcard-pending">
+            <div class="vstat-icon">⌛</div>
+            <div class="vstat-info">
+                <small>Pending Verification</small>
+                <h3 id="vPendingCount">0</h3>
+            </div>
+        </div>
+        <div class="vstat-card vcard-review">
+            <div class="vstat-icon">🔍</div>
+            <div class="vstat-info">
+                <small>Under Review</small>
+                <h3 id="vReviewCount">0</h3>
+            </div>
+        </div>
+        <div class="vstat-card vcard-verified">
+            <div class="vstat-icon">✅</div>
+            <div class="vstat-info">
+                <small>Verified / Approved</small>
+                <h3 id="vVerifiedCount">0</h3>
+            </div>
+        </div>
+        <div class="vstat-card vcard-rejected">
+            <div class="vstat-icon">❌</div>
+            <div class="vstat-info">
+                <small>Rejected</small>
+                <h3 id="vRejectedCount">0</h3>
+            </div>
+        </div>
+    </div>
+
     <!-- Multi-Filter & Top Action Bar -->
     <div class="controls-bar">
         <div class="search-box">
@@ -157,6 +196,14 @@
         </div>
 
         <div class="filter-controls">
+            <select id="statusFilter" class="filter-select">
+                <option value="">All Verification Statuses</option>
+                <option value="Pending Verification">Pending Verification</option>
+                <option value="Under Review">Under Review</option>
+                <option value="Verified">Verified</option>
+                <option value="Rejected">Rejected</option>
+            </select>
+
             <select id="deptFilter" class="filter-select">
                 <option value="">All Departments</option>
                 <option>Computer Engineering</option>
@@ -204,6 +251,7 @@
                     <th>Email</th>
                     <th>12th %</th>
                     <th>Entrance Score</th>
+                    <th>Status</th>
                     <th>Actions</th>
 
                 </tr>

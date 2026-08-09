@@ -39,7 +39,7 @@ def api_login():
         "user": admin.to_dict()
     }), 200
 
-@auth_bp.route("/api/logout", methods=["POST"])
+@auth_bp.route("/api/logout", methods=["GET", "POST"])
 def api_logout():
     session.clear()
     return jsonify({"message": "Logged out successfully"}), 200

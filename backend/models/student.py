@@ -38,6 +38,9 @@ class Student(db.Model):
     marksheet12 = db.Column(db.String(255), nullable=True)
     leavingCertificate = db.Column(db.String(255), nullable=True)
     status = db.Column(db.String(50), default="Pending Verification", nullable=True)
+    verification_remarks = db.Column(db.Text, nullable=True)
+    verified_at = db.Column(db.DateTime, nullable=True)
+    verified_by = db.Column(db.String(100), nullable=True)
 
     def to_dict(self):
         return {
@@ -70,5 +73,8 @@ class Student(db.Model):
             "marksheet10": self.marksheet10 or "",
             "marksheet12": self.marksheet12 or "",
             "leavingCertificate": self.leavingCertificate or "",
-            "status": self.status or "Pending Verification"
+            "status": self.status or "Pending Verification",
+            "verification_remarks": self.verification_remarks or "",
+            "verified_at": self.verified_at.strftime("%Y-%m-%d %H:%M:%S") if self.verified_at else "",
+            "verified_by": self.verified_by or ""
         }

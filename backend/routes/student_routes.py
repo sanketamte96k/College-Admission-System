@@ -3,7 +3,8 @@ from flask import Blueprint, request, jsonify, session, current_app
 from services import StudentService
 from email_service import (
     send_student_confirmation_email,
-    send_admin_notification_email
+    send_admin_notification_email,
+    send_verification_status_email
 )
 from utils import admin_required, student_required
 
@@ -35,6 +36,10 @@ def get_students():
         "gender", "", type=str
     ).strip()
 
+    status = request.args.get(
+        "status", "", type=str
+    ).strip()
+
     try:
         result = StudentService.get_all_students(
             page=page,
@@ -42,7 +47,8 @@ def get_students():
             search_query=search_query,
             department=department,
             admission_type=admission_type,
-            gender=gender
+            gender=gender,
+            status=status
         )
 
         # Backward compatibility:
@@ -292,6 +298,70 @@ def delete_student(student_id):
         return jsonify({
             "error": str(e)
         }), 400
+
+
+# ============================================================
+# UPDATE ADMISSION VERIFICATION DECISION
+# ============================================================
+@student_bp.route(
+    "/api/students/<int:student_id>/verification",
+    methods=["PUT", "PATCH"]
+)
+@admin_required
+def update_student_verification(student_id):
+    if request.is_json:
+        data = request.get_json(silent=True) or {}
+    else:
+        data = request.form.to_dict()
+
+    status = (data.get("status") or "").strip()
+    remarks = (data.get("remarks") or "").strip()
+    admin_username = session.get("admin_username") or "admin"
+
+    if not status:
+        return jsonify({"error": "Verification status is required"}), 400
+
+    try:
+        updated_student = StudentService.update_verification(
+            student_id=student_id,
+            status=status,
+            remarks=remarks,
+            admin_username=admin_username
+        )
+
+        if not updated_student:
+            return jsonify({"error": "Student record not found"}), 404
+
+        student_dict = updated_student.to_dict()
+
+        # Email notification handling (safe fallback)
+        email_sent = False
+        email_note = ""
+        mail_ext = current_app.extensions.get("mail")
+        if mail_ext and status in ["Verified", "Rejected"]:
+            try:
+                email_sent, email_note = send_verification_status_email(
+                    mail_ext,
+                    student_dict,
+                    status,
+                    remarks
+                )
+            except Exception as mail_err:
+                current_app.logger.warning(f"Verification email notice error: {mail_err}")
+                email_note = str(mail_err)
+
+        return jsonify({
+            "message": f"Admission verification decision saved as '{status}' successfully.",
+            "student": student_dict,
+            "email_status": "sent" if email_sent else "not_sent",
+            "email_note": email_note
+        }), 200
+
+    except ValueError as ve:
+        return jsonify({"error": str(ve)}), 400
+    except Exception as e:
+        current_app.logger.exception("Error updating verification status")
+        return jsonify({"error": str(e)}), 500
 
 
 # ============================================================

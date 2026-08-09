@@ -44,15 +44,15 @@ document.addEventListener("DOMContentLoaded", function () {
         const status = student.status || "Pending Verification";
         if (statusBadgeDisplay) {
             statusBadgeDisplay.className = "status-badge-lg";
-            if (status === "Approved") {
+            if (status === "Verified" || status === "Approved") {
                 statusBadgeDisplay.classList.add("status-approved");
-                statusBadgeDisplay.textContent = "✅ Approved";
+                statusBadgeDisplay.textContent = "✅ Verified & Approved";
             } else if (status === "Rejected") {
                 statusBadgeDisplay.classList.add("status-rejected");
                 statusBadgeDisplay.textContent = "❌ Rejected";
-            } else if (status === "Hold") {
+            } else if (status === "Under Review" || status === "Hold") {
                 statusBadgeDisplay.classList.add("status-hold");
-                statusBadgeDisplay.textContent = "⏸ On Hold";
+                statusBadgeDisplay.textContent = "🔍 Under Review";
             } else {
                 statusBadgeDisplay.classList.add("status-pending");
                 statusBadgeDisplay.textContent = "⌛ Pending Verification";
@@ -87,6 +87,22 @@ document.addEventListener("DOMContentLoaded", function () {
         setText("pDepartment", student.department);
         setText("pAdmissionType", student.admissionType);
 
+        // Verification Remarks if present
+        const remarksContainer = document.getElementById("studentRemarksNotice");
+        if (remarksContainer) {
+            if (student.verification_remarks) {
+                remarksContainer.style.display = "block";
+                remarksContainer.innerHTML = `
+                    <div style="background: ${status === 'Rejected' ? '#fef2f2' : '#f0fdf4'}; border: 1px solid ${status === 'Rejected' ? '#fca5a5' : '#86efac'}; border-radius: 8px; padding: 12px 16px; margin: 15px 0;">
+                        <strong style="color: ${status === 'Rejected' ? '#991b1b' : '#166534'};">Verification Officer Remarks:</strong>
+                        <p style="margin: 4px 0 0 0; color: #334155; font-size: 13px;">${student.verification_remarks}</p>
+                    </div>
+                `;
+            } else {
+                remarksContainer.style.display = "none";
+            }
+        }
+
         // Render Uploaded Document Action Buttons
         renderDocumentButtons(student);
     }
@@ -102,14 +118,15 @@ document.addEventListener("DOMContentLoaded", function () {
 
         steps.forEach(s => { if (s) s.className = "timeline-step"; });
 
-        if (status === "Approved") {
+        if (status === "Verified" || status === "Approved") {
             steps.forEach(s => { if (s) s.className = "timeline-step completed"; });
-        } else if (status === "Hold") {
+        } else if (status === "Under Review" || status === "Hold") {
             if (steps[0]) steps[0].className = "timeline-step completed";
             if (steps[1]) steps[1].className = "timeline-step completed";
             if (steps[2]) steps[2].className = "timeline-step active";
         } else if (status === "Rejected") {
             if (steps[0]) steps[0].className = "timeline-step completed";
+            if (steps[1]) steps[1].className = "timeline-step active";
         } else {
             // Default Pending Verification
             if (steps[0]) steps[0].className = "timeline-step completed";

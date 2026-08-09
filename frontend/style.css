@@ -1092,3 +1092,289 @@ body.dark-mode h1, body.dark-mode h2, body.dark-mode h3, body.dark-mode h4, body
     margin-left: 8px;
     cursor: pointer;
 }
+
+/* ============================================================ */
+/* ADMISSION VERIFICATION WORKFLOW STYLES                        */
+/* ============================================================ */
+
+/* Verification Stats Overview Panel */
+.verification-stats-panel {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 15px;
+    margin-bottom: 25px;
+}
+
+.vstat-card {
+    background: white;
+    border: 1px solid #e2e8f0;
+    padding: 16px 18px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.vstat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+}
+
+.vstat-icon {
+    font-size: 26px;
+    padding: 10px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.vcard-total .vstat-icon { background: #e0e7ff; color: #1e3a8a; }
+.vcard-pending .vstat-icon { background: #fef3c7; color: #92400e; }
+.vcard-review .vstat-icon { background: #e0f2fe; color: #0369a1; }
+.vcard-verified .vstat-icon { background: #dcfce7; color: #15803d; }
+.vcard-rejected .vstat-icon { background: #fee2e2; color: #991b1b; }
+
+.vstat-info small {
+    color: #64748b;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: block;
+    margin-bottom: 2px;
+}
+
+.vstat-info h3 {
+    font-size: 20px;
+    font-weight: 800;
+    color: #1e293b;
+    margin: 0;
+}
+
+/* Status Badges in Table */
+.badge-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 12px;
+    border-radius: 16px;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: capitalize;
+    letter-spacing: 0.3px;
+    border: 1px solid transparent;
+    white-space: nowrap;
+}
+
+.badge-status-pending {
+    background: #fef3c7;
+    color: #92400e;
+    border-color: #fcd34d;
+}
+
+.badge-status-review {
+    background: #e0f2fe;
+    color: #0369a1;
+    border-color: #7dd3fc;
+}
+
+.badge-status-verified {
+    background: #dcfce7;
+    color: #15803d;
+    border-color: #86efac;
+}
+
+.badge-status-rejected {
+    background: #fee2e2;
+    color: #991b1b;
+    border-color: #fca5a5;
+}
+
+/* Verification Decision Box in Modal */
+.verification-decision-card {
+    background: #f8fafc;
+    border: 2px solid #cbd5e1;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+}
+
+.verification-decision-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.verification-decision-header h4 {
+    margin: 0;
+    font-size: 16px;
+    color: #1e3a8a;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.verification-meta {
+    font-size: 12px;
+    color: #64748b;
+    font-weight: 500;
+}
+
+.verification-form-grid {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 16px;
+    align-items: start;
+}
+
+@media (max-width: 768px) {
+    .verification-form-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.verification-input-group label {
+    display: block;
+    font-size: 13px;
+    font-weight: 700;
+    color: #334155;
+    margin-bottom: 6px;
+}
+
+.verification-status-select {
+    width: 100%;
+    padding: 10px 14px;
+    border: 2px solid #cbd5e1;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #1e293b;
+    background: white;
+    outline: none;
+    cursor: pointer;
+    transition: border-color 0.2s;
+}
+
+.verification-status-select:focus {
+    border-color: #2563eb;
+}
+
+.verification-remarks-textarea {
+    width: 100%;
+    min-height: 70px;
+    padding: 10px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    font-size: 13px;
+    color: #1e293b;
+    background: white;
+    resize: vertical;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.verification-remarks-textarea:focus {
+    border-color: #2563eb;
+}
+
+.verification-btn-save {
+    background: #1e3a8a;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: background 0.2s, transform 0.1s;
+    margin-top: 10px;
+}
+
+.verification-btn-save:hover {
+    background: #1d4ed8;
+    transform: translateY(-1px);
+}
+
+.verification-btn-save:disabled {
+    background: #94a3b8;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Document Item Card in Modal */
+.document-item-card {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+}
+
+.document-item-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #1e3a8a;
+}
+
+.doc-btn-group {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.doc-action-btn {
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 6px;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all 0.2s;
+}
+
+.btn-doc-preview {
+    background: #eff6ff;
+    color: #1d4ed8;
+    border-color: #bfdbfe;
+}
+.btn-doc-preview:hover {
+    background: #dbeafe;
+}
+
+.btn-doc-open {
+    background: #f0fdf4;
+    color: #15803d;
+    border-color: #bbf7d0;
+}
+.btn-doc-open:hover {
+    background: #dcfce7;
+}
+
+.btn-doc-download {
+    background: #f8fafc;
+    color: #475569;
+    border-color: #cbd5e1;
+}
+.btn-doc-download:hover {
+    background: #e2e8f0;
+}
