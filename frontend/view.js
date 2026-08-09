@@ -2255,341 +2255,284 @@ function renderAnalyticsCharts(stats) {
 
 
 // ============================================================
-// DELETE SYSTEM
+// TOAST NOTIFICATIONS
+// ============================================================
+
+const toastContainer = document.getElementById("toastContainer");
+
+function showToast(message, type = "success") {
+    const container = toastContainer || document.getElementById("toastContainer");
+    if (!container) {
+        console.log(`[Toast ${type}]:`, message);
+        return;
+    }
+
+    const toast = document.createElement("div");
+    toast.className = `toast toast-${type}`;
+    const icon = type === "success" ? "✅" : "⚠️";
+
+    toast.innerHTML = `
+        <span>${icon}</span>
+        <span>${escapeHtml(message)}</span>
+    `;
+
+    container.appendChild(toast);
+
+    setTimeout(() => {
+        toast.classList.add("toast-fade-out");
+        setTimeout(() => {
+            if (toast.parentElement) {
+                toast.parentElement.removeChild(toast);
+            }
+        }, 300);
+    }, 3500);
+}
+
+
+// ============================================================
+// DELETE STUDENT SYSTEM
 // ============================================================
 
 let pendingDeleteStudentId = null;
 
-const deleteModal =
-    document.getElementById(
-        "deleteModal"
-    );
-
-const cancelDeleteBtn =
-    document.getElementById(
-        "cancelDeleteBtn"
-    );
-
-const confirmDeleteBtn =
-    document.getElementById(
-        "confirmDeleteBtn"
-    );
-
-const toastContainer =
-    document.getElementById(
-        "toastContainer"
-    );
-
-
-// ============================================================
-// TOAST
-// ============================================================
-
-function showToast(
-    message,
-    type = "success"
-) {
-
-    if (!toastContainer) {
-        console.log(message);
-        return;
-    }
-
-
-    const toast =
-        document.createElement("div");
-
-
-    toast.className =
-        `toast toast-${type}`;
-
-
-    const icon =
-        type === "success"
-            ? "✅"
-            : "⚠️";
-
-
-    toast.innerHTML = `
-
-        <span>
-            ${icon}
-        </span>
-
-        <span>
-            ${escapeHtml(message)}
-        </span>
-
-    `;
-
-
-    toastContainer.appendChild(
-        toast
-    );
-
-
-    setTimeout(() => {
-
-        toast.classList.add(
-            "toast-fade-out"
-        );
-
-
-        setTimeout(() => {
-
-            if (toast.parentElement) {
-
-                toast.parentElement.removeChild(
-                    toast
-                );
-
-            }
-
-        }, 300);
-
-    }, 3000);
+function getDeleteElements() {
+    return {
+        modal: document.getElementById("deleteModal"),
+        message: document.getElementById("deleteModalMessage"),
+        cancelButton: document.getElementById("cancelDeleteBtn"),
+        confirmButton: document.getElementById("confirmDeleteBtn")
+    };
 }
-
-
-// ============================================================
-// DELETE STUDENT
-// ============================================================
 
 function deleteStudent(studentId) {
+    const id = Number(studentId);
+    console.log("Delete button clicked. Student ID:", id);
 
-    const student =
-        students.find(
-            s => Number(s.id) === Number(studentId)
-        );
-
-
-    if (!student) {
+    if (!Number.isInteger(id) || id <= 0) {
+        showToast("Invalid student ID.", "error");
         return;
     }
 
+    // Find student from currently loaded students
+    const student = Array.isArray(students)
+        ? students.find(s => Number(s.id) === id)
+        : null;
 
-    pendingDeleteStudentId =
-        studentId;
+    const {
+        modal,
+        message,
+        confirmButton
+    } = getDeleteElements();
 
-
-    const msgEl =
-        document.getElementById(
-            "deleteModalMessage"
-        );
-
-
-    if (msgEl) {
-
-        msgEl.textContent =
-            `Are you sure you want to delete the admission record for "${student.fullName}"?`;
+    if (!modal) {
+        alert("Delete confirmation modal was not found.");
+        console.error("Element #deleteModal not found.");
+        return;
     }
 
+    // Store selected student ID
+    pendingDeleteStudentId = id;
 
-    if (deleteModal) {
-
-        deleteModal.style.display =
-            "flex";
+    // Show student name
+    if (message) {
+        const studentName = student && student.fullName ? `"${student.fullName}"` : `record #${id}`;
+        message.textContent = `Are you sure you want to delete the admission record for ${studentName}? This action cannot be undone.`;
     }
+
+    // Show modal
+    modal.style.display = "flex";
+    modal.classList.add("show");
+
+    // Reset confirm button
+    if (confirmButton) {
+        confirmButton.disabled = false;
+        confirmButton.textContent = "Delete";
+    }
+
+    console.log("Delete confirmation opened for student:", id);
 }
-
-
-// ============================================================
-// HIDE DELETE MODAL
-// ============================================================
 
 function hideDeleteModal() {
+    const { modal } = getDeleteElements();
+    pendingDeleteStudentId = null;
 
-    pendingDeleteStudentId =
-        null;
+    if (modal) {
+        modal.style.display = "none";
+        modal.classList.remove("show");
+    }
 
+    console.log("Delete modal closed.");
+}
 
-    if (deleteModal) {
+function cancelStudentDelete() {
+    console.log("Delete cancelled.");
+    hideDeleteModal();
+}
 
-        deleteModal.style.display =
-            "none";
+async function confirmStudentDelete() {
+    const id = pendingDeleteStudentId;
+    console.log("Confirm delete clicked. Student ID:", id);
+
+    if (!id) {
+        showToast("No student selected for deletion.", "error");
+        return;
+    }
+
+    const { confirmButton } = getDeleteElements();
+
+    try {
+        if (confirmButton) {
+            confirmButton.disabled = true;
+            confirmButton.textContent = "Deleting...";
+        }
+
+        console.log(`Sending DELETE request to /api/students/${id}`);
+
+        const response = await fetch(`/api/students/${id}`, {
+            method: "DELETE",
+            headers: {
+                "Accept": "application/json"
+            }
+        });
+
+        console.log("DELETE response status:", response.status);
+
+        let data = {};
+        try {
+            data = await response.json();
+        } catch (jsonError) {
+            console.warn("Server did not return JSON.");
+        }
+
+        console.log("DELETE response data:", data);
+
+        if (!response.ok) {
+            throw new Error(data.error || data.message || `Delete failed. HTTP ${response.status}`);
+        }
+
+        // Close modal
+        hideDeleteModal();
+
+        // Show toast feedback
+        showToast(data.message || "Student deleted successfully.", "success");
+
+        // Remove student from local array
+        if (Array.isArray(students)) {
+            students = students.filter(student => Number(student.id) !== Number(id));
+        }
+
+        // Refresh student table
+        if (typeof renderStudents === "function") {
+            renderStudents();
+        }
+
+        // Refresh dashboard
+        if (typeof updateDashboard === "function") {
+            updateDashboard();
+        }
+
+        // Reload data from backend
+        if (typeof fetchStudents === "function") {
+            await fetchStudents();
+        }
+
+        console.log("Student deleted successfully:", id);
+
+    } catch (error) {
+        console.error("DELETE STUDENT ERROR:", error);
+        showToast("Unable to delete student: " + error.message, "error");
+    } finally {
+        if (confirmButton) {
+            confirmButton.disabled = false;
+            confirmButton.textContent = "Delete";
+        }
     }
 }
 
+function initializeDeleteSystem() {
+    const {
+        modal,
+        cancelButton,
+        confirmButton
+    } = getDeleteElements();
 
-// ============================================================
-// CANCEL DELETE
-// ============================================================
+    if (!modal) {
+        console.warn("Delete modal not found.");
+        return;
+    }
 
-if (cancelDeleteBtn) {
+    if (cancelButton) {
+        cancelButton.onclick = function (event) {
+            event.preventDefault();
+            event.stopPropagation();
+            cancelStudentDelete();
+        };
+    }
 
-    cancelDeleteBtn.addEventListener(
-        "click",
-        hideDeleteModal
-    );
-}
+    if (confirmButton) {
+        confirmButton.onclick = function (event) {
+            event.preventDefault();
+            event.stopPropagation();
+            confirmStudentDelete();
+        };
+    }
 
-
-// ============================================================
-// CONFIRM DELETE
-// ============================================================
-
-if (confirmDeleteBtn) {
-
-    confirmDeleteBtn.addEventListener(
-        "click",
-        function () {
-
-            if (!pendingDeleteStudentId) {
-                return;
-            }
-
-
-            const targetId =
-                pendingDeleteStudentId;
-
-
+    modal.onclick = function (event) {
+        if (event.target === modal) {
             hideDeleteModal();
-
-
-            fetch(
-                `/api/students/${targetId}`,
-                {
-                    method: "DELETE"
-                }
-            )
-
-                .then(response => {
-
-                    if (!response.ok) {
-
-                        throw new Error(
-                            "Unable to delete student"
-                        );
-                    }
-
-                    return response.json();
-                })
-
-                .then(() => {
-
-                    showToast(
-                        "Student deleted successfully.",
-                        "success"
-                    );
-
-
-                    fetchStudents();
-
-                })
-
-                .catch(err => {
-
-                    console.error(
-                        "Delete Error:",
-                        err
-                    );
-
-
-                    showToast(
-                        "Unable to delete student.",
-                        "error"
-                    );
-
-                });
-
         }
-    );
+    };
+
+    console.log("Delete system initialized successfully.");
+}
+
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initializeDeleteSystem);
+} else {
+    initializeDeleteSystem();
 }
 
 
 // ============================================================
-// VIEW MODAL CLOSE
+// VIEW MODAL CLOSE & GLOBAL EVENT HANDLERS
 // ============================================================
 
 function hideModal() {
-
     if (viewModal) {
-
-        viewModal.style.display =
-            "none";
+        viewModal.style.display = "none";
     }
 }
-
 
 if (closeModal) {
-
-    closeModal.addEventListener(
-        "click",
-        hideModal
-    );
+    closeModal.addEventListener("click", hideModal);
 }
-
 
 if (closeModalFooter) {
-
-    closeModalFooter.addEventListener(
-        "click",
-        hideModal
-    );
+    closeModalFooter.addEventListener("click", hideModal);
 }
 
-
-// ============================================================
-// WINDOW CLICK
-// ============================================================
-
-window.addEventListener(
-    "click",
-    function (event) {
-
-        if (
-            viewModal &&
-            event.target === viewModal
-        ) {
-
-            hideModal();
-        }
-
-
-        if (
-            deleteModal &&
-            event.target === deleteModal
-        ) {
-
-            hideDeleteModal();
-        }
-
+window.addEventListener("click", function (event) {
+    if (viewModal && event.target === viewModal) {
+        hideModal();
     }
-);
-
-
-// ============================================================
-// ESC KEY
-// ============================================================
-
-window.addEventListener(
-    "keydown",
-    function (event) {
-
-        if (event.key !== "Escape") {
-            return;
-        }
-
-
-        if (
-            viewModal &&
-            viewModal.style.display === "flex"
-        ) {
-
-            hideModal();
-        }
-
-
-        if (
-            deleteModal &&
-            deleteModal.style.display === "flex"
-        ) {
-
-            hideDeleteModal();
-        }
-
+    const delModal = document.getElementById("deleteModal");
+    if (delModal && event.target === delModal) {
+        hideDeleteModal();
     }
-);
+});
+
+window.addEventListener("keydown", function (event) {
+    if (event.key !== "Escape") {
+        return;
+    }
+    if (viewModal && viewModal.style.display === "flex") {
+        hideModal();
+    }
+    const delModal = document.getElementById("deleteModal");
+    if (delModal && delModal.style.display === "flex") {
+        hideDeleteModal();
+    }
+});
 
 
 // ============================================================

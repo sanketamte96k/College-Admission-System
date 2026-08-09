@@ -5,10 +5,12 @@ from flask import request, jsonify
 login_attempts = {}
 
 def sanitize_input(text):
-    if not text:
+    if text is None:
         return ""
-    text_str = str(text)
-    sanitized = html.escape(text_str)
+    text_str = str(text).strip()
+    # Unescape any existing HTML entities and strip raw HTML tags
+    unescaped = html.unescape(text_str)
+    sanitized = re.sub(r'<[^>]*>', '', unescaped)
     return sanitized.strip()
 
 def validate_email(email):

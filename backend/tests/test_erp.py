@@ -88,6 +88,16 @@ def test_erp_suite():
         assert logout_res.status_code == 200
         print("  [OK] Student logout verified.")
 
+        print("8. Testing Student Record Deletion...")
+        del_res = client.delete(f"/api/students/{st_id}")
+        assert del_res.status_code == 200
+        assert "deleted successfully" in del_res.get_json()["message"]
+
+        # Verify 404 after deletion
+        get_deleted = client.get(f"/api/students/{st_id}")
+        assert get_deleted.status_code == 404
+        print("  [OK] Student deletion & cleanup verified.")
+
         print("\nALL PRODUCTION ERP TEST SUITE CASES PASSED CLEANLY!")
 
 if __name__ == "__main__":
