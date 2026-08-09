@@ -304,6 +304,179 @@ document.addEventListener("DOMContentLoaded", function () {
         showToast(`Downloaded ${fileName}`, "success");
     }
 
+    // ============================================================
+    // LOAD & RENDER STUDENT FEES & PAYMENTS
+    // ============================================================
+    function loadStudentFees() {
+        fetch("/api/student/fees")
+            .then(res => {
+                if (!res.ok) throw new Error("Failed to load fee information");
+                return res.json();
+            })
+            .then(feeData => {
+                renderStudentFees(feeData);
+            })
+            .catch(err => {
+                console.error("Fee load error:", err);
+                const historyBody = document.getElementById("studentPaymentHistoryBody");
+                if (historyBody) {
+                    historyBody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: #ef4444; padding: 16px;">Unable to load fee details at this time.</td></tr>`;
+                }
+            });
+    }
+
+    function renderStudentFees(feeData) {
+        const totalFeeEl = document.getElementById("dispTotalFee");
+        const paidAmountEl = document.getElementById("dispPaidAmount");
+        const pendingAmountEl = document.getElementById("dispPendingAmount");
+        const statusBadge = document.getElementById("studentFeeStatusBadge");
+        const statusText = document.getElementById("dispFeeStatusText");
+        const breakdownList = document.getElementById("studentFeeBreakdownList");
+        const historyBody = document.getElementById("studentPaymentHistoryBody");
+
+        const total = Number(feeData.total_fee || 0);
+        const paid = Number(feeData.paid_amount || 0);
+        const pending = Number(feeData.pending_amount || 0);
+        const status = feeData.payment_status || "Pending";
+
+        if (totalFeeEl) totalFeeEl.textContent = `₹ ${total.toLocaleString("en-IN")}`;
+        if (paidAmountEl) paidAmountEl.textContent = `₹ ${paid.toLocaleString("en-IN")}`;
+        if (pendingAmountEl) pendingAmountEl.textContent = `₹ ${pending.toLocaleString("en-IN")}`;
+        if (statusText) statusText.textContent = status;
+
+        if (statusBadge) {
+            if (status === "Paid") {
+                statusBadge.className = "fee-badge fee-badge-paid";
+                statusBadge.innerHTML = "🟢 Fully Paid";
+            } else if (status === "Partially Paid") {
+                statusBadge.className = "fee-badge fee-badge-partial";
+                statusBadge.innerHTML = "🟡 Partially Paid";
+            } else {
+                statusBadge.className = "fee-badge fee-badge-pending";
+                statusBadge.innerHTML = "🔴 Pending";
+            }
+        }
+
+        // Render Fee Breakdown Pills
+        if (breakdownList && feeData.fee_breakdown) {
+            breakdownList.innerHTML = Object.entries(feeData.fee_breakdown).map(([k, v]) => `
+                <div style="background: white; border: 1px solid #cbd5e1; border-radius: 6px; padding: 6px 12px; font-size: 12px;">
+                    <span style="color: #64748b; font-weight: 600;">${k}:</span>
+                    <strong style="color: #1e293b; margin-left: 4px;">₹ ${Number(v).toLocaleString("en-IN")}</strong>
+                </div>
+            `).join("");
+        }
+
+        // Render Payment History Table
+        if (historyBody) {
+            const payments = feeData.payments || [];
+            if (payments.length === 0) {
+                historyBody.innerHTML = `
+                    <tr>
+                        <td colspan="7" style="text-align: center; color: #64748b; padding: 20px;">
+                            No payment transactions recorded yet.
+                        </td>
+                    </tr>
+                `;
+            } else {
+                historyBody.innerHTML = payments.map(p => `
+                    <tr>
+                        <td><strong>${p.payment_date || p.created_at || '-'}</strong></td>
+                        <td>${p.fee_type || 'Tuition Fee'}</td>
+                        <td style="font-weight: 700; color: #059669;">₹ ${Number(p.amount).toLocaleString('en-IN')}</td>
+                        <td><span style="background: #f1f5f9; padding: 3px 8px; border-radius: 4px; font-size: 12px;">${p.payment_method || p.payment_mode || 'UPI'}</span></td>
+                        <td><code style="background: #f8fafc; padding: 2px 6px; border-radius: 4px; font-size: 11px;">${p.transaction_id || '-'}</code></td>
+                        <td><span style="color: #15803d; font-weight: 600;">✓ ${p.status || 'SUCCESS'}</span></td>
+                        <td>
+                            <button class="doc-action-btn btn-doc-download" onclick="window.downloadPaymentReceipt(${JSON.stringify(p).replace(/"/g, '&quot;')}, ${JSON.stringify(currentStudent ? currentStudent.fullName : 'Student').replace(/"/g, '&quot;')})">
+                                📥 Receipt
+                            </button>
+                        </td>
+                    </tr>
+                `).join("");
+            }
+        }
+    }
+
+    // Receipt PDF Generator
+    window.downloadPaymentReceipt = function(payment, studentName) {
+        if (!window.jspdf) {
+            showToast("PDF generator library not loaded", "error");
+            return;
+        }
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a5" });
+
+        // Outer border
+        doc.rect(5, 5, 138, 200);
+        doc.setFillColor(30, 58, 138);
+        doc.rect(8, 8, 132, 22, "F");
+
+        doc.setTextColor(255, 255, 255);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(14);
+        doc.text("ZEAL COLLEGE OF ENGINEERING", 12, 17);
+        doc.setFontSize(9);
+        doc.setFont("helvetica", "normal");
+        doc.text("OFFICIAL FEE PAYMENT RECEIPT", 12, 23);
+
+        doc.setTextColor(30, 58, 138);
+        doc.setFontSize(11);
+        doc.setFont("helvetica", "bold");
+        doc.text("RECEIPT DETAILS", 12, 38);
+
+        doc.setFontSize(9);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(51, 65, 85);
+        doc.text(`Receipt / Txn ID: ${payment.transaction_id}`, 12, 46);
+        doc.text(`Payment Date: ${payment.payment_date || payment.created_at}`, 12, 53);
+        doc.text(`Student Name: ${studentName || 'Student'}`, 12, 60);
+        doc.text(`Student App ID: #${payment.student_id}`, 12, 67);
+
+        // Table Header
+        doc.setFillColor(241, 245, 249);
+        doc.rect(12, 75, 124, 8, "F");
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(15, 23, 42);
+        doc.text("Fee Particulars", 15, 80);
+        doc.text("Payment Mode", 70, 80);
+        doc.text("Amount (INR)", 105, 80);
+
+        // Row
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(51, 65, 85);
+        doc.text(payment.fee_type || "Tuition Fee", 15, 90);
+        doc.text(payment.payment_method || payment.payment_mode || "UPI", 70, 90);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(5, 150, 105);
+        doc.text(`Rs. ${Number(payment.amount).toLocaleString('en-IN')}`, 105, 90);
+
+        // Total box
+        doc.setDrawColor(203, 213, 225);
+        doc.line(12, 96, 136, 96);
+        doc.setFontSize(10);
+        doc.setTextColor(30, 58, 138);
+        doc.text("Total Paid Amount:", 65, 104);
+        doc.text(`Rs. ${Number(payment.amount).toLocaleString('en-IN')}`, 105, 104);
+
+        if (payment.remarks) {
+            doc.setFontSize(8);
+            doc.setFont("helvetica", "italic");
+            doc.setTextColor(100, 116, 139);
+            doc.text(`Remarks: ${payment.remarks}`, 12, 115);
+        }
+
+        doc.setFontSize(8);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(100, 116, 139);
+        doc.text("Note: This is a computer generated payment receipt. No physical signature required.", 12, 180);
+        doc.text("Admission Accounts Office | Zeal College of Engineering, Pune", 12, 186);
+
+        const fileName = `Receipt_${payment.transaction_id}.pdf`;
+        doc.save(fileName);
+        showToast(`Downloaded ${fileName}`, "success");
+    };
+
     // Student Logout Handler
     if (studentLogoutBtn) {
         studentLogoutBtn.addEventListener("click", function () {
@@ -329,6 +502,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }, 3000);
     }
 
-    // Initialize Student Profile Load
+    // Initialize Student Profile Load & Fees
     loadStudentProfile();
+    loadStudentFees();
 });

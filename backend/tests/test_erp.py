@@ -186,18 +186,122 @@ def test_erp_suite():
         assert unauth_ver.status_code == 401
         print("  [OK] CASE 5: Unauthorized verification attempt blocked with 401.")
 
-        # Re-login admin for remaining checks
+        # Re-login admin for fee checks
         client.post("/api/login", json={"username": "admin", "password": "admin123"})
 
-        print("7. Testing Analytics Dashboard Status Breakdown...")
+        print("7. Testing Fee & Payment Management Module (Tests 1 - 10)...")
+        # TEST 1: Admin opens student fee details
+        fee_res = client.get(f"/api/students/{st_id}/fees")
+        assert fee_res.status_code == 200
+        fdata = fee_res.get_json()
+        assert "total_fee" in fdata
+        assert fdata["total_fee"] > 0
+        assert fdata["paid_amount"] == 0.0
+        assert fdata["pending_amount"] == fdata["total_fee"]
+        assert fdata["payment_status"] == "Pending"
+        assert "fee_breakdown" in fdata
+        print(f"  [OK] TEST 1: Fee structure fetched (Total: Rs. {fdata['total_fee']}, Status: {fdata['payment_status']}).")
+
+        # TEST 9: Invalid payment amount is rejected
+        neg_pay = client.post(f"/api/students/{st_id}/payments", json={
+            "amount": -500.0,
+            "fee_type": "Tuition Fee"
+        })
+        assert neg_pay.status_code == 400
+        zero_pay = client.post(f"/api/students/{st_id}/payments", json={
+            "amount": 0,
+            "fee_type": "Tuition Fee"
+        })
+        assert zero_pay.status_code == 400
+        print("  [OK] TEST 9: Invalid payment amount (<= 0) rejected with 400.")
+
+        # TEST 2: Admin records a partial payment
+        pay1_res = client.post(f"/api/students/{st_id}/payments", json={
+            "amount": 40000.0,
+            "fee_type": "Tuition Fee",
+            "payment_method": "UPI",
+            "transaction_id": "TEST_TXN_001",
+            "remarks": "First installment paid"
+        })
+        assert pay1_res.status_code == 201
+        p1_data = pay1_res.get_json()
+        assert p1_data["success"] is True
+        assert p1_data["payment"]["amount"] == 40000.0
+        print("  [OK] TEST 2: First payment recorded successfully (Rs. 40,000 via UPI).")
+
+        # Prevent duplicate transaction ID
+        dup_pay = client.post(f"/api/students/{st_id}/payments", json={
+            "amount": 10000.0,
+            "transaction_id": "TEST_TXN_001"
+        })
+        assert dup_pay.status_code == 400
+        print("  [OK] Duplicate transaction ID successfully blocked.")
+
+        # TEST 3, 4, 5: Paid amount, Pending amount, and Status update to 'Partially Paid'
+        summary1 = p1_data["summary"]
+        assert summary1["paid_amount"] == 40000.0
+        assert summary1["pending_amount"] == round(summary1["total_fee"] - 40000.0, 2)
+        assert summary1["payment_status"] == "Partially Paid"
+        print(f"  [OK] TEST 3, 4, 5: Partial balance confirmed (Paid: Rs. {summary1['paid_amount']}, Pending: Rs. {summary1['pending_amount']}, Status: {summary1['payment_status']}).")
+
+        # TEST 6: Payment history displays correctly
+        hist_res = client.get(f"/api/students/{st_id}/payments")
+        assert hist_res.status_code == 200
+        hdata = hist_res.get_json()
+        assert len(hdata) == 1
+        assert hdata[0]["transaction_id"] == "TEST_TXN_001"
+        print("  [OK] TEST 6: Payment history returns chronological records.")
+
+        # Pay remaining balance to achieve 'Paid' status
+        rem_amount = summary1["pending_amount"]
+        pay2_res = client.post(f"/api/students/{st_id}/payments", json={
+            "amount": rem_amount,
+            "fee_type": "Development Fee",
+            "payment_method": "Bank Transfer",
+            "remarks": "Final clearance"
+        })
+        assert pay2_res.status_code == 201
+        p2_data = pay2_res.get_json()
+        summary2 = p2_data["summary"]
+        assert summary2["pending_amount"] == 0.0
+        assert summary2["payment_status"] == "Paid"
+        print(f"  [OK] Status updated to 'Paid' upon full fee clearance (Paid: Rs. {summary2['paid_amount']}, Pending: Rs. 0).")
+
+        # TEST 7: Student logs in and sees their own fee information
+        client.get("/api/logout")  # Logout admin
+        st_login = client.post("/api/student-login", json={"application_id": st_id, "dob": "2001-09-20"})
+        assert st_login.status_code == 200
+        
+        st_fee_res = client.get("/api/student/fees")
+        assert st_fee_res.status_code == 200
+        st_fdata = st_fee_res.get_json()
+        assert st_fdata["student_id"] == st_id
+        assert st_fdata["payment_status"] == "Paid"
+        assert len(st_fdata["payments"]) == 2
+        print("  [OK] TEST 7: Logged-in student successfully views own fee summary and payments.")
+
+        # TEST 8: Student cannot access another student's fee information
+        forbidden_fee = client.get(f"/api/students/{st_id + 99}/fees")
+        assert forbidden_fee.status_code in [403, 404]
+        forbidden_pay = client.get(f"/api/students/{st_id + 99}/payments")
+        assert forbidden_pay.status_code in [403, 404]
+        print("  [OK] TEST 8: ID tampering blocked with 403 Forbidden for students.")
+
+        # Re-login admin for remaining checks
+        client.post("/api/student-logout")
+        client.post("/api/login", json={"username": "admin", "password": "admin123"})
+
+        print("8. Testing Analytics Dashboard Status & Fee Breakdown...")
         analytics_res = client.get("/api/dashboard")
         assert analytics_res.status_code == 200
         adata = analytics_res.get_json()
         assert adata["total"] >= 1
         assert "status_stats" in adata
-        print("  [OK] Analytics Dashboard verification stats confirmed.")
+        assert "total_fees_collected" in adata
+        assert adata["total_fees_collected"] >= summary2["paid_amount"]
+        print("  [OK] Analytics Dashboard verification & fee collections confirmed.")
 
-        print("8. Testing Student Record Deletion...")
+        print("9. Testing Student Record Deletion & Payment Cascade...")
         del_res = client.delete(f"/api/students/{st_id}")
         assert del_res.status_code == 200
         assert "deleted successfully" in del_res.get_json()["message"]
@@ -205,9 +309,9 @@ def test_erp_suite():
         # Verify 404 after deletion
         get_deleted = client.get(f"/api/students/{st_id}")
         assert get_deleted.status_code == 404
-        print("  [OK] Student deletion & cleanup verified.")
+        print("  [OK] Student deletion & payment cleanup verified.")
 
-        print("\nALL PRODUCTION ERP TEST SUITE CASES (CASES 1-5 + CRUD) PASSED CLEANLY!")
+        print("\nALL PRODUCTION ERP TEST SUITE CASES (VERIFICATION + FEES 1-10 + CRUD) PASSED CLEANLY!")
 
 if __name__ == "__main__":
     test_erp_suite()

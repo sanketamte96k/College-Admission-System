@@ -328,6 +328,67 @@
 
         </div>
 
+        <!-- ============================================================ -->
+        <!-- FEES & PAYMENT MANAGEMENT SECTION                           -->
+        <!-- ============================================================ -->
+        <div class="fee-management-card">
+            <div class="fee-card-header">
+                <h3>💳 Fees & Payments Overview</h3>
+                <span id="studentFeeStatusBadge" class="fee-badge fee-badge-pending">🔴 Pending</span>
+            </div>
+
+            <!-- Fee Summary KPIs -->
+            <div class="fee-kpi-grid">
+                <div class="fee-kpi-tile kpi-total">
+                    <div class="kpi-label">Total Fees</div>
+                    <div class="kpi-value" id="dispTotalFee">₹ 0</div>
+                </div>
+                <div class="fee-kpi-tile kpi-paid">
+                    <div class="kpi-label">Paid Amount</div>
+                    <div class="kpi-value" id="dispPaidAmount">₹ 0</div>
+                </div>
+                <div class="fee-kpi-tile kpi-pending">
+                    <div class="kpi-label">Pending Amount</div>
+                    <div class="kpi-value" id="dispPendingAmount">₹ 0</div>
+                </div>
+                <div class="fee-kpi-tile kpi-status">
+                    <div class="kpi-label">Payment Status</div>
+                    <div class="kpi-value" id="dispFeeStatusText" style="font-size: 16px; color: #8b5cf6;">Pending</div>
+                </div>
+            </div>
+
+            <!-- Fee Breakdown Pill List -->
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px 16px; margin-bottom: 20px;">
+                <h5 style="margin: 0 0 10px 0; color: #1e3a8a; font-size: 13px;">Fee Breakdown:</h5>
+                <div id="studentFeeBreakdownList" style="display: flex; flex-wrap: wrap; gap: 10px;">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+
+            <!-- Payment History Table -->
+            <h4 style="color: #1e3a8a; font-size: 15px; margin: 15px 0 10px 0;">📜 Payment History</h4>
+            <div class="fee-table-wrapper">
+                <table class="fee-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Fee Type</th>
+                            <th>Amount</th>
+                            <th>Method</th>
+                            <th>Transaction ID</th>
+                            <th>Status</th>
+                            <th>Receipt</th>
+                        </tr>
+                    </thead>
+                    <tbody id="studentPaymentHistoryBody">
+                        <tr>
+                            <td colspan="7" style="text-align: center; color: #64748b; padding: 16px;">Loading payment history...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
         <div style="text-align: center; margin-top: 25px; margin-bottom: 40px;">
             <button id="studentLogoutBtn" class="logout-btn"><span>🚪</span> Logout from Student Portal</button>
         </div>

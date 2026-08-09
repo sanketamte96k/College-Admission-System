@@ -42,6 +42,8 @@ class Student(db.Model):
     verified_at = db.Column(db.DateTime, nullable=True)
     verified_by = db.Column(db.String(100), nullable=True)
 
+    payments = db.relationship("Payment", backref="student", cascade="all, delete-orphan", lazy=True)
+
     def to_dict(self):
         return {
             "id": self.id,

@@ -711,9 +711,117 @@ function populateViewModal(student) {
                 ${lcCard}
             </div>
         </div>
+
+        <!-- FEES & PAYMENT MANAGEMENT SECTION IN MODAL -->
+        <div class="fee-management-card" style="margin-top: 20px;">
+            <div class="fee-card-header">
+                <h4>💳 Fees & Payment Management</h4>
+                <span id="modalFeeStatusBadge" class="fee-badge fee-badge-pending">🔴 Pending</span>
+            </div>
+
+            <!-- KPI Tiles -->
+            <div class="fee-kpi-grid">
+                <div class="fee-kpi-tile kpi-total">
+                    <div class="kpi-label">Total Fee</div>
+                    <div class="kpi-value" id="mTotalFee">₹ 0</div>
+                </div>
+                <div class="fee-kpi-tile kpi-paid">
+                    <div class="kpi-label">Amount Paid</div>
+                    <div class="kpi-value" id="mPaidAmount">₹ 0</div>
+                </div>
+                <div class="fee-kpi-tile kpi-pending">
+                    <div class="kpi-label">Pending Dues</div>
+                    <div class="kpi-value" id="mPendingAmount">₹ 0</div>
+                </div>
+                <div class="fee-kpi-tile kpi-status">
+                    <div class="kpi-label">Status</div>
+                    <div class="kpi-value" id="mFeeStatusText" style="font-size: 15px; color: #8b5cf6;">Pending</div>
+                </div>
+            </div>
+
+            <!-- Fee Breakdown Pills -->
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 14px; margin-bottom: 15px;">
+                <strong style="color: #1e3a8a; font-size: 12px;">Fee Breakdown:</strong>
+                <div id="mFeeBreakdownPills" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;">
+                    <!-- Breakdown items -->
+                </div>
+            </div>
+
+            <!-- Record Payment Form -->
+            <div class="record-payment-card">
+                <h5 style="margin: 0 0 12px 0; color: #1e3a8a; font-size: 14px;">➕ Record Student Fee Payment</h5>
+                <form id="recordPaymentForm" onsubmit="event.preventDefault(); recordStudentPayment(${student.id});">
+                    <div class="record-payment-grid">
+                        <div class="pay-input-group">
+                            <label for="adminPayAmount">Amount (₹) *</label>
+                            <input type="number" id="adminPayAmount" placeholder="e.g. 25000" min="1" step="0.01" required>
+                        </div>
+                        <div class="pay-input-group">
+                            <label for="adminPayFeeType">Fee Category *</label>
+                            <select id="adminPayFeeType" required>
+                                <option value="Tuition Fee">Tuition Fee</option>
+                                <option value="Development Fee">Development Fee</option>
+                                <option value="Examination Fee">Examination Fee</option>
+                                <option value="Library Fee">Library Fee</option>
+                                <option value="Laboratory Fee">Laboratory Fee</option>
+                                <option value="Other Fee">Other Fee</option>
+                            </select>
+                        </div>
+                        <div class="pay-input-group">
+                            <label for="adminPayMethod">Payment Method *</label>
+                            <select id="adminPayMethod" required>
+                                <option value="UPI">UPI</option>
+                                <option value="Cash">Cash</option>
+                                <option value="Bank Transfer">Bank Transfer</option>
+                                <option value="Online Payment">Online Payment</option>
+                                <option value="Demand Draft">Demand Draft</option>
+                            </select>
+                        </div>
+                        <div class="pay-input-group">
+                            <label for="adminPayTxnId">Transaction / Ref ID (Optional)</label>
+                            <input type="text" id="adminPayTxnId" placeholder="Auto-generated if empty">
+                        </div>
+                    </div>
+                    <div class="pay-input-group" style="margin-top: 10px;">
+                        <label for="adminPayRemarks">Remarks / Notes</label>
+                        <input type="text" id="adminPayRemarks" placeholder="Optional payment remarks, receipt notes...">
+                    </div>
+                    <div style="display: flex; justify-content: flex-end; margin-top: 12px;">
+                        <button type="submit" id="adminPaySubmitBtn" class="btn-record-payment">
+                            💳 Record Payment
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Payment History in Modal -->
+            <h5 style="color: #1e3a8a; font-size: 14px; margin: 18px 0 10px 0;">📜 Payment Transactions History</h5>
+            <div class="fee-table-wrapper">
+                <table class="fee-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Fee Category</th>
+                            <th>Amount</th>
+                            <th>Method</th>
+                            <th>Txn ID</th>
+                            <th>Status</th>
+                            <th>Recorded By</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="mPaymentHistoryBody">
+                        <tr>
+                            <td colspan="8" style="text-align: center; color: #64748b; padding: 14px;">Loading payment history...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
     `;
 
     viewModal.style.display = "flex";
+    loadStudentModalFees(student.id, student.fullName);
 }
 
 
@@ -1817,6 +1925,19 @@ function updateDashboard() {
             if (vVerified) vVerified.textContent = stats.verified_count || 0;
             if (vRejected) vRejected.textContent = stats.rejected_count || 0;
 
+            // Fee Analytics Overview
+            const vFeesColl = document.getElementById("vFeesCollected");
+            const vPendFees = document.getElementById("vPendingFees");
+            const vPaidStudents = document.getElementById("vPaidStudentsCount");
+            const vPartialStudents = document.getElementById("vPartialStudentsCount");
+            const vPendStudents = document.getElementById("vPendingStudentsCount");
+
+            if (vFeesColl) vFeesColl.textContent = `₹ ${Number(stats.total_fees_collected || 0).toLocaleString("en-IN")}`;
+            if (vPendFees) vPendFees.textContent = `₹ ${Number(stats.total_pending_fees || 0).toLocaleString("en-IN")}`;
+            if (vPaidStudents) vPaidStudents.textContent = stats.paid_students_count || 0;
+            if (vPartialStudents) vPartialStudents.textContent = stats.partial_paid_students_count || 0;
+            if (vPendStudents) vPendStudents.textContent = stats.pending_fees_students_count || 0;
+
 
             // ==================================================
             // KEY STATISTICS
@@ -2774,4 +2895,253 @@ function logoutAdmin() {
                 "login.html";
 
         });
+}
+
+// ============================================================
+// MODAL FEE MANAGEMENT FUNCTIONS
+// ============================================================
+
+let currentModalStudentName = "Student";
+
+function loadStudentModalFees(studentId, studentName = "Student") {
+    currentModalStudentName = studentName;
+    fetch(`/api/students/${studentId}/fees`)
+        .then(res => {
+            if (!res.ok) throw new Error("Failed to load student fee summary");
+            return res.json();
+        })
+        .then(feeData => {
+            renderModalFeeDetails(feeData);
+        })
+        .catch(err => {
+            console.error("Error loading modal fees:", err);
+            const historyBody = document.getElementById("mPaymentHistoryBody");
+            if (historyBody) {
+                historyBody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: #ef4444; padding: 14px;">Unable to load fee summary.</td></tr>`;
+            }
+        });
+}
+
+function renderModalFeeDetails(feeData) {
+    const totalEl = document.getElementById("mTotalFee");
+    const paidEl = document.getElementById("mPaidAmount");
+    const pendEl = document.getElementById("mPendingAmount");
+    const statusTextEl = document.getElementById("mFeeStatusText");
+    const statusBadgeEl = document.getElementById("modalFeeStatusBadge");
+    const pillsContainer = document.getElementById("mFeeBreakdownPills");
+    const historyBody = document.getElementById("mPaymentHistoryBody");
+
+    const total = Number(feeData.total_fee || 0);
+    const paid = Number(feeData.paid_amount || 0);
+    const pending = Number(feeData.pending_amount || 0);
+    const status = feeData.payment_status || "Pending";
+
+    if (totalEl) totalEl.textContent = `₹ ${total.toLocaleString("en-IN")}`;
+    if (paidEl) paidEl.textContent = `₹ ${paid.toLocaleString("en-IN")}`;
+    if (pendEl) pendEl.textContent = `₹ ${pending.toLocaleString("en-IN")}`;
+    if (statusTextEl) statusTextEl.textContent = status;
+
+    if (statusBadgeEl) {
+        if (status === "Paid") {
+            statusBadgeEl.className = "fee-badge fee-badge-paid";
+            statusBadgeEl.innerHTML = "🟢 Paid";
+        } else if (status === "Partially Paid") {
+            statusBadgeEl.className = "fee-badge fee-badge-partial";
+            statusBadgeEl.innerHTML = "🟡 Partially Paid";
+        } else {
+            statusBadgeEl.className = "fee-badge fee-badge-pending";
+            statusBadgeEl.innerHTML = "🔴 Pending";
+        }
+    }
+
+    if (pillsContainer && feeData.fee_breakdown) {
+        pillsContainer.innerHTML = Object.entries(feeData.fee_breakdown).map(([k, v]) => `
+            <span style="background: white; border: 1px solid #cbd5e1; border-radius: 6px; padding: 4px 8px; font-size: 11px;">
+                <span style="color: #64748b;">${k}:</span> <strong style="color: #0f172a;">₹ ${Number(v).toLocaleString("en-IN")}</strong>
+            </span>
+        `).join("");
+    }
+
+    if (historyBody) {
+        const payments = feeData.payments || [];
+        if (payments.length === 0) {
+            historyBody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: #64748b; padding: 16px;">No fee payments recorded yet.</td></tr>`;
+        } else {
+            historyBody.innerHTML = payments.map(p => `
+                <tr>
+                    <td><strong>${p.payment_date || p.created_at || '-'}</strong></td>
+                    <td>${p.fee_type || 'Tuition Fee'}</td>
+                    <td style="font-weight: 700; color: #059669;">₹ ${Number(p.amount).toLocaleString('en-IN')}</td>
+                    <td><span style="background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-size: 11px;">${p.payment_method || 'UPI'}</span></td>
+                    <td><code style="font-size: 11px;">${p.transaction_id || '-'}</code></td>
+                    <td><span style="color: #15803d; font-weight: 600;">✓ ${p.status || 'SUCCESS'}</span></td>
+                    <td><small style="color: #64748b;">${p.recorded_by || 'admin'}</small></td>
+                    <td>
+                        <button type="button" class="doc-action-btn btn-doc-download" onclick="downloadAdminPaymentReceipt(${JSON.stringify(p).replace(/"/g, '&quot;')}, '${escapeHtml(currentModalStudentName)}')">
+                            📥 Receipt
+                        </button>
+                    </td>
+                </tr>
+            `).join("");
+        }
+    }
+}
+
+async function recordStudentPayment(studentId) {
+    const amountInput = document.getElementById("adminPayAmount");
+    const feeTypeSelect = document.getElementById("adminPayFeeType");
+    const methodSelect = document.getElementById("adminPayMethod");
+    const txnIdInput = document.getElementById("adminPayTxnId");
+    const remarksInput = document.getElementById("adminPayRemarks");
+    const submitBtn = document.getElementById("adminPaySubmitBtn");
+
+    const amountVal = parseFloat(amountInput.value);
+    if (isNaN(amountVal) || amountVal <= 0) {
+        showToast("Please enter a valid payment amount greater than zero.", "error");
+        amountInput.focus();
+        return;
+    }
+
+    try {
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.textContent = "Processing...";
+        }
+
+        const payload = {
+            amount: amountVal,
+            fee_type: feeTypeSelect.value,
+            payment_method: methodSelect.value,
+            transaction_id: txnIdInput ? txnIdInput.value.trim() : "",
+            remarks: remarksInput ? remarksInput.value.trim() : ""
+        };
+
+        const response = await fetch(`/api/students/${studentId}/payments`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            credentials: "same-origin",
+            body: JSON.stringify(payload)
+        });
+
+        const contentType = response.headers.get("content-type") || "";
+        let data = {};
+        if (contentType.includes("application/json")) {
+            data = await response.json();
+        } else {
+            const text = await response.text();
+            throw new Error(`Server returned non-JSON response: ${text.substring(0, 100)}`);
+        }
+
+        if (!response.ok) {
+            throw new Error(data.error || data.message || `HTTP Error ${response.status}`);
+        }
+
+        showToast(data.message || "Payment recorded successfully!", "success");
+
+        // Clear input form
+        amountInput.value = "";
+        if (txnIdInput) txnIdInput.value = "";
+        if (remarksInput) remarksInput.value = "";
+
+        // Reload modal fee card
+        if (data.summary) {
+            renderModalFeeDetails(data.summary);
+        } else {
+            loadStudentModalFees(studentId, currentModalStudentName);
+        }
+
+        // Refresh global dashboard analytics
+        updateDashboard();
+
+    } catch (err) {
+        console.error("Record payment error:", err);
+        showToast("Failed to record payment: " + err.message, "error");
+    } finally {
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = "💳 Record Payment";
+        }
+    }
+}
+
+function downloadAdminPaymentReceipt(payment, studentName) {
+    if (!window.jspdf) {
+        showToast("PDF generator library is not loaded", "error");
+        return;
+    }
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a5" });
+
+    // Header Frame
+    doc.rect(5, 5, 138, 200);
+    doc.setFillColor(30, 58, 138);
+    doc.rect(8, 8, 132, 22, "F");
+
+    doc.setTextColor(255, 255, 255);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(14);
+    doc.text("ZEAL COLLEGE OF ENGINEERING", 12, 17);
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.text("OFFICIAL FEE PAYMENT RECEIPT", 12, 23);
+
+    doc.setTextColor(30, 58, 138);
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    doc.text("RECEIPT DETAILS", 12, 38);
+
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(51, 65, 85);
+    doc.text(`Receipt / Txn ID: ${payment.transaction_id}`, 12, 46);
+    doc.text(`Payment Date: ${payment.payment_date || payment.created_at}`, 12, 53);
+    doc.text(`Student Name: ${studentName || 'Student'}`, 12, 60);
+    doc.text(`Student App ID: #${payment.student_id}`, 12, 67);
+    doc.text(`Authorized By: ${payment.recorded_by || 'Accounts Admin'}`, 12, 74);
+
+    // Table Header
+    doc.setFillColor(241, 245, 249);
+    doc.rect(12, 82, 124, 8, "F");
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(15, 23, 42);
+    doc.text("Fee Particulars", 15, 87);
+    doc.text("Payment Mode", 70, 87);
+    doc.text("Amount (INR)", 105, 87);
+
+    // Row
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(51, 65, 85);
+    doc.text(payment.fee_type || "Tuition Fee", 15, 97);
+    doc.text(payment.payment_method || payment.payment_mode || "UPI", 70, 97);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(5, 150, 105);
+    doc.text(`Rs. ${Number(payment.amount).toLocaleString('en-IN')}`, 105, 97);
+
+    // Total box
+    doc.setDrawColor(203, 213, 225);
+    doc.line(12, 103, 136, 103);
+    doc.setFontSize(10);
+    doc.setTextColor(30, 58, 138);
+    doc.text("Total Paid Amount:", 65, 111);
+    doc.text(`Rs. ${Number(payment.amount).toLocaleString('en-IN')}`, 105, 111);
+
+    if (payment.remarks) {
+        doc.setFontSize(8);
+        doc.setFont("helvetica", "italic");
+        doc.setTextColor(100, 116, 139);
+        doc.text(`Remarks: ${payment.remarks}`, 12, 122);
+    }
+
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(100, 116, 139);
+    doc.text("Note: This is a computer generated payment receipt. No physical signature required.", 12, 180);
+    doc.text("Admission Accounts Office | Zeal College of Engineering, Pune", 12, 186);
+
+    const fileName = `Receipt_${payment.transaction_id}.pdf`;
+    doc.save(fileName);
+    showToast(`Downloaded ${fileName}`, "success");
 }

@@ -72,6 +72,14 @@ class AnalyticsService:
         verified_count = 0
         rejected_count = 0
 
+        # Fee Statistics
+        from .payment_service import PaymentService
+        total_fees_expected = 0.0
+        total_fees_collected = 0.0
+        paid_students_count = 0
+        partial_paid_students_count = 0
+        pending_fees_students_count = 0
+
         for s in all_students:
             st = s.status or "Pending Verification"
             if st == "Verified":
@@ -82,6 +90,25 @@ class AnalyticsService:
                 rejected_count += 1
             else:
                 pending_count += 1
+
+            # Fee computation per student
+            try:
+                _, s_total = PaymentService.get_fee_breakdown_for_student(s)
+                s_payments = getattr(s, "payments", []) or []
+                s_paid = sum(float(p.amount) for p in s_payments if getattr(p, "status", "") in ["SUCCESS", "Paid"])
+                total_fees_expected += s_total
+                total_fees_collected += s_paid
+                if s_paid == 0.0:
+                    pending_fees_students_count += 1
+                elif s_paid >= s_total:
+                    paid_students_count += 1
+                else:
+                    partial_paid_students_count += 1
+            except Exception:
+                pass
+
+        total_pending_fees = max(0.0, round(total_fees_expected - total_fees_collected, 2))
+        total_fees_collected = round(total_fees_collected, 2)
 
         status_stats = {
             "Pending Verification": pending_count,
@@ -102,6 +129,12 @@ class AnalyticsService:
             "verified_count": verified_count,
             "rejected_count": rejected_count,
             "status_stats": status_stats,
+            "total_fees_collected": total_fees_collected,
+            "total_pending_fees": total_pending_fees,
+            "total_fees_expected": round(total_fees_expected, 2),
+            "paid_students_count": paid_students_count,
+            "partial_paid_students_count": partial_paid_students_count,
+            "pending_fees_students_count": pending_fees_students_count,
             "comp": dept_counts.get("Computer Engineering", 0),
             "it": dept_counts.get("Information Technology", 0),
             "aids": dept_counts.get("Artificial Intelligence & Data Science", 0),

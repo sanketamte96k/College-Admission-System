@@ -139,6 +139,20 @@ def create_app(config_name=None):
                         conn.commit()
                     except Exception:
                         pass
+
+                # Migration for Fee & Payment Management Module
+                for p_col, p_type in [
+                    ("fee_type", "VARCHAR(100) DEFAULT 'Tuition Fee'"),
+                    ("payment_method", "VARCHAR(50) DEFAULT 'UPI / Online'"),
+                    ("payment_date", "DATETIME NULL"),
+                    ("remarks", "TEXT NULL"),
+                    ("recorded_by", "VARCHAR(100) DEFAULT 'admin'")
+                ]:
+                    try:
+                        conn.execute(db.text(f"ALTER TABLE payments ADD COLUMN {p_col} {p_type}"))
+                        conn.commit()
+                    except Exception:
+                        pass
         except Exception as e:
             app.logger.info(f"Migration note: {e}")
 
