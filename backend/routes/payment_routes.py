@@ -1,8 +1,45 @@
-from flask import Blueprint, request, jsonify, session, current_app
-from services import PaymentService
+from flask import Blueprint, request, jsonify, session, current_app, send_file
+from services import PaymentService, ReceiptService
+from models import Payment, Student
 from utils import admin_required, student_required
 
 payment_bp = Blueprint("payment", __name__)
+
+
+# ============================================================
+# OFFICIAL PDF FEE RECEIPT DOWNLOAD
+# ============================================================
+@payment_bp.route("/api/payments/<int:payment_id>/receipt", methods=["GET"])
+@payment_bp.route("/api/students/<int:student_id>/payments/<int:payment_id>/receipt", methods=["GET"])
+def download_payment_receipt(payment_id, student_id=None):
+    is_admin = bool(session.get("admin_id"))
+    current_student_id = session.get("student_id")
+
+    if not is_admin and not current_student_id:
+        return jsonify({"error": "Authentication required", "redirect": "/login.html"}), 401
+
+    payment = Payment.query.get(payment_id)
+    if not payment:
+        return jsonify({"error": f"Payment #{payment_id} not found"}), 404
+
+    # Security check: Non-admin students can only download their own receipt
+    if not is_admin:
+        if int(current_student_id) != int(payment.student_id):
+            return jsonify({"error": "Forbidden: You are not authorized to download this payment receipt"}), 403
+
+    if student_id and int(payment.student_id) != int(student_id):
+        return jsonify({"error": "Payment does not match specified student"}), 400
+
+    pdf_buffer, receipt_no = ReceiptService.generate_fee_receipt_pdf(payment_id)
+    if not pdf_buffer:
+        return jsonify({"error": receipt_no or "Failed to generate receipt PDF"}), 500
+
+    return send_file(
+        pdf_buffer,
+        mimetype="application/pdf",
+        as_attachment=True,
+        download_name=f"{receipt_no}.pdf"
+    )
 
 
 # ============================================================

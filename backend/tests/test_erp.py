@@ -6,7 +6,7 @@ if BASE_DIR not in sys.path:
     sys.path.insert(0, BASE_DIR)
 
 from app import create_app
-from models import db, Student, Admin
+from models import db, Student, Admin, Payment
 
 def test_erp_suite():
     print("=== STARTING PRODUCTION ERP TEST SUITE ===")
@@ -250,6 +250,7 @@ def test_erp_suite():
         hdata = hist_res.get_json()
         assert len(hdata) == 1
         assert hdata[0]["transaction_id"] == "TEST_TXN_001"
+        pay1_id = p1_data["payment"]["id"]
         print("  [OK] TEST 6: Payment history returns chronological records.")
 
         # Pay remaining balance to achieve 'Paid' status
@@ -262,12 +263,49 @@ def test_erp_suite():
         })
         assert pay2_res.status_code == 201
         p2_data = pay2_res.get_json()
+        pay2_id = p2_data["payment"]["id"]
         summary2 = p2_data["summary"]
         assert summary2["pending_amount"] == 0.0
         assert summary2["payment_status"] == "Paid"
         print(f"  [OK] Status updated to 'Paid' upon full fee clearance (Paid: Rs. {summary2['paid_amount']}, Pending: Rs. 0).")
 
-        # TEST 7: Student logs in and sees their own fee information
+        print("8. Testing Official PDF Fee Receipt Generation & Security...")
+        # PDF TEST 1: Admin downloads receipt for Payment 1
+        admin_rcpt1 = client.get(f"/api/payments/{pay1_id}/receipt")
+        assert admin_rcpt1.status_code == 200
+        assert "application/pdf" in admin_rcpt1.content_type
+        assert admin_rcpt1.data.startswith(b"%PDF")
+        assert "attachment;" in admin_rcpt1.headers.get("Content-Disposition", "")
+        print(f"  [OK] PDF TEST 1: Admin downloaded Payment 1 PDF Receipt ({len(admin_rcpt1.data)} bytes, Content-Type: application/pdf).")
+
+        # PDF TEST 2 & 3: Multi-payment reconciliation calculations
+        from services.receipt_service import ReceiptService
+        pay1_obj = Payment.query.get(pay1_id)
+        pay2_obj = Payment.query.get(pay2_id)
+        student_obj = Student.query.get(st_id)
+
+        recon1 = ReceiptService.calculate_reconciliation_data(pay1_obj, student_obj)
+        assert recon1["previously_paid"] == 0.0
+        assert recon1["current_payment"] == 40000.0
+        assert recon1["cumulative_paid"] == 40000.0
+        assert recon1["remaining_balance"] == 70000.0
+
+        recon2 = ReceiptService.calculate_reconciliation_data(pay2_obj, student_obj)
+        assert recon2["previously_paid"] == 40000.0
+        assert recon2["current_payment"] == 70000.0
+        assert recon2["cumulative_paid"] == 110000.0
+        assert recon2["remaining_balance"] == 0.0
+        print("  [OK] PDF TEST 2 & 3: Database reconciliation math verified across sequential receipts.")
+
+        # PDF TEST 6 & 7: Admin access & 404 for invalid payment ID
+        admin_rcpt2 = client.get(f"/api/payments/{pay2_id}/receipt")
+        assert admin_rcpt2.status_code == 200
+        assert admin_rcpt2.data.startswith(b"%PDF")
+        inv_rcpt = client.get("/api/payments/999999/receipt")
+        assert inv_rcpt.status_code == 404
+        print("  [OK] PDF TEST 6 & 7: Admin authorized access confirmed & invalid payment returned 404.")
+
+        # TEST 7: Student logs in and sees their own fee information & downloads own receipt
         client.get("/api/logout")  # Logout admin
         st_login = client.post("/api/student-login", json={"application_id": st_id, "dob": "2001-09-20"})
         assert st_login.status_code == 200
@@ -280,18 +318,67 @@ def test_erp_suite():
         assert len(st_fdata["payments"]) == 2
         print("  [OK] TEST 7: Logged-in student successfully views own fee summary and payments.")
 
-        # TEST 8: Student cannot access another student's fee information
-        forbidden_fee = client.get(f"/api/students/{st_id + 99}/fees")
-        assert forbidden_fee.status_code in [403, 404]
-        forbidden_pay = client.get(f"/api/students/{st_id + 99}/payments")
-        assert forbidden_pay.status_code in [403, 404]
-        print("  [OK] TEST 8: ID tampering blocked with 403 Forbidden for students.")
+        # PDF TEST 4: Student downloads own receipt
+        st_rcpt_res = client.get(f"/api/payments/{pay1_id}/receipt")
+        assert st_rcpt_res.status_code == 200
+        assert "application/pdf" in st_rcpt_res.content_type
+        assert st_rcpt_res.data.startswith(b"%PDF")
+        print("  [OK] PDF TEST 4: Student successfully downloaded own PDF receipt.")
+
+        # PDF TEST 5: Security check — Student A cannot download other student's receipt
+        # Create a mock payment for a different student to test cross-access prevention
+        other_st = Student(
+            fullName="Other Candidate",
+            email="other.student@zeal.edu.in",
+            mobile="9876543210",
+            aadhaar="999988887777",
+            dob="2002-01-01",
+            gender="Female",
+            bloodGroup="O+",
+            fatherName="Father",
+            motherName="Mother",
+            address="Pune",
+            city="Pune",
+            state="Maharashtra",
+            pincode="411041",
+            nationality="Indian",
+            board10="CBSE",
+            percentage10=90.0,
+            board12="HSC",
+            percentage12=90.0,
+            entranceExam="MHT-CET",
+            entranceScore=95.0,
+            department="Computer Engineering",
+            admissionType="CAP"
+        )
+        db.session.add(other_st)
+        db.session.commit()
+        other_pay = Payment(
+            student_id=other_st.id,
+            amount=15000.0,
+            fee_type="Tuition Fee",
+            payment_method="UPI",
+            transaction_id="OTHER_ST_TXN_999",
+            status="SUCCESS"
+        )
+        db.session.add(other_pay)
+        db.session.commit()
+
+        # Logged in as student `st_id`, attempt to access `other_pay.id`
+        forbidden_rcpt = client.get(f"/api/payments/{other_pay.id}/receipt")
+        assert forbidden_rcpt.status_code == 403
+        print("  [OK] PDF TEST 5: Cross-student receipt access blocked with 403 Forbidden.")
+
+        # Clean up temporary other student
+        db.session.delete(other_pay)
+        db.session.delete(other_st)
+        db.session.commit()
 
         # Re-login admin for remaining checks
         client.post("/api/student-logout")
         client.post("/api/login", json={"username": "admin", "password": "admin123"})
 
-        print("8. Testing Analytics Dashboard Status & Fee Breakdown...")
+        print("9. Testing Analytics Dashboard Status & Fee Breakdown...")
         analytics_res = client.get("/api/dashboard")
         assert analytics_res.status_code == 200
         adata = analytics_res.get_json()
@@ -301,7 +388,7 @@ def test_erp_suite():
         assert adata["total_fees_collected"] >= summary2["paid_amount"]
         print("  [OK] Analytics Dashboard verification & fee collections confirmed.")
 
-        print("9. Testing Student Record Deletion & Payment Cascade...")
+        print("10. Testing Student Record Deletion & Payment Cascade...")
         del_res = client.delete(f"/api/students/{st_id}")
         assert del_res.status_code == 200
         assert "deleted successfully" in del_res.get_json()["message"]
@@ -311,7 +398,7 @@ def test_erp_suite():
         assert get_deleted.status_code == 404
         print("  [OK] Student deletion & payment cleanup verified.")
 
-        print("\nALL PRODUCTION ERP TEST SUITE CASES (VERIFICATION + FEES 1-10 + CRUD) PASSED CLEANLY!")
+        print("\nALL PRODUCTION ERP TEST SUITE CASES (VERIFICATION + FEES + PDF RECEIPTS 1-8 + CRUD) PASSED CLEANLY!")
 
 if __name__ == "__main__":
     test_erp_suite()

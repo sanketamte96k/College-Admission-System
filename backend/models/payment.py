@@ -13,6 +13,7 @@ class Payment(db.Model):
     payment_date = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     transaction_id = db.Column(db.String(100), unique=True, nullable=False)
     status = db.Column(db.String(50), default="SUCCESS", nullable=False)
+    receipt_number = db.Column(db.String(100), unique=True, nullable=True)
     remarks = db.Column(db.Text, nullable=True)
     recorded_by = db.Column(db.String(100), default="admin", nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -24,6 +25,9 @@ class Payment(db.Model):
             if self.payment_date
             else (self.created_at.strftime("%Y-%m-%d %H:%M:%S") if self.created_at else "")
         )
+        receipt_yr = self.payment_date.year if self.payment_date else (self.created_at.year if self.created_at else 2026)
+        receipt_no = self.receipt_number or (f"ZCFR-{receipt_yr}-{self.id:06d}" if self.id else "ZCFR-2026-000001")
+
         return {
             "id": self.id,
             "student_id": self.student_id,
@@ -33,6 +37,7 @@ class Payment(db.Model):
             "payment_mode": method,
             "payment_date": date_str,
             "transaction_id": self.transaction_id,
+            "receipt_number": receipt_no,
             "status": self.status or "SUCCESS",
             "remarks": self.remarks or "",
             "recorded_by": self.recorded_by or "admin",

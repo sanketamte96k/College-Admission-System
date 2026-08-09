@@ -145,6 +145,7 @@ def create_app(config_name=None):
                     ("fee_type", "VARCHAR(100) DEFAULT 'Tuition Fee'"),
                     ("payment_method", "VARCHAR(50) DEFAULT 'UPI / Online'"),
                     ("payment_date", "DATETIME NULL"),
+                    ("receipt_number", "VARCHAR(100) NULL"),
                     ("remarks", "TEXT NULL"),
                     ("recorded_by", "VARCHAR(100) DEFAULT 'admin'")
                 ]:

@@ -398,83 +398,21 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-    // Receipt PDF Generator
+    // Receipt PDF Generator (Direct Server-Generated ReportLab PDF)
     window.downloadPaymentReceipt = function(payment, studentName) {
-        if (!window.jspdf) {
-            showToast("PDF generator library not loaded", "error");
+        if (!payment || !payment.id) {
+            showToast("Invalid payment record selected.", "error");
             return;
         }
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a5" });
 
-        // Outer border
-        doc.rect(5, 5, 138, 200);
-        doc.setFillColor(30, 58, 138);
-        doc.rect(8, 8, 132, 22, "F");
-
-        doc.setTextColor(255, 255, 255);
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(14);
-        doc.text("ZEAL COLLEGE OF ENGINEERING", 12, 17);
-        doc.setFontSize(9);
-        doc.setFont("helvetica", "normal");
-        doc.text("OFFICIAL FEE PAYMENT RECEIPT", 12, 23);
-
-        doc.setTextColor(30, 58, 138);
-        doc.setFontSize(11);
-        doc.setFont("helvetica", "bold");
-        doc.text("RECEIPT DETAILS", 12, 38);
-
-        doc.setFontSize(9);
-        doc.setFont("helvetica", "normal");
-        doc.setTextColor(51, 65, 85);
-        doc.text(`Receipt / Txn ID: ${payment.transaction_id}`, 12, 46);
-        doc.text(`Payment Date: ${payment.payment_date || payment.created_at}`, 12, 53);
-        doc.text(`Student Name: ${studentName || 'Student'}`, 12, 60);
-        doc.text(`Student App ID: #${payment.student_id}`, 12, 67);
-
-        // Table Header
-        doc.setFillColor(241, 245, 249);
-        doc.rect(12, 75, 124, 8, "F");
-        doc.setFont("helvetica", "bold");
-        doc.setTextColor(15, 23, 42);
-        doc.text("Fee Particulars", 15, 80);
-        doc.text("Payment Mode", 70, 80);
-        doc.text("Amount (INR)", 105, 80);
-
-        // Row
-        doc.setFont("helvetica", "normal");
-        doc.setTextColor(51, 65, 85);
-        doc.text(payment.fee_type || "Tuition Fee", 15, 90);
-        doc.text(payment.payment_method || payment.payment_mode || "UPI", 70, 90);
-        doc.setFont("helvetica", "bold");
-        doc.setTextColor(5, 150, 105);
-        doc.text(`Rs. ${Number(payment.amount).toLocaleString('en-IN')}`, 105, 90);
-
-        // Total box
-        doc.setDrawColor(203, 213, 225);
-        doc.line(12, 96, 136, 96);
-        doc.setFontSize(10);
-        doc.setTextColor(30, 58, 138);
-        doc.text("Total Paid Amount:", 65, 104);
-        doc.text(`Rs. ${Number(payment.amount).toLocaleString('en-IN')}`, 105, 104);
-
-        if (payment.remarks) {
-            doc.setFontSize(8);
-            doc.setFont("helvetica", "italic");
-            doc.setTextColor(100, 116, 139);
-            doc.text(`Remarks: ${payment.remarks}`, 12, 115);
-        }
-
-        doc.setFontSize(8);
-        doc.setFont("helvetica", "normal");
-        doc.setTextColor(100, 116, 139);
-        doc.text("Note: This is a computer generated payment receipt. No physical signature required.", 12, 180);
-        doc.text("Admission Accounts Office | Zeal College of Engineering, Pune", 12, 186);
-
-        const fileName = `Receipt_${payment.transaction_id}.pdf`;
-        doc.save(fileName);
-        showToast(`Downloaded ${fileName}`, "success");
+        showToast("Downloading official fee receipt PDF...", "success");
+        const link = document.createElement("a");
+        link.href = `/api/payments/${payment.id}/receipt`;
+        link.target = "_blank";
+        link.download = `${payment.receipt_number || 'Receipt_' + payment.id}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     };
 
     // Student Logout Handler
