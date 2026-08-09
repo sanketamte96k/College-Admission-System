@@ -694,8 +694,22 @@ class StudentService:
         if not student:
             return None
 
-        # Validate status
-        if status not in StudentService.ALLOWED_STATUSES:
+        # Flexible status normalization
+        raw_status = (status or "").strip()
+        lower_status = raw_status.lower()
+        if "verif" in lower_status or "approv" in lower_status:
+            normalized_status = "Verified"
+        elif "reject" in lower_status:
+            normalized_status = "Rejected"
+        elif "review" in lower_status:
+            normalized_status = "Under Review"
+        elif "pend" in lower_status:
+            normalized_status = "Pending Verification"
+        else:
+            normalized_status = raw_status
+
+        # Validate status against allowed list
+        if normalized_status not in StudentService.ALLOWED_STATUSES:
             raise ValueError(
                 f"Invalid status '{status}'. Allowed statuses: {', '.join(StudentService.ALLOWED_STATUSES)}"
             )
@@ -704,19 +718,18 @@ class StudentService:
         clean_remarks = sanitize_input(remarks or "")
 
         # Rejection requires a meaningful remark/reason
-        if status == "Rejected" and not clean_remarks:
+        if normalized_status == "Rejected" and not clean_remarks:
             raise ValueError(
                 "Verification remarks are required when rejecting an admission application."
             )
 
-        student.status = status
+        student.status = normalized_status
         student.verification_remarks = clean_remarks
 
-        if status in ["Verified", "Rejected", "Under Review"]:
+        if normalized_status in ["Verified", "Rejected", "Under Review"]:
             student.verified_at = datetime.utcnow()
             student.verified_by = admin_username or "admin"
-        elif status == "Pending Verification":
-            # Retain history or reset if reopened
+        elif normalized_status == "Pending Verification":
             student.verified_at = None
             student.verified_by = None
 

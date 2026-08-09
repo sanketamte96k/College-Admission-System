@@ -303,9 +303,11 @@ def delete_student(student_id):
 # ============================================================
 # UPDATE ADMISSION VERIFICATION DECISION
 # ============================================================
+# UPDATE ADMISSION VERIFICATION DECISION
+# ============================================================
 @student_bp.route(
     "/api/students/<int:student_id>/verification",
-    methods=["PUT", "PATCH"]
+    methods=["PUT", "PATCH", "POST"]
 )
 @admin_required
 def update_student_verification(student_id):
@@ -314,54 +316,98 @@ def update_student_verification(student_id):
     else:
         data = request.form.to_dict()
 
-    status = (data.get("status") or "").strip()
-    remarks = (data.get("remarks") or "").strip()
+    raw_status = (
+        data.get("status") or 
+        data.get("admissionStatus") or 
+        data.get("admission_status") or 
+        ""
+    ).strip()
+
+    remarks = (
+        data.get("remarks") or 
+        data.get("verificationRemarks") or 
+        data.get("verification_remarks") or 
+        data.get("comments") or 
+        ""
+    ).strip()
+
     admin_username = session.get("admin_username") or "admin"
 
-    if not status:
-        return jsonify({"error": "Verification status is required"}), 400
+    if not raw_status:
+        return jsonify({
+            "success": False,
+            "error": "Verification status is required"
+        }), 400
 
     try:
         updated_student = StudentService.update_verification(
             student_id=student_id,
-            status=status,
+            status=raw_status,
             remarks=remarks,
             admin_username=admin_username
         )
 
         if not updated_student:
-            return jsonify({"error": "Student record not found"}), 404
+            return jsonify({
+                "success": False,
+                "error": f"Student record #{student_id} not found"
+            }), 404
 
         student_dict = updated_student.to_dict()
+        final_status = updated_student.status
 
         # Email notification handling (safe fallback)
-        email_sent = False
+        email_status = "not_applicable"
         email_note = ""
         mail_ext = current_app.extensions.get("mail")
-        if mail_ext and status in ["Verified", "Rejected"]:
-            try:
-                email_sent, email_note = send_verification_status_email(
-                    mail_ext,
-                    student_dict,
-                    status,
-                    remarks
-                )
-            except Exception as mail_err:
-                current_app.logger.warning(f"Verification email notice error: {mail_err}")
-                email_note = str(mail_err)
+
+        if final_status in ["Verified", "Rejected"]:
+            if mail_ext:
+                try:
+                    email_sent, note = send_verification_status_email(
+                        mail_ext,
+                        student_dict,
+                        final_status,
+                        remarks
+                    )
+                    email_status = "sent" if email_sent else "failed"
+                    email_note = note
+                except Exception as mail_err:
+                    current_app.logger.warning(f"Verification email notice error: {mail_err}")
+                    email_status = "failed"
+                    email_note = f"Unable to send notification email: {str(mail_err)}"
+            else:
+                email_status = "failed"
+                email_note = "Unable to send notification email (mail service not initialized)"
+
+        msg = (
+            "Admission verified successfully"
+            if final_status == "Verified"
+            else "Admission rejected successfully"
+            if final_status == "Rejected"
+            else f"Admission status updated to '{final_status}' successfully"
+        )
 
         return jsonify({
-            "message": f"Admission verification decision saved as '{status}' successfully.",
+            "success": True,
+            "message": msg,
+            "status": final_status,
             "student": student_dict,
-            "email_status": "sent" if email_sent else "not_sent",
+            "email_status": email_status,
             "email_note": email_note
         }), 200
 
     except ValueError as ve:
-        return jsonify({"error": str(ve)}), 400
+        return jsonify({
+            "success": False,
+            "error": str(ve)
+        }), 400
     except Exception as e:
         current_app.logger.exception("Error updating verification status")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({
+            "success": False,
+            "error": f"Internal server error: {str(e)}"
+        }), 500
 
 
 # ============================================================

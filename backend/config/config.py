@@ -64,6 +64,7 @@ class Config:
     MAIL_SERVER = os.getenv("MAIL_SERVER", "smtp.gmail.com")
     MAIL_PORT = int(os.getenv("MAIL_PORT", 587))
     MAIL_USE_TLS = os.getenv("MAIL_USE_TLS", "True").lower() == "true"
+    MAIL_USE_SSL = os.getenv("MAIL_USE_SSL", "False").lower() == "true" or int(os.getenv("MAIL_PORT", 587)) == 465
 
     MAIL_USERNAME = os.getenv(
         "MAIL_USERNAME",
@@ -74,12 +75,13 @@ class Config:
 
     MAIL_DEFAULT_SENDER = (
         "Zeal College Admission System",
-        "admin@zeal.edu.in"
+        os.getenv("MAIL_USERNAME", "admin@zeal.edu.in")
     )
 
     MAIL_SUPPRESS_SEND = (
         os.getenv("MAIL_SUPPRESS_SEND", "False").lower() == "true"
     )
+    MAIL_TIMEOUT = int(os.getenv("MAIL_TIMEOUT", 10))
 
 
 class DevelopmentConfig(Config):

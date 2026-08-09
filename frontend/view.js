@@ -498,25 +498,55 @@ async function saveVerificationDecision(studentId) {
             saveBtn.textContent = "Saving Decision...";
         }
 
-        const response = await fetch(`/api/students/${studentId}/verification`, {
+        const endpoint = `/api/students/${studentId}/verification`;
+        const response = await fetch(endpoint, {
             method: "PUT",
             headers: {
                 "Content-Type": "application/json",
                 "Accept": "application/json"
             },
+            credentials: "same-origin",
             body: JSON.stringify({
                 status: newStatus,
-                remarks: remarks
+                admissionStatus: newStatus,
+                remarks: remarks,
+                verificationRemarks: remarks
             })
         });
 
-        const data = await response.json();
+        const contentType = response.headers.get("content-type") || "";
+        let data = {};
 
-        if (!response.ok) {
-            throw new Error(data.error || data.message || `HTTP error ${response.status}`);
+        if (contentType.includes("application/json")) {
+            data = await response.json();
+        } else {
+            const text = await response.text();
+            throw new Error(
+                `Server returned non-JSON response (${response.status}): ${text.substring(0, 150)}`
+            );
         }
 
-        showToast(data.message || `Status updated to '${newStatus}' successfully.`, "success");
+        if (!response.ok) {
+            if (response.status === 401) {
+                showToast("Session expired. Redirecting to admin login...", "error");
+                setTimeout(() => { window.location.href = "login.html"; }, 1500);
+                return;
+            }
+            throw new Error(
+                data.error ||
+                data.message ||
+                `Request failed with status ${response.status}`
+            );
+        }
+
+        let toastMsg = data.message || `Admission status updated to '${newStatus}' successfully.`;
+        if (data.email_status === "sent") {
+            toastMsg += " Notification email sent to student.";
+        } else if (data.email_status === "failed") {
+            toastMsg += " (Note: Notification email could not be delivered)";
+        }
+
+        showToast(toastMsg, "success");
 
         // Update local student in students array
         const localStudent = students.find(s => Number(s.id) === Number(studentId));
@@ -536,8 +566,12 @@ async function saveVerificationDecision(studentId) {
         }
 
     } catch (err) {
-        console.error("Verification update error:", err);
-        showToast("Failed to save verification decision: " + err.message, "error");
+        console.error("Verification save error:", err);
+        let errorMsg = err.message || "Unknown error";
+        if (err.name === "TypeError" && errorMsg.toLowerCase().includes("fetch")) {
+            errorMsg = "Network connection error: Unable to reach backend server. Please verify Flask server is running.";
+        }
+        showToast("Failed to save verification decision: " + errorMsg, "error");
     } finally {
         if (saveBtn) {
             saveBtn.disabled = false;
