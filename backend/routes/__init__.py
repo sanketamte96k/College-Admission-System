@@ -5,6 +5,7 @@ from .ai_routes import ai_bp
 from .admin_erp_routes import admin_erp_bp
 from .payment_routes import payment_bp
 from .ticket_routes import ticket_bp
+from .attendance_routes import attendance_bp
 
 __all__ = [
     "auth_bp",
@@ -13,5 +14,6 @@ __all__ = [
     "ai_bp",
     "admin_erp_bp",
     "payment_bp",
-    "ticket_bp"
+    "ticket_bp",
+    "attendance_bp"
 ]

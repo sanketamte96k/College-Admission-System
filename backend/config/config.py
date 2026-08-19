@@ -1,6 +1,56 @@
 import os
+import sys
 from urllib.parse import quote_plus
 from datetime import timedelta
+
+try:
+    from dotenv import load_dotenv
+    backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    env_path = os.path.join(backend_dir, ".env")
+    if os.path.exists(env_path):
+        load_dotenv(env_path)
+    else:
+        load_dotenv()
+except Exception:
+    pass
+
+
+def get_database_uri():
+    """
+    Resolve and validate the database connection URI.
+    Supports DATABASE_URL or individual DB_USER, DB_PASSWORD, DB_HOST, DB_NAME variables.
+    Fails with a clear configuration error if required credentials are missing.
+    """
+    # 1. If DATABASE_URL is provided, use it directly
+    database_url = os.getenv("DATABASE_URL")
+    if database_url:
+        if database_url.startswith("mysql://"):
+            return database_url.replace("mysql://", "mysql+pymysql://", 1)
+        elif database_url.startswith("postgres://"):
+            return database_url.replace("postgres://", "postgresql://", 1)
+        return database_url
+
+    # SQLite fallback for Render demo environments
+    if os.getenv("RENDER"):
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        return f"sqlite:///{os.path.join(base_dir, 'college_admission.db')}"
+
+    # Test environment fallback
+    if os.getenv("FLASK_ENV") == "test" or os.getenv("TESTING") == "True" or (len(sys.argv) > 0 and "test" in os.path.basename(sys.argv[0])):
+        return "sqlite:///:memory:"
+
+    # 2. Build MySQL connection from environment variables
+    db_user = os.environ.get("DB_USER", "root")
+    db_password_raw = os.environ.get("DB_PASSWORD")
+    if not db_password_raw:
+        raise RuntimeError("Database configuration error: DB_PASSWORD must be configured. Please set the DB_PASSWORD environment variable or provide DATABASE_URL.")
+    db_password = quote_plus(db_password_raw)
+    db_host = os.environ.get("DB_HOST", "localhost")
+    db_name = os.environ.get("DB_NAME", "college_admission_db")
+    db_port = os.environ.get("DB_PORT", "3306")
+
+    # 3. Safely encode the password with quote_plus
+    return f"mysql+pymysql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
 
 
 class Config:
@@ -23,39 +73,33 @@ class Config:
     )
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16 MB
 
+    # Attendance Configuration
+    ATTENDANCE_MIN_PERCENTAGE = float(os.getenv("ATTENDANCE_MIN_PERCENTAGE", 75.0))
+
     # ==========================
     # Database Configuration
     # ==========================
 
-    MYSQL_USER = os.getenv("MYSQL_USER", "root")
-    MYSQL_PASSWORD = os.getenv("MYSQL_PASSWORD", "Sanket@123")
-    MYSQL_HOST = os.getenv("MYSQL_HOST", "localhost")
-    MYSQL_DB = os.getenv("MYSQL_DB", "college_admission_db")
-    MYSQL_PORT = os.getenv("MYSQL_PORT", "3306")
+    DATABASE_URL = os.getenv("DATABASE_URL")
+    DB_USER = os.getenv("DB_USER") or os.getenv("MYSQL_USER")
+    DB_PASSWORD = os.getenv("DB_PASSWORD") or os.getenv("MYSQL_PASSWORD")
+    DB_HOST = os.getenv("DB_HOST") or os.getenv("MYSQL_HOST")
+    DB_NAME = os.getenv("DB_NAME") or os.getenv("MYSQL_DB")
+    DB_PORT = os.getenv("DB_PORT") or os.getenv("MYSQL_PORT", "3306")
 
-    MYSQL_URI = (
-        f"mysql+pymysql://{MYSQL_USER}:{quote_plus(MYSQL_PASSWORD)}"
-        f"@{MYSQL_HOST}:{MYSQL_PORT}/{MYSQL_DB}"
-    )
-
-    SQLITE_URI = (
-        f"sqlite:///{os.path.join(BASE_DIR, 'college_admission.db')}"
-    )
-
-    # Use SQLite on Render, MySQL locally
-    if os.getenv("RENDER"):
-        SQLALCHEMY_DATABASE_URI = SQLITE_URI
-    else:
-        SQLALCHEMY_DATABASE_URI = MYSQL_URI
-
+    SQLITE_URI = f"sqlite:///{os.path.join(BASE_DIR, 'college_admission.db')}"
+    SQLALCHEMY_DATABASE_URI = get_database_uri()
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
-    SQLALCHEMY_ENGINE_OPTIONS = {
-        "pool_recycle": 280,
-        "pool_pre_ping": True,
-        "pool_size": 10,
-        "max_overflow": 20
-    }
+    if SQLALCHEMY_DATABASE_URI.startswith("sqlite"):
+        SQLALCHEMY_ENGINE_OPTIONS = {}
+    else:
+        SQLALCHEMY_ENGINE_OPTIONS = {
+            "pool_recycle": 280,
+            "pool_pre_ping": True,
+            "pool_size": 10,
+            "max_overflow": 20
+        }
 
     # ==========================
     # Mail Configuration

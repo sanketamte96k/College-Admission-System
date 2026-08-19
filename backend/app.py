@@ -1,5 +1,6 @@
 import os
 import sys
+import urllib.parse
 
 # Ensure backend root directory is in sys.path
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -8,7 +9,11 @@ if BASE_DIR not in sys.path:
 
 try:
     from dotenv import load_dotenv
-    load_dotenv()
+    env_file = os.path.join(BASE_DIR, ".env")
+    if os.path.exists(env_file):
+        load_dotenv(env_file)
+    else:
+        load_dotenv()
 except Exception:
     pass
 
@@ -17,7 +22,10 @@ from config import config_by_name
 from models import db, Admin
 from email_service import init_mail_config
 from utils import setup_logger
-from routes import auth_bp, student_bp, analytics_bp, ai_bp, admin_erp_bp, payment_bp, ticket_bp
+from routes import (
+    auth_bp, student_bp, analytics_bp, ai_bp,
+    admin_erp_bp, payment_bp, ticket_bp, attendance_bp
+)
 
 def create_app(config_name=None):
     if config_name is None:
@@ -32,6 +40,34 @@ def create_app(config_name=None):
     # Load Configuration
     config_cls = config_by_name.get(config_name, config_by_name["dev"])
     app.config.from_object(config_cls)
+
+    # Database Configuration
+    database_url = os.environ.get("DATABASE_URL")
+    if database_url:
+        if database_url.startswith("mysql://"):
+            app.config["SQLALCHEMY_DATABASE_URI"] = database_url.replace("mysql://", "mysql+pymysql://", 1)
+        elif database_url.startswith("postgres://"):
+            app.config["SQLALCHEMY_DATABASE_URI"] = database_url.replace("postgres://", "postgresql://", 1)
+        else:
+            app.config["SQLALCHEMY_DATABASE_URI"] = database_url
+    elif config_name == "test" or os.environ.get("FLASK_ENV") == "test" or os.environ.get("TESTING") == "True":
+        app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
+    elif os.environ.get("RENDER"):
+        app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{os.path.join(os.path.dirname(BASE_DIR), 'college_admission.db')}"
+    else:
+        db_user = os.environ.get("DB_USER", "root")
+        db_password_raw = os.environ.get("DB_PASSWORD")
+        if not db_password_raw:
+            raise RuntimeError("Database configuration error: DB_PASSWORD must be configured. Please set the DB_PASSWORD environment variable or provide DATABASE_URL.")
+        db_password = urllib.parse.quote_plus(db_password_raw)
+        db_host = os.environ.get("DB_HOST", "localhost")
+        db_name = os.environ.get("DB_NAME", "college_admission_db")
+        db_port = os.environ.get("DB_PORT", "3306")
+
+        app.config["SQLALCHEMY_DATABASE_URI"] = f"mysql+pymysql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
+
+    if os.environ.get("SECRET_KEY"):
+        app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY")
 
     # Initialize Extensions
     db.init_app(app)
@@ -57,6 +93,7 @@ def create_app(config_name=None):
     app.register_blueprint(admin_erp_bp)
     app.register_blueprint(payment_bp)
     app.register_blueprint(ticket_bp)
+    app.register_blueprint(attendance_bp)
 
     # Custom HTTP Error Handlers
     @app.errorhandler(404)
@@ -118,8 +155,8 @@ def create_app(config_name=None):
 
     # Database Migration & Default Admin Seeding
     with app.app_context():
-        db.create_all()
         try:
+            db.create_all()
             with db.engine.connect() as conn:
                 for col in ["photo", "marksheet10", "marksheet12", "leavingCertificate", "status"]:
                     try:

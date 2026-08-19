@@ -4,6 +4,7 @@ from .ai_service import AIService
 from .seat_service import SeatService
 from .payment_service import PaymentService
 from .receipt_service import ReceiptService
+from .attendance_service import AttendanceService
 
 __all__ = [
     "StudentService",
@@ -11,5 +12,6 @@ __all__ = [
     "AIService",
     "SeatService",
     "PaymentService",
-    "ReceiptService"
+    "ReceiptService",
+    "AttendanceService"
 ]

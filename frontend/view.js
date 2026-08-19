@@ -2852,9 +2852,9 @@ function exportToExcel() {
 document.addEventListener(
     "DOMContentLoaded",
     function () {
-
+        checkAdminAuth();
         fetchStudents();
-
+        initAttendanceModule();
     }
 );
 
@@ -3081,4 +3081,592 @@ function downloadAdminPaymentReceipt(payment, studentName) {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+}
+
+// ============================================================
+// ATTENDANCE MANAGEMENT MODULE (ADMIN / FACULTY)
+// ============================================================
+
+let currentAttendanceRoster = [];
+
+const DEPARTMENT_ICONS = {
+    "Computer Engineering": "💻",
+    "Information Technology": "🌐",
+    "Artificial Intelligence & Data Science": "🤖",
+    "Electronics & Telecommunication": "📡",
+    "Mechanical Engineering": "⚙️",
+    "Civil Engineering": "🏗️",
+    "Electrical Engineering": "⚡"
+};
+
+function initAttendanceModule() {
+    const dateInput = document.getElementById("attDateFilter");
+    if (dateInput && !dateInput.value) {
+        const today = new Date().toISOString().slice(0, 10);
+        dateInput.value = today;
+    }
+    
+    const deptSelect = document.getElementById("attDeptFilter");
+    if (deptSelect && deptSelect.value) {
+        selectAttendanceDepartment(deptSelect.value);
+    } else {
+        resetAttendanceDepartmentSelection();
+    }
+}
+
+function selectAttendanceDepartment(deptName) {
+    if (!deptName) {
+        resetAttendanceDepartmentSelection();
+        return;
+    }
+
+    const deptSelect = document.getElementById("attDeptFilter");
+    if (deptSelect) deptSelect.value = deptName;
+
+    const activeDeptTitle = document.getElementById("attActiveDeptTitle");
+    if (activeDeptTitle) activeDeptTitle.textContent = deptName;
+
+    const activeDeptIcon = document.getElementById("attActiveDeptIcon");
+    if (activeDeptIcon) activeDeptIcon.textContent = DEPARTMENT_ICONS[deptName] || "🎓";
+
+    const selectionView = document.getElementById("attDeptSelectionView");
+    const activeView = document.getElementById("attDeptActiveView");
+
+    if (selectionView) selectionView.style.display = "none";
+    if (activeView) activeView.style.display = "block";
+
+    loadAttendanceSheet();
+}
+
+function resetAttendanceDepartmentSelection() {
+    const deptSelect = document.getElementById("attDeptFilter");
+    if (deptSelect) deptSelect.value = "";
+
+    const searchInput = document.getElementById("attSearchInput");
+    if (searchInput) searchInput.value = "";
+
+    currentAttendanceRoster = [];
+
+    const selectionView = document.getElementById("attDeptSelectionView");
+    const activeView = document.getElementById("attDeptActiveView");
+
+    if (selectionView) selectionView.style.display = "block";
+    if (activeView) activeView.style.display = "none";
+}
+
+function onDeptDropdownChange() {
+    const deptSelect = document.getElementById("attDeptFilter");
+    const deptName = deptSelect ? deptSelect.value : "";
+    if (!deptName) {
+        resetAttendanceDepartmentSelection();
+    } else {
+        selectAttendanceDepartment(deptName);
+    }
+}
+
+async function loadAttendanceSheet() {
+    const deptSelect = document.getElementById("attDeptFilter");
+    const dateInput = document.getElementById("attDateFilter");
+    const tableBody = document.getElementById("attendanceTableBody");
+
+    if (!tableBody) return;
+
+    const department = deptSelect ? deptSelect.value : "";
+    if (!department) {
+        resetAttendanceDepartmentSelection();
+        return;
+    }
+
+    const dateVal = dateInput && dateInput.value ? dateInput.value : new Date().toISOString().slice(0, 10);
+
+    tableBody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: #64748b; padding: 16px;">Loading attendance roster for ${escapeHtml(department)}...</td></tr>`;
+
+    try {
+        const url = `/api/attendance?department=${encodeURIComponent(department)}&date=${encodeURIComponent(dateVal)}`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`Failed to load attendance (HTTP ${res.status})`);
+
+        const data = await res.json();
+        currentAttendanceRoster = data.students || [];
+
+        renderAttendanceSheet(currentAttendanceRoster);
+        updateAttendanceKpis(data);
+        loadAttendanceReport(department, dateVal);
+
+    } catch (err) {
+        console.error("Error loading attendance sheet:", err);
+        tableBody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: #ef4444; padding: 16px;">Failed to load attendance sheet: ${escapeHtml(err.message)}</td></tr>`;
+    }
+}
+
+function renderAttendanceSheet(students) {
+    const tableBody = document.getElementById("attendanceTableBody");
+    if (!tableBody) return;
+
+    const deptSelect = document.getElementById("attDeptFilter");
+    const currentDeptName = deptSelect && deptSelect.value ? deptSelect.value : "this department";
+
+    if (!students || students.length === 0) {
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="7" style="text-align: center; color: #64748b; padding: 32px 16px;">
+                    <div style="font-size: 32px; margin-bottom: 8px;">📋</div>
+                    <strong style="color: #334155; font-size: 14px;">No students enrolled in ${escapeHtml(currentDeptName)} yet.</strong>
+                    <div style="font-size: 12px; color: #94a3b8; margin-top: 4px;">Admitted students for this branch will appear here automatically.</div>
+                    <button type="button" class="att-back-btn" style="margin-top: 14px;" onclick="resetAttendanceDepartmentSelection()">← Select Another Department</button>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    tableBody.innerHTML = students.map((s, index) => {
+        const isPresent = s.status === "Present";
+        const statusClass = isPresent ? "att-status-present" : "att-status-absent";
+
+        return `
+            <tr id="attRow_${s.student_id}">
+                <td style="font-weight: 700; color: #64748b;">${index + 1}</td>
+                <td><code class="att-id-badge">#${s.student_id}</code></td>
+                <td><strong class="att-student-name">${escapeHtml(s.fullName)}</strong></td>
+                <td><span class="att-dept-badge">${escapeHtml(s.department || '-')}</span></td>
+                <td><span class="att-quota-badge">${escapeHtml(s.admissionType || '-')}</span></td>
+                <td>
+                    <select id="attStatus_${s.student_id}" class="att-status-select ${statusClass}" onchange="onStatusSelectChange(${s.student_id})" aria-label="Attendance status for ${escapeHtml(s.fullName)}">
+                        <option value="Present" ${isPresent ? "selected" : ""}>● Present</option>
+                        <option value="Absent" ${!isPresent ? "selected" : ""}>● Absent</option>
+                    </select>
+                </td>
+                <td>
+                    <input type="text" id="attRemarks_${s.student_id}" class="att-remarks-input" placeholder="Optional notes (e.g. Medical, On Duty)..." value="${escapeHtml(s.remarks || '')}" aria-label="Remarks for ${escapeHtml(s.fullName)}">
+                </td>
+            </tr>
+        `;
+    }).join("");
+}
+
+function onStatusSelectChange(studentId) {
+    const sel = document.getElementById(`attStatus_${studentId}`);
+    if (!sel) return;
+    if (sel.value === "Present") {
+        sel.className = "att-status-select att-status-present";
+    } else {
+        sel.className = "att-status-select att-status-absent";
+    }
+    recalcAttendanceSheetKpis();
+}
+
+function markAllAttendance(targetStatus) {
+    const selects = document.querySelectorAll(".att-status-select");
+    selects.forEach(sel => {
+        sel.value = targetStatus;
+        if (targetStatus === "Present") {
+            sel.className = "att-status-select att-status-present";
+        } else {
+            sel.className = "att-status-select att-status-absent";
+        }
+    });
+    recalcAttendanceSheetKpis();
+    showToast(`Marked all displayed students as ${targetStatus}`, "success");
+}
+
+function recalcAttendanceSheetKpis() {
+    const selects = Array.from(document.querySelectorAll(".att-status-select"));
+    const total = selects.length;
+    const present = selects.filter(s => s.value === "Present").length;
+    const absent = total - present;
+    const rate = total > 0 ? Math.round((present / total) * 100) : 0;
+
+    const kpiTotal = document.getElementById("attKpiTotal");
+    const kpiPresent = document.getElementById("attKpiPresent");
+    const kpiAbsent = document.getElementById("attKpiAbsent");
+    const kpiRate = document.getElementById("attKpiRate");
+
+    if (kpiTotal) kpiTotal.textContent = total;
+    if (kpiPresent) kpiPresent.textContent = present;
+    if (kpiAbsent) kpiAbsent.textContent = absent;
+    if (kpiRate) kpiRate.textContent = `${rate}%`;
+}
+
+function updateAttendanceKpis(data) {
+    const kpiTotal = document.getElementById("attKpiTotal");
+    const kpiPresent = document.getElementById("attKpiPresent");
+    const kpiAbsent = document.getElementById("attKpiAbsent");
+    const kpiRate = document.getElementById("attKpiRate");
+
+    const total = data.total_students || 0;
+    const present = data.present_count || 0;
+    const absent = data.absent_count || 0;
+    const rate = data.marked_count > 0 ? Math.round((present / data.marked_count) * 100) : (total > 0 ? 100 : 0);
+
+    if (kpiTotal) kpiTotal.textContent = total;
+    if (kpiPresent) kpiPresent.textContent = present;
+    if (kpiAbsent) kpiAbsent.textContent = absent;
+    if (kpiRate) kpiRate.textContent = `${rate}%`;
+}
+
+async function loadAttendanceReport(department, dateVal) {
+    const alertBox = document.getElementById("attLowAlertBox");
+    const studentsList = document.getElementById("attLowStudentsList");
+    if (!alertBox || !studentsList) return;
+
+    try {
+        const res = await fetch(`/api/attendance/report?department=${encodeURIComponent(department)}&date=${encodeURIComponent(dateVal)}`);
+        if (!res.ok) return;
+
+        const rep = await res.json();
+        const lowStudents = rep.low_attendance_students || [];
+
+        if (lowStudents.length > 0) {
+            alertBox.style.display = "block";
+            studentsList.innerHTML = lowStudents.map(s => `
+                <span style="background: white; border: 1px solid #fca5a5; padding: 3px 8px; border-radius: 6px; font-weight: 600;">
+                    ${escapeHtml(s.fullName)} (${s.attendance_percentage}% attendance)
+                </span>
+            `).join("");
+        } else {
+            alertBox.style.display = "none";
+        }
+    } catch (e) {
+        console.error("Error loading attendance report:", e);
+    }
+}
+
+function filterAttendanceTable() {
+    const input = document.getElementById("attSearchInput");
+    const filter = input ? input.value.toLowerCase().trim() : "";
+    const rows = document.querySelectorAll("#attendanceTableBody tr");
+
+    rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        if (text.includes(filter)) {
+            row.style.display = "";
+        } else {
+            row.style.display = "none";
+        }
+    });
+}
+
+async function saveBulkAttendance() {
+    const dateInput = document.getElementById("attDateFilter");
+    const saveBtn = document.getElementById("saveAttendanceBtn");
+
+    if (!dateInput || !dateInput.value) {
+        showToast("Please choose a valid attendance date.", "error");
+        return;
+    }
+
+    const attendance_date = dateInput.value;
+    const records = [];
+
+    currentAttendanceRoster.forEach(s => {
+        const statusEl = document.getElementById(`attStatus_${s.student_id}`);
+        const remarksEl = document.getElementById(`attRemarks_${s.student_id}`);
+
+        if (statusEl) {
+            records.push({
+                student_id: s.student_id,
+                status: statusEl.value,
+                remarks: remarksEl ? remarksEl.value.trim() : ""
+            });
+        }
+    });
+
+    if (records.length === 0) {
+        showToast("No students to submit attendance for.", "error");
+        return;
+    }
+
+    try {
+        if (saveBtn) {
+            saveBtn.disabled = true;
+            saveBtn.textContent = "Saving...";
+        }
+
+        const res = await fetch("/api/attendance", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            body: JSON.stringify({
+                attendance_date: attendance_date,
+                records: records
+            })
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Failed to save attendance");
+
+        showToast(data.message || "Attendance saved successfully!", "success");
+        loadAttendanceSheet();
+
+    } catch (err) {
+        console.error("Save attendance error:", err);
+        showToast("Failed to save attendance: " + err.message, "error");
+    } finally {
+        if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = "💾 Save Attendance";
+        }
+    }
+}
+
+// ============================================================
+// ADMIN ERP SHELL NAVIGATION & SECTION SWITCHING
+// ============================================================
+
+function switchAdminSection(paneId, btnEl, pageTitle = "Dashboard Overview") {
+    // 1. Update navigation items
+    document.querySelectorAll(".sidebar-nav .nav-link").forEach(link => {
+        link.classList.remove("active");
+    });
+
+    if (btnEl) {
+        btnEl.classList.add("active");
+    } else {
+        // Find matching link by paneId
+        const matchLink = document.querySelector(`[onclick*="${paneId}"]`);
+        if (matchLink) matchLink.classList.add("active");
+    }
+
+    // 2. Update visible pane
+    document.querySelectorAll(".erp-section-pane").forEach(pane => {
+        pane.classList.remove("active");
+    });
+
+    const targetPane = document.getElementById(paneId);
+    if (targetPane) {
+        targetPane.classList.add("active");
+    }
+
+    // 3. Update breadcrumb and header title
+    const headerTitleEl = document.getElementById("headerPageTitle");
+    if (headerTitleEl) {
+        headerTitleEl.textContent = pageTitle;
+    }
+
+    // 4. Close mobile sidebar if open
+    toggleMobileSidebar(false);
+
+    // 5. Trigger lazy loaders based on selected section
+    if (paneId === "pane-fees") {
+        loadFeeLedger();
+    } else if (paneId === "pane-attendance") {
+        const deptSelect = document.getElementById("attDeptFilter");
+        if (deptSelect && deptSelect.value) {
+            loadAttendanceSheet();
+        } else {
+            resetAttendanceDepartmentSelection();
+        }
+    } else if (paneId === "pane-dashboard" || paneId === "pane-admissions" || paneId === "pane-students") {
+        if (!students || students.length === 0) {
+            fetchStudents();
+        } else {
+            renderStudents();
+        }
+    }
+
+    // Scroll to top of content
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// Backwards-compatible alias for any existing switchAdminTab calls
+function switchAdminTab(tabId, btnEl) {
+    const paneMap = {
+        "sec-admissions": { id: "pane-admissions", title: "Student Admissions & Verification" },
+        "sec-fees": { id: "pane-fees", title: "Fee & Payment Management" },
+        "sec-attendance": { id: "pane-attendance", title: "Attendance Management" },
+        "pane-dashboard": { id: "pane-dashboard", title: "Dashboard Overview" },
+        "pane-admissions": { id: "pane-admissions", title: "Student Admissions & Verification" },
+        "pane-fees": { id: "pane-fees", title: "Fee & Payment Management" },
+        "pane-attendance": { id: "pane-attendance", title: "Attendance Management" }
+    };
+
+    const target = paneMap[tabId] || { id: tabId, title: "Admin Portal" };
+    switchAdminSection(target.id, btnEl, target.title);
+}
+
+// Mobile sidebar drawer toggle
+function toggleMobileSidebar(force) {
+    const sidebar = document.getElementById("adminSidebar");
+    const backdrop = document.getElementById("sidebarBackdrop");
+    if (!sidebar || !backdrop) return;
+
+    if (force === true) {
+        sidebar.classList.add("mobile-open");
+        backdrop.classList.add("active");
+    } else if (force === false) {
+        sidebar.classList.remove("mobile-open");
+        backdrop.classList.remove("active");
+    } else {
+        const isOpen = sidebar.classList.toggle("mobile-open");
+        if (isOpen) {
+            backdrop.classList.add("active");
+        } else {
+            backdrop.classList.remove("active");
+        }
+    }
+}
+
+// Administrator Profile Dropdown Menu Toggle
+function toggleAdminProfileMenu(force) {
+    const menu = document.getElementById("headerUserMenu");
+    if (!menu) return;
+
+    if (force === true) {
+        menu.style.display = "block";
+    } else if (force === false) {
+        menu.style.display = "none";
+    } else {
+        menu.style.display = menu.style.display === "none" ? "block" : "none";
+    }
+}
+
+// Close user dropdown when clicking outside
+document.addEventListener("click", function(e) {
+    const dropdown = document.getElementById("headerUserDropdownContainer");
+    const menu = document.getElementById("headerUserMenu");
+    if (dropdown && menu && !dropdown.contains(e.target)) {
+        menu.style.display = "none";
+    }
+});
+
+// Check Admin Authentication and sync Admin Profile info
+async function checkAdminAuth() {
+    try {
+        const res = await fetch("/api/check-auth");
+        if (!res.ok) {
+            window.location.href = "login.html";
+            return;
+        }
+        const data = await res.json();
+        if (data.authenticated && data.user_type === "admin") {
+            const adminName = data.username || "Administrator";
+            
+            const headerName = document.getElementById("headerAdminName");
+            const sidebarName = document.getElementById("sidebarAdminName");
+            const menuName = document.getElementById("menuAdminName");
+
+            if (headerName) headerName.textContent = adminName;
+            if (sidebarName) sidebarName.textContent = adminName;
+            if (menuName) menuName.textContent = adminName;
+
+            const initials = adminName.slice(0, 2).toUpperCase();
+            const headerPill = document.getElementById("headerAvatarPill");
+            const sidebarAvatar = document.getElementById("sidebarProfileAvatar");
+
+            if (headerPill) headerPill.textContent = initials || "🛡️";
+            if (sidebarAvatar) sidebarAvatar.textContent = initials || "🛡️";
+        } else {
+            window.location.href = "login.html";
+        }
+    } catch (err) {
+        console.warn("Auth check warning:", err);
+    }
+}
+
+// Global Quick Search Handler
+function handleGlobalSearch(query) {
+    const q = (query || "").toLowerCase().trim();
+    const activePane = document.querySelector(".erp-section-pane.active");
+
+    if (!activePane || activePane.id === "pane-dashboard" || activePane.id === "pane-admissions" || activePane.id === "pane-students") {
+        const searchInput = document.getElementById("searchInput");
+        if (searchInput) {
+            searchInput.value = q;
+            renderStudents();
+        }
+    } else if (activePane.id === "pane-fees") {
+        const feeInput = document.getElementById("feeSearchInput");
+        if (feeInput) {
+            feeInput.value = q;
+            filterFeeLedgerTable();
+        }
+    } else if (activePane.id === "pane-attendance") {
+        const attInput = document.getElementById("attSearchInput");
+        if (attInput) {
+            attInput.value = q;
+            filterAttendanceTable();
+        }
+    }
+}
+
+async function loadFeeLedger() {
+    const tableBody = document.getElementById("feeLedgerTableBody");
+    if (!tableBody) return;
+
+    tableBody.innerHTML = `<tr><td colspan="10" style="text-align: center; color: #64748b; padding: 16px;">Loading student fee ledger...</td></tr>`;
+
+    try {
+        const res = await fetch("/api/students");
+        if (!res.ok) throw new Error("Failed to load students");
+        const students = await res.json();
+
+        if (students.length === 0) {
+            tableBody.innerHTML = `<tr><td colspan="10" style="text-align: center; color: #64748b; padding: 16px;">No students found.</td></tr>`;
+            return;
+        }
+
+        const feePromises = students.map(s => 
+            fetch(`/api/students/${s.id}/fees`)
+                .then(r => r.ok ? r.json() : null)
+                .catch(() => null)
+        );
+
+        const feeResults = await Promise.all(feePromises);
+
+        tableBody.innerHTML = students.map((s, index) => {
+            const feeData = feeResults[index] || {};
+            const total = Number(feeData.total_fee || 110000);
+            const paid = Number(feeData.paid_amount || 0);
+            const pending = Number(feeData.pending_amount !== undefined ? feeData.pending_amount : (total - paid));
+            const status = feeData.payment_status || (paid >= total ? "Paid" : (paid > 0 ? "Partially Paid" : "Pending"));
+
+            let badgeHtml = `<span style="background: #fee2e2; color: #991b1b; padding: 3px 8px; border-radius: 4px; font-weight: 700; font-size: 11px;">🔴 Pending</span>`;
+            if (status === "Paid") {
+                badgeHtml = `<span style="background: #dcfce7; color: #15803d; padding: 3px 8px; border-radius: 4px; font-weight: 700; font-size: 11px;">🟢 Paid</span>`;
+            } else if (status === "Partially Paid") {
+                badgeHtml = `<span style="background: #fef3c7; color: #b45309; padding: 3px 8px; border-radius: 4px; font-weight: 700; font-size: 11px;">🟡 Partial</span>`;
+            }
+
+            return `
+                <tr>
+                    <td style="font-weight: 600; color: #64748b;">${index + 1}</td>
+                    <td><code style="font-size: 11px; background: #f1f5f9; padding: 2px 6px; border-radius: 4px;">#${s.id}</code></td>
+                    <td><strong style="color: #0f172a;">${escapeHtml(s.fullName)}</strong></td>
+                    <td><span style="font-size: 12px; color: #475569;">${escapeHtml(s.department || '-')}</span></td>
+                    <td><span style="font-size: 11px; background: #f8fafc; border: 1px solid #e2e8f0; padding: 2px 6px; border-radius: 4px;">${escapeHtml(s.admissionType || '-')}</span></td>
+                    <td style="font-weight: 600; color: #334155;">₹ ${total.toLocaleString("en-IN")}</td>
+                    <td style="font-weight: 700; color: #059669;">₹ ${paid.toLocaleString("en-IN")}</td>
+                    <td style="font-weight: 700; color: ${pending > 0 ? '#dc2626' : '#15803d'};">₹ ${pending.toLocaleString("en-IN")}</td>
+                    <td>${badgeHtml}</td>
+                    <td>
+                        <button type="button" class="btn-fee-manage" onclick="viewStudentDetails(${s.id})" title="Manage Student Fee & Record Payment">
+                            <span>💳</span> Manage Fee
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }).join("");
+
+    } catch (err) {
+        console.error("Error loading fee ledger:", err);
+        tableBody.innerHTML = `<tr><td colspan="10" style="text-align: center; color: #ef4444; padding: 16px;">Failed to load fee ledger: ${escapeHtml(err.message)}</td></tr>`;
+    }
+}
+
+function filterFeeLedgerTable() {
+    const input = document.getElementById("feeSearchInput");
+    const filter = input ? input.value.toLowerCase().trim() : "";
+    const rows = document.querySelectorAll("#feeLedgerTableBody tr");
+
+    rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        if (text.includes(filter)) {
+            row.style.display = "";
+        } else {
+            row.style.display = "none";
+        }
+    });
 }

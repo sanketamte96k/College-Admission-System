@@ -15,6 +15,16 @@ document.addEventListener("DOMContentLoaded", function () {
     const studentLogoutBtn = document.getElementById("studentLogoutBtn");
     const toastContainer = document.getElementById("toastContainer");
 
+    function escapeHtml(str) {
+        if (str === null || str === undefined) return "";
+        return String(str)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
     // Fetch Logged In Student Profile
     function loadStudentProfile() {
         fetch("/api/student/profile")
@@ -415,6 +425,91 @@ document.addEventListener("DOMContentLoaded", function () {
         document.body.removeChild(link);
     };
 
+    // Student Attendance Management
+    function loadStudentAttendance() {
+        fetch("/api/student/attendance")
+            .then(res => {
+                if (!res.ok) throw new Error("Failed to fetch attendance summary");
+                return res.json();
+            })
+            .then(data => {
+                renderStudentAttendance(data);
+            })
+            .catch(err => {
+                console.error("Attendance load error:", err);
+                const historyBody = document.getElementById("studentAttendanceHistoryBody");
+                if (historyBody) {
+                    historyBody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: #ef4444; padding: 16px;">Unable to load attendance records.</td></tr>`;
+                }
+            });
+    }
+
+    function renderStudentAttendance(data) {
+        const pctEl = document.getElementById("stAttPct");
+        const presentEl = document.getElementById("stAttPresent");
+        const absentEl = document.getElementById("stAttAbsent");
+        const totalEl = document.getElementById("stAttTotal");
+        const statusBadgeEl = document.getElementById("stAttStatusBadge");
+        const warningBox = document.getElementById("stLowAttWarning");
+        const warningMsg = document.getElementById("stLowAttMsg");
+        const historyBody = document.getElementById("studentAttendanceHistoryBody");
+
+        const pct = data.attendance_percentage !== undefined ? data.attendance_percentage : 100.0;
+        const present = data.present_days || 0;
+        const absent = data.absent_days || 0;
+        const total = data.total_days || 0;
+        const isLow = Boolean(data.is_low_attendance);
+
+        if (pctEl) pctEl.textContent = `${pct}%`;
+        if (presentEl) presentEl.textContent = present;
+        if (absentEl) absentEl.textContent = absent;
+        if (totalEl) totalEl.textContent = total;
+
+        if (statusBadgeEl) {
+            if (isLow) {
+                statusBadgeEl.className = "fee-badge fee-badge-pending";
+                statusBadgeEl.innerHTML = "🔴 Low Attendance";
+            } else {
+                statusBadgeEl.className = "fee-badge fee-badge-paid";
+                statusBadgeEl.innerHTML = "🟢 Good Attendance";
+            }
+        }
+
+        if (warningBox) {
+            if (isLow) {
+                warningBox.style.display = "flex";
+                if (warningMsg && data.warning_message) {
+                    warningMsg.textContent = data.warning_message;
+                }
+            } else {
+                warningBox.style.display = "none";
+            }
+        }
+
+        if (historyBody) {
+            const records = data.records || [];
+            if (records.length === 0) {
+                historyBody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: #64748b; padding: 16px;">No attendance records recorded yet.</td></tr>`;
+            } else {
+                historyBody.innerHTML = records.map(r => {
+                    const isPres = (r.status || "").toLowerCase() === "present";
+                    const badgeHtml = isPres
+                        ? `<span style="background: #dcfce7; color: #15803d; padding: 3px 8px; border-radius: 4px; font-weight: 700; font-size: 12px;">🟢 Present</span>`
+                        : `<span style="background: #fee2e2; color: #991b1b; padding: 3px 8px; border-radius: 4px; font-weight: 700; font-size: 12px;">🔴 Absent</span>`;
+
+                    return `
+                        <tr>
+                            <td><strong>${r.attendance_date}</strong></td>
+                            <td>${badgeHtml}</td>
+                            <td>${escapeHtml(r.remarks || '-')}</td>
+                            <td><small style="color: #64748b;">${escapeHtml(r.marked_by || 'Faculty Admin')}</small></td>
+                        </tr>
+                    `;
+                }).join("");
+            }
+        }
+    }
+
     // Student Logout Handler
     if (studentLogoutBtn) {
         studentLogoutBtn.addEventListener("click", function () {
@@ -440,7 +535,24 @@ document.addEventListener("DOMContentLoaded", function () {
         }, 3000);
     }
 
-    // Initialize Student Profile Load & Fees
+    // Student Tab Switching Handler
+    window.switchStudentTab = function(tabId, btnEl) {
+        document.querySelectorAll(".erp-tab-btn").forEach(b => b.classList.remove("active"));
+        document.querySelectorAll(".erp-section-pane").forEach(p => p.classList.remove("active"));
+
+        if (btnEl) btnEl.classList.add("active");
+        const targetPane = document.getElementById(tabId);
+        if (targetPane) targetPane.classList.add("active");
+
+        if (tabId === "st-sec-fees") {
+            loadStudentFees();
+        } else if (tabId === "st-sec-attendance") {
+            loadStudentAttendance();
+        }
+    };
+
+    // Initialize Student Profile Load, Fees & Attendance
     loadStudentProfile();
     loadStudentFees();
+    loadStudentAttendance();
 });

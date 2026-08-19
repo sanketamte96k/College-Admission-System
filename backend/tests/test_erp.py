@@ -6,7 +6,7 @@ if BASE_DIR not in sys.path:
     sys.path.insert(0, BASE_DIR)
 
 from app import create_app
-from models import db, Student, Admin, Payment
+from models import db, Student, Admin, Payment, Attendance
 
 def test_erp_suite():
     print("=== STARTING PRODUCTION ERP TEST SUITE ===")
@@ -374,11 +374,141 @@ def test_erp_suite():
         db.session.delete(other_st)
         db.session.commit()
 
-        # Re-login admin for remaining checks
+        # Re-login admin for attendance checks
         client.post("/api/student-logout")
         client.post("/api/login", json={"username": "admin", "password": "admin123"})
 
-        print("9. Testing Analytics Dashboard Status & Fee Breakdown...")
+        print("9. Testing Attendance Management Module (Tests 1 - 12)...")
+        # TEST 1: Load students for attendance by department
+        att_sheet = client.get(f"/api/attendance?department=Computer%20Engineering&date=2026-08-10")
+        assert att_sheet.status_code == 200
+        sheet_data = att_sheet.get_json()
+        assert sheet_data["total_students"] >= 1
+        assert any(s["student_id"] == st_id for s in sheet_data["students"])
+        print("  [OK] ATT-TEST 1: Admin fetched attendance sheet for Computer Engineering department.")
+
+        # TEST 2 & 4: Save bulk attendance
+        bulk_save = client.post("/api/attendance", json={
+            "attendance_date": "2026-08-10",
+            "records": [
+                {"student_id": st_id, "status": "Present", "remarks": "Present on time"}
+            ]
+        })
+        assert bulk_save.status_code == 201
+        assert bulk_save.get_json()["success"] is True
+        print("  [OK] ATT-TEST 2 & 4: Bulk attendance saved successfully.")
+
+        # TEST 3 & 5: Update attendance for same student/date (Duplicate protection & upsert)
+        update_save = client.post("/api/attendance", json={
+            "attendance_date": "2026-08-10",
+            "records": [
+                {"student_id": st_id, "status": "Absent", "remarks": "Sick leave recorded"}
+            ]
+        })
+        assert update_save.status_code == 201
+        # Confirm only ONE record exists for st_id on 2026-08-10
+        import datetime as dt
+        d_obj = dt.date(2026, 8, 10)
+        rec_count = Attendance.query.filter_by(student_id=st_id, attendance_date=d_obj).count()
+        assert rec_count == 1
+        assert Attendance.query.filter_by(student_id=st_id, attendance_date=d_obj).first().status == "Absent"
+        print("  [OK] ATT-TEST 3 & 5: Duplicate date handled as atomic upsert (count == 1, updated to 'Absent').")
+
+        # TEST 6: Attendance calculation percentage (8 Present, 2 Absent = 80%)
+        # Clear previous test day and seed 8 Present, 2 Absent
+        Attendance.query.filter_by(student_id=st_id).delete()
+        db.session.commit()
+
+        for day in range(1, 9):
+            db.session.add(Attendance(
+                student_id=st_id,
+                attendance_date=dt.date(2026, 8, day),
+                status="Present"
+            ))
+        for day in range(9, 11):
+            db.session.add(Attendance(
+                student_id=st_id,
+                attendance_date=dt.date(2026, 8, day),
+                status="Absent"
+            ))
+        db.session.commit()
+
+        from services.attendance_service import AttendanceService
+        att_summary = AttendanceService.get_student_attendance_summary(st_id)
+        assert att_summary["present_days"] == 8
+        assert att_summary["absent_days"] == 2
+        assert att_summary["total_days"] == 10
+        assert att_summary["attendance_percentage"] == 80.0
+        assert att_summary["is_low_attendance"] is False
+        print(f"  [OK] ATT-TEST 6: Attendance % formula verified ({att_summary['present_days']}/{att_summary['total_days']} = {att_summary['attendance_percentage']}%).")
+
+        # TEST 7: Low attendance threshold warning (e.g. 6 Present, 4 Absent = 60.0% < 75%)
+        Attendance.query.filter_by(student_id=st_id).delete()
+        db.session.commit()
+
+        for day in range(1, 7):
+            db.session.add(Attendance(
+                student_id=st_id,
+                attendance_date=dt.date(2026, 8, day),
+                status="Present"
+            ))
+        for day in range(7, 11):
+            db.session.add(Attendance(
+                student_id=st_id,
+                attendance_date=dt.date(2026, 8, day),
+                status="Absent"
+            ))
+        db.session.commit()
+
+        low_summary = AttendanceService.get_student_attendance_summary(st_id)
+        assert low_summary["present_days"] == 6
+        assert low_summary["absent_days"] == 4
+        assert low_summary["attendance_percentage"] == 60.0
+        assert low_summary["is_low_attendance"] is True
+        assert "below the mandatory 75% threshold" in low_summary["warning_message"]
+        print(f"  [OK] ATT-TEST 7: Low attendance warning triggered (60% < 75% threshold).")
+
+        # TEST 8: Logged-in student views own attendance
+        client.get("/api/logout")  # Logout admin
+        st_login = client.post("/api/student-login", json={"application_id": st_id, "dob": "2001-09-20"})
+        assert st_login.status_code == 200
+
+        st_att_res = client.get("/api/student/attendance")
+        assert st_att_res.status_code == 200
+        st_att_data = st_att_res.get_json()
+        assert st_att_data["student_id"] == st_id
+        assert st_att_data["attendance_percentage"] == 60.0
+        assert len(st_att_data["records"]) == 10
+        print("  [OK] ATT-TEST 8: Student views own attendance summary and historical records.")
+
+        # TEST 9 & 10: Student write protection and cross-student read protection
+        # Student cannot write attendance (401/403)
+        st_post_att = client.post("/api/attendance", json={
+            "attendance_date": "2026-08-11",
+            "records": [{"student_id": st_id, "status": "Present"}]
+        })
+        assert st_post_att.status_code in [401, 403]
+
+        # Student cannot read another student's attendance
+        st_cross_read = client.get(f"/api/students/{st_id + 99}/attendance")
+        assert st_cross_read.status_code in [403, 404]
+        print("  [OK] ATT-TEST 9 & 10: Student write protection & cross-student access blocking verified.")
+
+        # TEST 11: Admin attendance report & invalid data rollback
+        client.post("/api/student-logout")
+        client.post("/api/login", json={"username": "admin", "password": "admin123"})
+
+        report_res = client.get("/api/attendance/report?department=Computer%20Engineering&date=2026-08-01")
+        assert report_res.status_code == 200
+        rep_data = report_res.get_json()
+        assert "low_attendance_students" in rep_data
+        assert any(s["student_id"] == st_id for s in rep_data["low_attendance_students"])
+
+        bad_date = client.post("/api/attendance", json={"attendance_date": "invalid-date", "records": []})
+        assert bad_date.status_code == 400
+        print("  [OK] ATT-TEST 11: Admin attendance report & invalid date validation verified.")
+
+        print("10. Testing Analytics Dashboard Status & Fee Breakdown...")
         analytics_res = client.get("/api/dashboard")
         assert analytics_res.status_code == 200
         adata = analytics_res.get_json()
@@ -388,17 +518,18 @@ def test_erp_suite():
         assert adata["total_fees_collected"] >= summary2["paid_amount"]
         print("  [OK] Analytics Dashboard verification & fee collections confirmed.")
 
-        print("10. Testing Student Record Deletion & Payment Cascade...")
+        print("11. Testing Student Record Deletion & Attendance/Payment Cascade...")
         del_res = client.delete(f"/api/students/{st_id}")
         assert del_res.status_code == 200
         assert "deleted successfully" in del_res.get_json()["message"]
 
-        # Verify 404 after deletion
+        # Verify 404 after deletion and attendance cascade cleanup
         get_deleted = client.get(f"/api/students/{st_id}")
         assert get_deleted.status_code == 404
-        print("  [OK] Student deletion & payment cleanup verified.")
+        assert Attendance.query.filter_by(student_id=st_id).count() == 0
+        print("  [OK] Student deletion & attendance/payment cascade cleanup verified.")
 
-        print("\nALL PRODUCTION ERP TEST SUITE CASES (VERIFICATION + FEES + PDF RECEIPTS 1-8 + CRUD) PASSED CLEANLY!")
+        print("\nALL PRODUCTION ERP TEST SUITE CASES (VERIFICATION + FEES + RECEIPTS + ATTENDANCE 1-12 + CRUD) PASSED CLEANLY!")
 
 if __name__ == "__main__":
     test_erp_suite()
