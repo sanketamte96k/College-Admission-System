@@ -6,6 +6,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Zeal College ERP - Admin Portal</title>
 
+    <!-- Google Fonts: Plus Jakarta Sans & Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
     <link rel="stylesheet" href="style.css">
     <!-- jsPDF Library for generating Admission Form PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -497,130 +502,149 @@
             <!-- ============================================================ -->
             <div id="pane-attendance" class="erp-section-pane">
                 
-                <!-- Attendance Management Section Header -->
-                <div class="att-section-intro">
-                    <div class="att-section-intro-text">
-                        <h3>📅 Attendance Management</h3>
-                        <p>Manage daily student attendance, record classroom participation, and monitor academic attendance metrics.</p>
+                <!-- ATTENDANCE HERO BANNER -->
+                <div class="att-hero-card">
+                    <div class="att-hero-content">
+                        <div class="att-hero-badge">
+                            <span class="att-pulse-dot"></span>
+                            <span>ACADEMIC ATTENDANCE HUB</span>
+                        </div>
+                        <h2 class="att-hero-title">Attendance Management & Participation Ledger</h2>
+                        <p class="att-hero-desc">Track student classroom presence in real-time, monitor branch attendance compliance, and identify candidates requiring academic intervention.</p>
+                        <div class="att-hero-meta">
+                            <span class="att-meta-pill"><span class="pill-dot warning"></span> 75% Mandatory Attendance Rule</span>
+                            <span class="att-meta-pill date-pill" id="attDateBadge"><span class="pill-icon">📅</span> Today: <strong id="attTodayDisplay">19 Aug 2026</strong></span>
+                        </div>
+                    </div>
+                    <div class="att-hero-stat">
+                        <div class="att-hero-stat-card">
+                            <div class="stat-ring-container">
+                                <div class="stat-icon-glow">📊</div>
+                            </div>
+                            <div class="stat-text-meta">
+                                <span class="stat-big-val" id="heroAttRate">100%</span>
+                                <span class="stat-sub-label">Branch Attendance</span>
+                                <span class="stat-tag-compliance">✓ Academic Compliance</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
                 <!-- SUB-VIEW 1: DEPARTMENT SELECTION HUB -->
-                <div id="attDeptSelectionView" class="attendance-panel-card">
+                <div id="attDeptSelectionView" class="card att-selection-panel">
                     <div class="attendance-department-hub">
-                        <div class="attendance-department-header">
-                            <h4>🏢 Select Academic Department</h4>
-                            <p>Choose an academic branch below to view enrolled students, mark daily attendance, and monitor attendance performance.</p>
+                        <div class="section-header-row">
+                            <div>
+                                <span class="section-tag-badge">ACADEMIC BRANCHES</span>
+                                <h3 class="section-title">🏢 Select Department to Manage Attendance</h3>
+                                <p class="section-subtitle">Select an engineering branch below to open its daily attendance sheet, record student presence, and inspect metrics.</p>
+                            </div>
+                            <div class="section-action-pills">
+                                <span class="step-indicator-badge">STEP 1: SELECT BRANCH</span>
+                            </div>
                         </div>
 
                         <div class="attendance-department-grid">
                             <!-- Computer Engineering -->
-                            <div class="attendance-department-card" style="--dept-color: #2563eb;" onclick="selectAttendanceDepartment('Computer Engineering')">
-                                <div class="attendance-department-card-body">
-                                    <div class="attendance-department-card-top">
-                                        <div class="attendance-department-icon">💻</div>
-                                        <span class="attendance-department-code">COMP</span>
-                                    </div>
-                                    <h4 class="attendance-department-name">Computer Engineering</h4>
-                                    <p class="attendance-department-description">Software systems, algorithms, database architectures, and computing labs.</p>
+                            <div class="attendance-department-card dept-comp" onclick="selectAttendanceDepartment('Computer Engineering')">
+                                <div class="dept-card-top-bar bar-comp"></div>
+                                <div class="attendance-department-card-top">
+                                    <div class="dept-icon-box icon-comp">💻</div>
+                                    <span class="dept-code-badge badge-comp">COMP</span>
                                 </div>
-                                <div class="attendance-department-action">
+                                <h4 class="attendance-department-name">Computer Engineering</h4>
+                                <p class="attendance-department-description">Software systems, algorithms, database architectures, computing labs, and full-stack engineering.</p>
+                                <div class="attendance-department-action action-comp">
                                     <span>Open Attendance Sheet</span>
                                     <span class="arrow">→</span>
                                 </div>
                             </div>
 
                             <!-- Information Technology -->
-                            <div class="attendance-department-card" style="--dept-color: #0284c7;" onclick="selectAttendanceDepartment('Information Technology')">
-                                <div class="attendance-department-card-body">
-                                    <div class="attendance-department-card-top">
-                                        <div class="attendance-department-icon">🌐</div>
-                                        <span class="attendance-department-code">IT</span>
-                                    </div>
-                                    <h4 class="attendance-department-name">Information Technology</h4>
-                                    <p class="attendance-department-description">Web systems, cloud computing, network security, and enterprise solutions.</p>
+                            <div class="attendance-department-card dept-it" onclick="selectAttendanceDepartment('Information Technology')">
+                                <div class="dept-card-top-bar bar-it"></div>
+                                <div class="attendance-department-card-top">
+                                    <div class="dept-icon-box icon-it">🌐</div>
+                                    <span class="dept-code-badge badge-it">IT</span>
                                 </div>
-                                <div class="attendance-department-action">
+                                <h4 class="attendance-department-name">Information Technology</h4>
+                                <p class="attendance-department-description">Web systems, cloud computing, cyber network security, and enterprise infrastructure solutions.</p>
+                                <div class="attendance-department-action action-it">
                                     <span>Open Attendance Sheet</span>
                                     <span class="arrow">→</span>
                                 </div>
                             </div>
 
                             <!-- AI & Data Science -->
-                            <div class="attendance-department-card" style="--dept-color: #7c3aed;" onclick="selectAttendanceDepartment('Artificial Intelligence & Data Science')">
-                                <div class="attendance-department-card-body">
-                                    <div class="attendance-department-card-top">
-                                        <div class="attendance-department-icon">🤖</div>
-                                        <span class="attendance-department-code">AI & DS</span>
-                                    </div>
-                                    <h4 class="attendance-department-name">Artificial Intelligence & Data Science</h4>
-                                    <p class="attendance-department-description">Machine learning, neural networks, predictive analytics, and deep learning.</p>
+                            <div class="attendance-department-card dept-aids" onclick="selectAttendanceDepartment('Artificial Intelligence & Data Science')">
+                                <div class="dept-card-top-bar bar-aids"></div>
+                                <div class="attendance-department-card-top">
+                                    <div class="dept-icon-box icon-aids">🤖</div>
+                                    <span class="dept-code-badge badge-aids">AI & DS</span>
                                 </div>
-                                <div class="attendance-department-action">
+                                <h4 class="attendance-department-name">Artificial Intelligence & Data Science</h4>
+                                <p class="attendance-department-description">Machine learning, neural networks, predictive analytics, computer vision, and deep learning algorithms.</p>
+                                <div class="attendance-department-action action-aids">
                                     <span>Open Attendance Sheet</span>
                                     <span class="arrow">→</span>
                                 </div>
                             </div>
 
                             <!-- Electronics & Telecommunication -->
-                            <div class="attendance-department-card" style="--dept-color: #059669;" onclick="selectAttendanceDepartment('Electronics & Telecommunication')">
-                                <div class="attendance-department-card-body">
-                                    <div class="attendance-department-card-top">
-                                        <div class="attendance-department-icon">📡</div>
-                                        <span class="attendance-department-code">E&TC</span>
-                                    </div>
-                                    <h4 class="attendance-department-name">Electronics & Telecommunication</h4>
-                                    <p class="attendance-department-description">Embedded systems, IoT, wireless communication, and signal processing.</p>
+                            <div class="attendance-department-card dept-entc" onclick="selectAttendanceDepartment('Electronics & Telecommunication')">
+                                <div class="dept-card-top-bar bar-entc"></div>
+                                <div class="attendance-department-card-top">
+                                    <div class="dept-icon-box icon-entc">📡</div>
+                                    <span class="dept-code-badge badge-entc">E&TC</span>
                                 </div>
-                                <div class="attendance-department-action">
+                                <h4 class="attendance-department-name">Electronics & Telecommunication</h4>
+                                <p class="attendance-department-description">Embedded systems, IoT architecture, wireless signal processing, and telecommunication hardware.</p>
+                                <div class="attendance-department-action action-entc">
                                     <span>Open Attendance Sheet</span>
                                     <span class="arrow">→</span>
                                 </div>
                             </div>
 
                             <!-- Mechanical Engineering -->
-                            <div class="attendance-department-card" style="--dept-color: #d97706;" onclick="selectAttendanceDepartment('Mechanical Engineering')">
-                                <div class="attendance-department-card-body">
-                                    <div class="attendance-department-card-top">
-                                        <div class="attendance-department-icon">⚙️</div>
-                                        <span class="attendance-department-code">MECH</span>
-                                    </div>
-                                    <h4 class="attendance-department-name">Mechanical Engineering</h4>
-                                    <p class="attendance-department-description">Thermodynamics, robotics, CAD/CAM designing, and manufacturing labs.</p>
+                            <div class="attendance-department-card dept-mech" onclick="selectAttendanceDepartment('Mechanical Engineering')">
+                                <div class="dept-card-top-bar bar-mech"></div>
+                                <div class="attendance-department-card-top">
+                                    <div class="dept-icon-box icon-mech">⚙️</div>
+                                    <span class="dept-code-badge badge-mech">MECH</span>
                                 </div>
-                                <div class="attendance-department-action">
+                                <h4 class="attendance-department-name">Mechanical Engineering</h4>
+                                <p class="attendance-department-description">Thermodynamics, robotics automation, CAD/CAM drafting, mechatronics, and manufacturing systems.</p>
+                                <div class="attendance-department-action action-mech">
                                     <span>Open Attendance Sheet</span>
                                     <span class="arrow">→</span>
                                 </div>
                             </div>
 
                             <!-- Civil Engineering -->
-                            <div class="attendance-department-card" style="--dept-color: #ea580c;" onclick="selectAttendanceDepartment('Civil Engineering')">
-                                <div class="attendance-department-card-body">
-                                    <div class="attendance-department-card-top">
-                                        <div class="attendance-department-icon">🏗️</div>
-                                        <span class="attendance-department-code">CIVIL</span>
-                                    </div>
-                                    <h4 class="attendance-department-name">Civil Engineering</h4>
-                                    <p class="attendance-department-description">Structural analysis, geotechnical surveying, and sustainable construction.</p>
+                            <div class="attendance-department-card dept-civil" onclick="selectAttendanceDepartment('Civil Engineering')">
+                                <div class="dept-card-top-bar bar-civil"></div>
+                                <div class="attendance-department-card-top">
+                                    <div class="dept-icon-box icon-civil">🏗️</div>
+                                    <span class="dept-code-badge badge-civil">CIVIL</span>
                                 </div>
-                                <div class="attendance-department-action">
+                                <h4 class="attendance-department-name">Civil Engineering</h4>
+                                <p class="attendance-department-description">Structural engineering, geotechnical surveying, smart city planning, and sustainable construction.</p>
+                                <div class="attendance-department-action action-civil">
                                     <span>Open Attendance Sheet</span>
                                     <span class="arrow">→</span>
                                 </div>
                             </div>
 
                             <!-- Electrical Engineering -->
-                            <div class="attendance-department-card" style="--dept-color: #ca8a04;" onclick="selectAttendanceDepartment('Electrical Engineering')">
-                                <div class="attendance-department-card-body">
-                                    <div class="attendance-department-card-top">
-                                        <div class="attendance-department-icon">⚡</div>
-                                        <span class="attendance-department-code">ELEC</span>
-                                    </div>
-                                    <h4 class="attendance-department-name">Electrical Engineering</h4>
-                                    <p class="attendance-department-description">Power systems, electric grids, renewable energy, and control electronics.</p>
+                            <div class="attendance-department-card dept-elec" onclick="selectAttendanceDepartment('Electrical Engineering')">
+                                <div class="dept-card-top-bar bar-elec"></div>
+                                <div class="attendance-department-card-top">
+                                    <div class="dept-icon-box icon-elec">⚡</div>
+                                    <span class="dept-code-badge badge-elec">ELEC</span>
                                 </div>
-                                <div class="attendance-department-action">
+                                <h4 class="attendance-department-name">Electrical Engineering</h4>
+                                <p class="attendance-department-description">Power systems, renewable smart grids, industrial motor control, and electronic energy devices.</p>
+                                <div class="attendance-department-action action-elec">
                                     <span>Open Attendance Sheet</span>
                                     <span class="arrow">→</span>
                                 </div>
@@ -632,25 +656,32 @@
                 <!-- SUB-VIEW 2: ACTIVE DEPARTMENT ATTENDANCE DASHBOARD -->
                 <div id="attDeptActiveView" style="display: none;">
                     
-                    <!-- FILTER CARD -->
-                    <div class="att-filter-card">
-                        <div class="att-filter-card-header">
-                            <div class="att-active-dept-info">
-                                <div class="att-active-dept-icon" id="attActiveDeptIcon">🎓</div>
-                                <div class="att-active-dept-text">
-                                    <h4 id="attActiveDeptTitle">Computer Engineering</h4>
-                                    <p>Daily Classroom Attendance Recording & Ledger</p>
-                                </div>
+                    <!-- Top Active Department Header & Switcher -->
+                    <div class="card att-active-header-card">
+                        <div class="att-active-dept-info">
+                            <div class="att-active-dept-icon" id="attActiveDeptIcon">🎓</div>
+                            <div>
+                                <h3 class="att-active-dept-title" id="attActiveDeptTitle">Computer Engineering</h3>
+                                <p class="att-active-dept-sub">Daily Classroom Attendance Recording & Ledger</p>
                             </div>
-                            <button type="button" class="att-back-btn" onclick="resetAttendanceDepartmentSelection()" title="Choose a different branch">
+                        </div>
+                        <div class="att-active-dept-actions">
+                            <button type="button" class="btn-secondary btn-export-csv" onclick="exportAttendanceReport()" title="Export Attendance Sheet to CSV">
+                                <span>📊</span> Export CSV
+                            </button>
+                            <button type="button" class="btn-secondary att-switch-dept-btn" onclick="resetAttendanceDepartmentSelection()" title="Choose a different department">
                                 <span>←</span> Switch Department
                             </button>
                         </div>
+                    </div>
 
-                        <div class="att-filter-grid">
-                            <div class="att-input-group">
+                    <!-- Filter / Control Panel -->
+                    <div class="card filter-panel att-filter-card">
+                        <div class="filter-panel-accent-bar"></div>
+                        <div class="filter-grid att-filter-grid">
+                            <div class="form-group att-input-group">
                                 <label for="attDeptFilter"><span class="lbl-icon">🏢</span> Department</label>
-                                <select id="attDeptFilter" class="attendance-select" onchange="onDeptDropdownChange()">
+                                <select id="attDeptFilter" class="form-control attendance-select" onchange="onDeptDropdownChange()">
                                     <option value="">-- Choose Department --</option>
                                     <option value="Computer Engineering">Computer Engineering</option>
                                     <option value="Information Technology">Information Technology</option>
@@ -662,99 +693,148 @@
                                 </select>
                             </div>
 
-                            <div class="att-input-group">
+                            <div class="form-group att-input-group">
                                 <label for="attDateFilter"><span class="lbl-icon">📅</span> Attendance Date</label>
-                                <input type="date" id="attDateFilter" class="attendance-date-input" onchange="loadAttendanceSheet()">
+                                <input type="date" id="attDateFilter" class="form-control attendance-date-input" onchange="loadAttendanceSheet()">
                             </div>
 
-                            <div class="att-input-group att-search-group">
+                            <div class="form-group att-input-group att-search-group">
                                 <label for="attSearchInput"><span class="lbl-icon">🔍</span> Search Student</label>
-                                <input type="text" id="attSearchInput" class="attendance-select" placeholder="Type student name to filter..." oninput="filterAttendanceTable()">
+                                <div class="input-with-icon">
+                                    <input type="text" id="attSearchInput" class="form-control attendance-select" placeholder="Search student by name or ID..." oninput="filterAttendanceTable()">
+                                </div>
                             </div>
 
                             <div class="att-filter-action-group">
-                                <button type="button" class="btn-load-attendance" onclick="loadAttendanceSheet()" title="Refresh & Reload Attendance Sheet">
-                                    <span>🔄</span> Load Attendance
+                                <button type="button" class="btn-primary btn-load-attendance" onclick="loadAttendanceSheet()" title="Refresh & Reload Attendance Sheet">
+                                    <span>📊</span> Load Attendance
                                 </button>
                             </div>
                         </div>
                     </div>
 
-                    <!-- SUMMARY CARDS (4 RESPONSIVE METRIC TILES) -->
-                    <div class="att-summary-grid">
-                        <div class="att-summary-card card-total">
-                            <div class="att-summary-icon">👥</div>
-                            <div class="att-summary-content">
-                                <div class="att-summary-title">Total Students</div>
-                                <div class="att-summary-number" id="attKpiTotal">0</div>
-                                <div class="att-summary-subtext">Enrolled in branch</div>
+                    <!-- Statistics KPI Cards (4 Rich, Colorful, Elevated Metric Tiles) -->
+                    <div class="kpi-grid att-summary-grid">
+                        <!-- Total Students -->
+                        <div class="kpi-card att-summary-card card-total">
+                            <div class="kpi-card-inner">
+                                <div class="kpi-icon-box total">👥</div>
+                                <div class="kpi-content">
+                                    <span class="kpi-label">TOTAL STUDENTS</span>
+                                    <h3 class="kpi-value" id="attKpiTotal">0</h3>
+                                    <span class="kpi-subtext">Enrolled in branch</span>
+                                </div>
+                            </div>
+                            <div class="kpi-progress-track">
+                                <div class="kpi-progress-fill" style="width: 100%; background: linear-gradient(90deg, #2563eb, #4f46e5);"></div>
                             </div>
                         </div>
-                        <div class="att-summary-card card-present">
-                            <div class="att-summary-icon">✅</div>
-                            <div class="att-summary-content">
-                                <div class="att-summary-title">Present</div>
-                                <div class="att-summary-number" id="attKpiPresent">0</div>
-                                <div class="att-summary-subtext">Marked present today</div>
+
+                        <!-- Present Today -->
+                        <div class="kpi-card att-summary-card card-present">
+                            <div class="kpi-card-inner">
+                                <div class="kpi-icon-box present">✓</div>
+                                <div class="kpi-content">
+                                    <span class="kpi-label">PRESENT TODAY</span>
+                                    <h3 class="kpi-value" id="attKpiPresent">0</h3>
+                                    <span class="kpi-subtext">Marked present today</span>
+                                </div>
+                            </div>
+                            <div class="kpi-progress-track">
+                                <div class="kpi-progress-fill" id="kpiPresentBar" style="width: 100%; background: linear-gradient(90deg, #059669, #10b981);"></div>
                             </div>
                         </div>
-                        <div class="att-summary-card card-absent">
-                            <div class="att-summary-icon">❌</div>
-                            <div class="att-summary-content">
-                                <div class="att-summary-title">Absent</div>
-                                <div class="att-summary-number" id="attKpiAbsent">0</div>
-                                <div class="att-summary-subtext">Marked absent today</div>
+
+                        <!-- Absent Today -->
+                        <div class="kpi-card att-summary-card card-absent">
+                            <div class="kpi-card-inner">
+                                <div class="kpi-icon-box absent">✕</div>
+                                <div class="kpi-content">
+                                    <span class="kpi-label">ABSENT TODAY</span>
+                                    <h3 class="kpi-value" id="attKpiAbsent">0</h3>
+                                    <span class="kpi-subtext">Marked absent today</span>
+                                </div>
+                            </div>
+                            <div class="kpi-progress-track">
+                                <div class="kpi-progress-fill" id="kpiAbsentBar" style="width: 0%; background: linear-gradient(90deg, #dc2626, #ef4444);"></div>
                             </div>
                         </div>
-                        <div class="att-summary-card card-rate">
-                            <div class="att-summary-icon">📊</div>
-                            <div class="att-summary-content">
-                                <div class="att-summary-title">Attendance Rate</div>
-                                <div class="att-summary-number" id="attKpiRate">0%</div>
-                                <div class="att-summary-subtext">Class attendance rate</div>
+
+                        <!-- Attendance Rate with Circular Gauge Visual -->
+                        <div class="kpi-card att-summary-card card-rate">
+                            <div class="kpi-card-inner">
+                                <div class="kpi-icon-box rate">📊</div>
+                                <div class="kpi-content">
+                                    <span class="kpi-label">ATTENDANCE RATE</span>
+                                    <div class="rate-gauge-row">
+                                        <h3 class="kpi-value" id="attKpiRate">100%</h3>
+                                        <div class="mini-gauge-badge" id="rateGaugeBadge">
+                                            <span class="gauge-ring-circle"></span>
+                                        </div>
+                                    </div>
+                                    <span class="kpi-subtext" id="attRateSubtext">Class attendance rate</span>
+                                </div>
+                            </div>
+                            <div class="kpi-progress-track">
+                                <div class="kpi-progress-fill" id="kpiRateBar" style="width: 100%; background: linear-gradient(90deg, #7c3aed, #8b5cf6);"></div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- LOW ATTENDANCE WARNING ALERT IF ANY -->
-                    <div id="attLowAlertBox" class="att-low-alert-card" style="display: none;">
-                        <div class="att-low-alert-header">
-                            <span class="att-low-alert-icon">⚠️</span>
-                            <div>
-                                <strong style="color: #991b1b; font-size: 14px;">Low Attendance Warning (&lt; 75% Overall Threshold):</strong>
-                                <p style="color: #b91c1c; font-size: 12.5px; margin: 2px 0 0 0;">The following enrolled students have attendance below the minimum mandatory 75% requirement:</p>
+                    <!-- Realtime Attendance Ratio Distribution Bar -->
+                    <div class="card att-ratio-bar-card">
+                        <div class="att-ratio-header">
+                            <span class="ratio-title">📈 Today's Attendance Distribution Breakdown</span>
+                            <div class="ratio-legend">
+                                <span class="legend-item"><span class="legend-dot present"></span> Present (<strong id="ratioPresentPct">100%</strong>)</span>
+                                <span class="legend-item"><span class="legend-dot absent"></span> Absent (<strong id="ratioAbsentPct">0%</strong>)</span>
                             </div>
                         </div>
-                        <div id="attLowStudentsList" class="att-low-students-chips"></div>
+                        <div class="att-stacked-bar">
+                            <div class="stacked-segment present" id="stackedPresentBar" style="width: 100%;"></div>
+                            <div class="stacked-segment absent" id="stackedAbsentBar" style="width: 0%;"></div>
+                        </div>
                     </div>
 
-                    <!-- ATTENDANCE TABLE CARD -->
-                    <div class="attendance-panel-card att-table-card">
-                        <div class="attendance-table-toolbar">
+                    <!-- Low Attendance Warning Alert -->
+                    <div id="attLowAlertBox" class="alert-card alert-danger att-low-alert-card" style="display: none;">
+                        <div class="alert-header">
+                            <div class="alert-icon-circle">⚠️</div>
+                            <div class="alert-text">
+                                <h4 class="alert-title">Low Attendance Alert</h4>
+                                <p class="alert-subtitle">The following enrolled students have attendance below the mandatory 75% threshold and require academic review:</p>
+                            </div>
+                        </div>
+                        <div id="attLowStudentsList" class="alert-chips-container att-low-students-chips"></div>
+                    </div>
+
+                    <!-- Attendance Table Card -->
+                    <div class="card att-table-card">
+                        <div class="table-toolbar attendance-table-toolbar">
                             <div class="toolbar-title-group">
-                                <h3>📋 Daily Attendance Roster</h3>
-                                <p>Mark status and add optional notes for each student</p>
+                                <h3 class="table-title">📋 Daily Attendance Roster</h3>
+                                <p class="table-subtitle">Mark individual student attendance status and add optional ledger notes</p>
                             </div>
                             <div class="toolbar-action-buttons">
-                                <button type="button" class="btn-mark-all-present" onclick="markAllAttendance('Present')" title="Mark all students as Present">
-                                    <span>✅</span> Mark All Present
+                                <button type="button" class="btn-action-success btn-mark-all-present" onclick="markAllAttendance('Present')" title="Mark all students as Present">
+                                    <span>✓</span> Mark All Present
                                 </button>
-                                <button type="button" class="btn-mark-all-absent" onclick="markAllAttendance('Absent')" title="Mark all students as Absent">
-                                    <span>❌</span> Mark All Absent
+                                <button type="button" class="btn-action-danger btn-mark-all-absent" onclick="markAllAttendance('Absent')" title="Mark all students as Absent">
+                                    <span>✕</span> Mark All Absent
                                 </button>
-                                <button type="button" id="saveAttendanceBtn" class="btn-save-attendance" onclick="saveBulkAttendance()" title="Save daily attendance to database">
+                                <button type="button" id="saveAttendanceBtn" class="btn-primary btn-save-attendance" onclick="saveBulkAttendance()" title="Save daily attendance to database">
                                     <span>💾</span> Save Attendance
                                 </button>
                             </div>
                         </div>
 
                         <div class="table-responsive">
-                            <table class="fee-table att-table" id="attendanceTable">
+                            <table class="data-table att-table" id="attendanceTable">
                                 <thead>
                                     <tr>
-                                        <th style="width: 50px;">Sr</th>
-                                        <th style="width: 80px;">Student ID</th>
-                                        <th>Student Name</th>
+                                        <th style="width: 50px; text-align: center;">#</th>
+                                        <th style="width: 90px;">Roll ID</th>
+                                        <th>Student</th>
                                         <th>Department</th>
                                         <th>Quota</th>
                                         <th style="width: 170px;">Attendance Status</th>
@@ -763,7 +843,7 @@
                                 </thead>
                                 <tbody id="attendanceTableBody">
                                     <tr>
-                                        <td colspan="7" style="text-align: center; color: #64748b; padding: 24px;">Loading attendance roster...</td>
+                                        <td colspan="7" class="table-empty-cell">Loading attendance roster...</td>
                                     </tr>
                                 </tbody>
                             </table>

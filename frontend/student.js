@@ -494,8 +494,8 @@ document.addEventListener("DOMContentLoaded", function () {
                 historyBody.innerHTML = records.map(r => {
                     const isPres = (r.status || "").toLowerCase() === "present";
                     const badgeHtml = isPres
-                        ? `<span style="background: #dcfce7; color: #15803d; padding: 3px 8px; border-radius: 4px; font-weight: 700; font-size: 12px;">🟢 Present</span>`
-                        : `<span style="background: #fee2e2; color: #991b1b; padding: 3px 8px; border-radius: 4px; font-weight: 700; font-size: 12px;">🔴 Absent</span>`;
+                        ? `<span class="att-status-select att-status-present" style="display: inline-flex; align-items: center; justify-content: center; height: 30px; padding: 0 12px; font-size: 12px; width: auto; min-width: 95px; pointer-events: none;">✓ Present</span>`
+                        : `<span class="att-status-select att-status-absent" style="display: inline-flex; align-items: center; justify-content: center; height: 30px; padding: 0 12px; font-size: 12px; width: auto; min-width: 95px; pointer-events: none;">✕ Absent</span>`;
 
                     return `
                         <tr>

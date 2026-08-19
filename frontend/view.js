@@ -3105,6 +3105,13 @@ function initAttendanceModule() {
         const today = new Date().toISOString().slice(0, 10);
         dateInput.value = today;
     }
+
+    const todayDisplay = document.getElementById("attTodayDisplay");
+    if (todayDisplay) {
+        const now = new Date();
+        const options = { day: 'numeric', month: 'short', year: 'numeric' };
+        todayDisplay.textContent = now.toLocaleDateString('en-GB', options);
+    }
     
     const deptSelect = document.getElementById("attDeptFilter");
     if (deptSelect && deptSelect.value) {
@@ -3112,6 +3119,48 @@ function initAttendanceModule() {
     } else {
         resetAttendanceDepartmentSelection();
     }
+}
+
+function exportAttendanceReport() {
+    const deptSelect = document.getElementById("attDeptFilter");
+    const department = deptSelect ? deptSelect.value : "";
+    const dateInput = document.getElementById("attDateFilter");
+    const dateVal = dateInput && dateInput.value ? dateInput.value : new Date().toISOString().slice(0, 10);
+
+    if (!department) {
+        showToast("Please select a department first to export attendance.", "warning");
+        return;
+    }
+
+    if (!currentAttendanceRoster || currentAttendanceRoster.length === 0) {
+        showToast("No student attendance data loaded to export.", "error");
+        return;
+    }
+
+    // Generate CSV data for enterprise export
+    let csvContent = "data:text/csv;charset=utf-8,";
+    csvContent += `Zeal College ERP - Daily Attendance Sheet\n`;
+    csvContent += `Department: ${department}\n`;
+    csvContent += `Date: ${dateVal}\n\n`;
+    csvContent += `Sr,Student ID,Student Name,Department,Quota,Status,Remarks\n`;
+
+    currentAttendanceRoster.forEach((s, idx) => {
+        const statusEl = document.getElementById(`attStatus_${s.student_id}`);
+        const remarksEl = document.getElementById(`attRemarks_${s.student_id}`);
+        const status = statusEl ? statusEl.value : (s.status || "Present");
+        const remarks = remarksEl ? remarksEl.value.replace(/,/g, ";") : (s.remarks || "");
+
+        csvContent += `${idx + 1},${s.student_id},"${s.fullName || ''}","${s.department || ''}","${s.admissionType || 'CAP'}",${status},"${remarks}"\n`;
+    });
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `Attendance_${department.replace(/\s+/g, '_')}_${dateVal}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast(`Attendance report exported as CSV!`, "success");
 }
 
 function selectAttendanceDepartment(deptName) {
@@ -3209,32 +3258,59 @@ function renderAttendanceSheet(students) {
     if (!students || students.length === 0) {
         tableBody.innerHTML = `
             <tr>
-                <td colspan="7" style="text-align: center; color: #64748b; padding: 32px 16px;">
-                    <div style="font-size: 32px; margin-bottom: 8px;">📋</div>
-                    <strong style="color: #334155; font-size: 14px;">No students enrolled in ${escapeHtml(currentDeptName)} yet.</strong>
-                    <div style="font-size: 12px; color: #94a3b8; margin-top: 4px;">Admitted students for this branch will appear here automatically.</div>
-                    <button type="button" class="att-back-btn" style="margin-top: 14px;" onclick="resetAttendanceDepartmentSelection()">← Select Another Department</button>
+                <td colspan="7" style="text-align: center; color: #64748b; padding: 36px 16px;">
+                    <div style="font-size: 38px; margin-bottom: 10px;">📋</div>
+                    <strong style="color: #1e293b; font-size: 15px; display: block;">No students enrolled in ${escapeHtml(currentDeptName)} yet.</strong>
+                    <div style="font-size: 13px; color: #94a3b8; margin: 4px 0 16px 0;">Admitted students for this branch will appear here automatically.</div>
+                    <button type="button" class="att-back-btn" onclick="resetAttendanceDepartmentSelection()">← Select Another Department</button>
                 </td>
             </tr>
         `;
         return;
     }
 
+    function getInitials(name) {
+        if (!name) return "ST";
+        const parts = name.trim().split(" ");
+        if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+        return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    }
+
+    const avatarGradients = [
+        "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)",
+        "linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)",
+        "linear-gradient(135deg, #059669 0%, #047857 100%)",
+        "linear-gradient(135deg, #d97706 0%, #b45309 100%)",
+        "linear-gradient(135deg, #0284c7 0%, #0369a1 100%)",
+        "linear-gradient(135deg, #ea580c 0%, #c2410c 100%)"
+    ];
+
     tableBody.innerHTML = students.map((s, index) => {
         const isPresent = s.status === "Present";
         const statusClass = isPresent ? "att-status-present" : "att-status-absent";
+        const avatarBg = avatarGradients[index % avatarGradients.length];
+        const initials = getInitials(s.fullName);
+        const quotaKey = (s.admissionType || 'cap').toLowerCase().replace(/[^a-z]/g, '');
 
         return `
             <tr id="attRow_${s.student_id}">
-                <td style="font-weight: 700; color: #64748b;">${index + 1}</td>
+                <td style="font-weight: 700; color: #64748b; text-align: center;">${index + 1}</td>
                 <td><code class="att-id-badge">#${s.student_id}</code></td>
-                <td><strong class="att-student-name">${escapeHtml(s.fullName)}</strong></td>
+                <td>
+                    <div class="att-student-cell">
+                        <div class="att-avatar" style="background: ${avatarBg};">${initials}</div>
+                        <div class="att-student-meta">
+                            <strong class="att-student-name">${escapeHtml(s.fullName)}</strong>
+                            <span class="att-student-sub">${escapeHtml(s.email || s.mobile || 'Roll #' + s.student_id)}</span>
+                        </div>
+                    </div>
+                </td>
                 <td><span class="att-dept-badge">${escapeHtml(s.department || '-')}</span></td>
-                <td><span class="att-quota-badge">${escapeHtml(s.admissionType || '-')}</span></td>
+                <td><span class="att-quota-badge quota-${quotaKey}">${escapeHtml(s.admissionType || 'CAP')}</span></td>
                 <td>
                     <select id="attStatus_${s.student_id}" class="att-status-select ${statusClass}" onchange="onStatusSelectChange(${s.student_id})" aria-label="Attendance status for ${escapeHtml(s.fullName)}">
-                        <option value="Present" ${isPresent ? "selected" : ""}>● Present</option>
-                        <option value="Absent" ${!isPresent ? "selected" : ""}>● Absent</option>
+                        <option value="Present" ${isPresent ? "selected" : ""}>✓ Present</option>
+                        <option value="Absent" ${!isPresent ? "selected" : ""}>✕ Absent</option>
                     </select>
                 </td>
                 <td>
@@ -3270,6 +3346,39 @@ function markAllAttendance(targetStatus) {
     showToast(`Marked all displayed students as ${targetStatus}`, "success");
 }
 
+function applyAttendanceVisualStats(total, present, absent, rate) {
+    const kpiTotal = document.getElementById("attKpiTotal");
+    const kpiPresent = document.getElementById("attKpiPresent");
+    const kpiAbsent = document.getElementById("attKpiAbsent");
+    const kpiRate = document.getElementById("attKpiRate");
+    const heroRate = document.getElementById("heroAttRate");
+    const kpiPresentBar = document.getElementById("kpiPresentBar");
+    const kpiAbsentBar = document.getElementById("kpiAbsentBar");
+    const kpiRateBar = document.getElementById("kpiRateBar");
+    const ratioPresentPct = document.getElementById("ratioPresentPct");
+    const ratioAbsentPct = document.getElementById("ratioAbsentPct");
+    const stackedPresentBar = document.getElementById("stackedPresentBar");
+    const stackedAbsentBar = document.getElementById("stackedAbsentBar");
+
+    if (kpiTotal) kpiTotal.textContent = total;
+    if (kpiPresent) kpiPresent.textContent = present;
+    if (kpiAbsent) kpiAbsent.textContent = absent;
+    if (kpiRate) kpiRate.textContent = `${rate}%`;
+    if (heroRate) heroRate.textContent = `${rate}%`;
+
+    const presentPct = total > 0 ? Math.round((present / total) * 100) : 0;
+    const absentPct = total > 0 ? (100 - presentPct) : 0;
+
+    if (kpiPresentBar) kpiPresentBar.style.width = `${presentPct}%`;
+    if (kpiAbsentBar) kpiAbsentBar.style.width = `${absentPct}%`;
+    if (kpiRateBar) kpiRateBar.style.width = `${rate}%`;
+
+    if (ratioPresentPct) ratioPresentPct.textContent = `${presentPct}%`;
+    if (ratioAbsentPct) ratioAbsentPct.textContent = `${absentPct}%`;
+    if (stackedPresentBar) stackedPresentBar.style.width = `${presentPct}%`;
+    if (stackedAbsentBar) stackedAbsentBar.style.width = `${absentPct}%`;
+}
+
 function recalcAttendanceSheetKpis() {
     const selects = Array.from(document.querySelectorAll(".att-status-select"));
     const total = selects.length;
@@ -3277,32 +3386,16 @@ function recalcAttendanceSheetKpis() {
     const absent = total - present;
     const rate = total > 0 ? Math.round((present / total) * 100) : 0;
 
-    const kpiTotal = document.getElementById("attKpiTotal");
-    const kpiPresent = document.getElementById("attKpiPresent");
-    const kpiAbsent = document.getElementById("attKpiAbsent");
-    const kpiRate = document.getElementById("attKpiRate");
-
-    if (kpiTotal) kpiTotal.textContent = total;
-    if (kpiPresent) kpiPresent.textContent = present;
-    if (kpiAbsent) kpiAbsent.textContent = absent;
-    if (kpiRate) kpiRate.textContent = `${rate}%`;
+    applyAttendanceVisualStats(total, present, absent, rate);
 }
 
 function updateAttendanceKpis(data) {
-    const kpiTotal = document.getElementById("attKpiTotal");
-    const kpiPresent = document.getElementById("attKpiPresent");
-    const kpiAbsent = document.getElementById("attKpiAbsent");
-    const kpiRate = document.getElementById("attKpiRate");
-
     const total = data.total_students || 0;
     const present = data.present_count || 0;
     const absent = data.absent_count || 0;
     const rate = data.marked_count > 0 ? Math.round((present / data.marked_count) * 100) : (total > 0 ? 100 : 0);
 
-    if (kpiTotal) kpiTotal.textContent = total;
-    if (kpiPresent) kpiPresent.textContent = present;
-    if (kpiAbsent) kpiAbsent.textContent = absent;
-    if (kpiRate) kpiRate.textContent = `${rate}%`;
+    applyAttendanceVisualStats(total, present, absent, rate);
 }
 
 async function loadAttendanceReport(department, dateVal) {

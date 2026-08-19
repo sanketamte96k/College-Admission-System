@@ -415,56 +415,77 @@
         <!-- SECTION 3: ATTENDANCE & ACADEMIC TRACKING                    -->
         <!-- ============================================================ -->
         <div id="st-sec-attendance" class="erp-section-pane">
-            <div class="fee-management-card">
-                <div class="fee-card-header">
-                    <h4>📅 Attendance & Class Participation</h4>
+            <div class="attendance-panel-card att-student-card">
+                <div class="att-student-card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                    <div>
+                        <h4 style="font-size: 18px; font-weight: 800; color: #0f172a; margin: 0 0 4px 0;">📅 Attendance & Class Participation</h4>
+                        <p style="font-size: 13px; color: #64748b; margin: 0;">Track your daily lecture presence and academic attendance compliance.</p>
+                    </div>
                     <span id="stAttStatusBadge" class="fee-badge fee-badge-paid">🟢 Good Attendance</span>
                 </div>
 
                 <!-- Low Attendance Warning Alert -->
                 <div id="stLowAttWarning" class="attendance-warning-box" style="display: none;">
-                    <span style="font-size: 20px;">⚠️</span>
+                    <span class="warning-icon-pulsing">⚠️</span>
                     <div>
-                        <strong>Low Attendance Warning:</strong>
-                        <span id="stLowAttMsg">Your attendance is below the mandatory 75% threshold. Please meet your department head.</span>
+                        <strong>Low Attendance Warning (&lt; 75%):</strong>
+                        <p id="stLowAttMsg" style="margin: 4px 0 0 0; font-size: 13px;">Your attendance is below the mandatory 75% threshold. Please meet your department head.</p>
                     </div>
                 </div>
 
                 <!-- Attendance KPI Grid -->
-                <div class="fee-kpi-grid">
-                    <div class="fee-kpi-tile" style="border-left: 4px solid #8b5cf6;">
-                        <div class="kpi-label">Overall Attendance</div>
-                        <div class="kpi-value" id="stAttPct" style="color: #7c3aed;">100%</div>
+                <div class="att-summary-grid" style="margin: 22px 0;">
+                    <div class="att-summary-card card-rate">
+                        <div class="att-summary-icon">📊</div>
+                        <div class="att-summary-content">
+                            <div class="att-summary-title">Overall Percentage</div>
+                            <div class="att-summary-number" id="stAttPct">100%</div>
+                            <div class="att-summary-subtext">Minimum required: 75%</div>
+                        </div>
                     </div>
-                    <div class="fee-kpi-tile kpi-paid">
-                        <div class="kpi-label">Present Days</div>
-                        <div class="kpi-value" id="stAttPresent">0</div>
+                    <div class="att-summary-card card-present">
+                        <div class="att-summary-icon">✅</div>
+                        <div class="att-summary-content">
+                            <div class="att-summary-title">Present Days</div>
+                            <div class="att-summary-number" id="stAttPresent">0</div>
+                            <div class="att-summary-subtext">Lectures attended</div>
+                        </div>
                     </div>
-                    <div class="fee-kpi-tile" style="border-left: 4px solid #ef4444;">
-                        <div class="kpi-label">Absent Days</div>
-                        <div class="kpi-value" id="stAttAbsent" style="color: #dc2626;">0</div>
+                    <div class="att-summary-card card-absent">
+                        <div class="att-summary-icon">❌</div>
+                        <div class="att-summary-content">
+                            <div class="att-summary-title">Absent Days</div>
+                            <div class="att-summary-number" id="stAttAbsent">0</div>
+                            <div class="att-summary-subtext">Missed lectures</div>
+                        </div>
                     </div>
-                    <div class="fee-kpi-tile kpi-total">
-                        <div class="kpi-label">Total Working Days</div>
-                        <div class="kpi-value" id="stAttTotal">0</div>
+                    <div class="att-summary-card card-total">
+                        <div class="att-summary-icon">📅</div>
+                        <div class="att-summary-content">
+                            <div class="att-summary-title">Total Working Days</div>
+                            <div class="att-summary-number" id="stAttTotal">0</div>
+                            <div class="att-summary-subtext">Conducted lectures</div>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Attendance History Table -->
-                <h5 style="color: #1e3a8a; font-size: 14px; margin: 18px 0 10px 0;">📜 Attendance History Records</h5>
-                <div class="fee-table-wrapper">
-                    <table class="fee-table">
+                <div class="att-history-section-header">
+                    <h5>📜 Attendance History & Daily Ledger</h5>
+                </div>
+                <div class="table-responsive">
+                    <table class="fee-table att-table">
                         <thead>
                             <tr>
-                                <th>Date</th>
-                                <th>Status</th>
-                                <th>Remarks</th>
-                                <th>Recorded By</th>
+                                <th style="width: 140px;">Date</th>
+                                <th style="width: 140px;">Status</th>
+                                <th>Remarks / Reason</th>
+                                <th style="width: 180px;">Recorded By</th>
                             </tr>
                         </thead>
                         <tbody id="studentAttendanceHistoryBody">
                             <tr>
-                                <td colspan="4" style="text-align: center; color: #64748b; padding: 16px;">Loading attendance records...</td>
+                                <td colspan="4" style="text-align: center; color: #64748b; padding: 24px;">Loading attendance records...</td>
                             </tr>
                         </tbody>
                     </table>
