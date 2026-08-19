@@ -1802,571 +1802,598 @@ async function downloadPDF(studentId) {
 }
 
 
-// ============================================================
-// CHART INSTANCES
-// ============================================================
-
+// Global Chart.js Instances
 let deptChartInstance = null;
 let genderChartInstance = null;
 let monthlyChartInstance = null;
 let admissionTypeChartInstance = null;
 
-
 // ============================================================
-// UPDATE DASHBOARD
+// UPDATE DASHBOARD (ENTERPRISE ERP ANALYTICS)
 // ============================================================
 
 function updateDashboard() {
+    // 1. Dynamic Greeting & Current Date
+    updateDashboardHeaderTime();
 
     fetch("/api/dashboard")
-
         .then(res => {
-
             if (!res.ok) {
-                throw new Error(
-                    "Dashboard API failed"
-                );
+                throw new Error("Dashboard API returned status " + res.status);
             }
-
             return res.json();
         })
-
         .then(stats => {
-
-            console.log(
-                "Dashboard stats:",
-                stats
-            );
-
+            console.log("Dashboard stats received:", stats);
 
             // ==================================================
-            // TOP CARDS
+            // 1. PRIMARY KPI TILES (TOP 6 CARDS)
             // ==================================================
+            const totalCount = document.getElementById("totalCount");
+            const monthCount = document.getElementById("monthCount");
+            const dashTodayAttRate = document.getElementById("dashTodayAttRate");
+            const dashTodayAttBar = document.getElementById("dashTodayAttBar");
+            const dashPendingFees = document.getElementById("dashPendingFees");
+            const dashPendingFeesBar = document.getElementById("dashPendingFeesBar");
+            const dashPendingApps = document.getElementById("dashPendingApps");
+            const dashPendingAppsBar = document.getElementById("dashPendingAppsBar");
+            const totalDeptsCount = document.getElementById("totalDeptsCount");
 
-            const totalCount =
-                document.getElementById(
-                    "totalCount"
-                );
+            if (totalCount) totalCount.textContent = stats.total || 0;
+            if (monthCount) monthCount.textContent = stats.month_admissions || stats.total || 0;
 
-            if (totalCount) {
-                totalCount.textContent =
-                    stats.total || 0;
+            const attRate = stats.attendance_summary ? stats.attendance_summary.attendance_rate : 100.0;
+            if (dashTodayAttRate) dashTodayAttRate.textContent = `${attRate}%`;
+            if (dashTodayAttBar) dashTodayAttBar.style.width = `${Math.min(100, Math.max(0, attRate))}%`;
+
+            const pendingFeesNum = Number(stats.total_pending_fees || 0);
+            if (dashPendingFees) dashPendingFees.textContent = `₹ ${pendingFeesNum.toLocaleString("en-IN")}`;
+            if (dashPendingFeesBar) {
+                const totalExp = Number(stats.total_fees_expected || 1);
+                const pendPct = Math.min(100, Math.round((pendingFeesNum / totalExp) * 100));
+                dashPendingFeesBar.style.width = `${pendPct}%`;
             }
 
-
-            const totalDeptsCount =
-                document.getElementById(
-                    "totalDeptsCount"
-                );
-
-            if (totalDeptsCount) {
-                totalDeptsCount.textContent =
-                    stats.total_departments || 0;
+            const pendingAppsCount = (stats.pending_count || 0) + (stats.review_count || 0);
+            if (dashPendingApps) dashPendingApps.textContent = pendingAppsCount;
+            if (dashPendingAppsBar) {
+                const totalApps = Number(stats.total || 1);
+                const appPct = Math.min(100, Math.round((pendingAppsCount / totalApps) * 100));
+                dashPendingAppsBar.style.width = `${appPct}%`;
             }
 
+            if (totalDeptsCount) totalDeptsCount.textContent = stats.total_departments || 7;
 
-            const todayCount =
-                document.getElementById(
-                    "todayCount"
-                );
-
-            if (todayCount) {
-                todayCount.textContent =
-                    stats.today_admissions || 0;
-            }
-
-
-            const monthCount =
-                document.getElementById(
-                    "monthCount"
-                );
-
-            if (monthCount) {
-                monthCount.textContent =
-                    stats.month_admissions || 0;
-            }
-
-
-            const maleCount =
-                document.getElementById(
-                    "maleCount"
-                );
-
-            if (maleCount) {
-                maleCount.textContent =
-                    stats.male_count || 0;
-            }
-
-
-            const femaleCount =
-                document.getElementById(
-                    "femaleCount"
-                );
-
-            if (femaleCount) {
-                femaleCount.textContent =
-                    stats.female_count || 0;
-            }
-
+            // Department Counters
+            const compCount = document.getElementById("compCount");
+            const itCount = document.getElementById("itCount");
+            const aidsCount = document.getElementById("aidsCount");
+            if (compCount) compCount.textContent = stats.comp || 0;
+            if (itCount) itCount.textContent = stats.it || 0;
+            if (aidsCount) aidsCount.textContent = stats.aids || 0;
 
             // ==================================================
-            // ADMISSION VERIFICATION WORKFLOW STATS
+            // 2. OPERATIONS & RECONCILIATIONS
             // ==================================================
+            // Fee Collection
+            const expFees = document.getElementById("dashTotalFeesExpected");
+            const collFees = document.getElementById("dashTotalFeesCollected");
+            const pendFees = document.getElementById("dashTotalFeesPending");
+            const feeRateTxt = document.getElementById("dashFeeRateText");
+            const feeRateBar = document.getElementById("dashFeeRateBar");
 
-            const vTotal = document.getElementById("vTotalCount");
-            const vPending = document.getElementById("vPendingCount");
-            const vReview = document.getElementById("vReviewCount");
-            const vVerified = document.getElementById("vVerifiedCount");
-            const vRejected = document.getElementById("vRejectedCount");
+            const totalExpected = Number(stats.total_fees_expected || 0);
+            const totalCollected = Number(stats.total_fees_collected || 0);
+            const feeRate = stats.fee_collection_rate !== undefined ? stats.fee_collection_rate : (totalExpected > 0 ? Math.round((totalCollected / totalExpected) * 100) : 0);
 
-            if (vTotal) vTotal.textContent = stats.total || 0;
-            if (vPending) vPending.textContent = stats.pending_count || 0;
-            if (vReview) vReview.textContent = stats.review_count || 0;
-            if (vVerified) vVerified.textContent = stats.verified_count || 0;
-            if (vRejected) vRejected.textContent = stats.rejected_count || 0;
+            if (expFees) expFees.textContent = `₹ ${totalExpected.toLocaleString("en-IN")}`;
+            if (collFees) collFees.textContent = `₹ ${totalCollected.toLocaleString("en-IN")}`;
+            if (pendFees) pendFees.textContent = `₹ ${pendingFeesNum.toLocaleString("en-IN")}`;
+            if (feeRateTxt) feeRateTxt.textContent = `${feeRate}%`;
+            if (feeRateBar) feeRateBar.style.width = `${Math.min(100, feeRate)}%`;
 
-            // Fee Analytics Overview
-            const vFeesColl = document.getElementById("vFeesCollected");
-            const vPendFees = document.getElementById("vPendingFees");
-            const vPaidStudents = document.getElementById("vPaidStudentsCount");
-            const vPartialStudents = document.getElementById("vPartialStudentsCount");
-            const vPendStudents = document.getElementById("vPendingStudentsCount");
+            // Attendance Overview
+            const attPres = document.getElementById("dashAttPresentCount");
+            const attAbs = document.getElementById("dashAttAbsentCount");
+            const attMarked = document.getElementById("dashAttMarkedCount");
+            const attRatePct = document.getElementById("dashAttRatePct");
+            const attProgBar = document.getElementById("dashAttProgressBar");
 
-            if (vFeesColl) vFeesColl.textContent = `₹ ${Number(stats.total_fees_collected || 0).toLocaleString("en-IN")}`;
-            if (vPendFees) vPendFees.textContent = `₹ ${Number(stats.total_pending_fees || 0).toLocaleString("en-IN")}`;
-            if (vPaidStudents) vPaidStudents.textContent = stats.paid_students_count || 0;
-            if (vPartialStudents) vPartialStudents.textContent = stats.partial_paid_students_count || 0;
-            if (vPendStudents) vPendStudents.textContent = stats.pending_fees_students_count || 0;
+            if (attPres) attPres.textContent = stats.attendance_summary ? stats.attendance_summary.present_today : 0;
+            if (attAbs) attAbs.textContent = stats.attendance_summary ? stats.attendance_summary.absent_today : 0;
+            if (attMarked) attMarked.textContent = stats.attendance_summary ? (stats.attendance_summary.marked_today || stats.total || 0) : (stats.total || 0);
+            if (attRatePct) attRatePct.textContent = `${attRate}%`;
+            if (attProgBar) attProgBar.style.width = `${Math.min(100, attRate)}%`;
 
-
-            // ==================================================
-            // KEY STATISTICS
-            // ==================================================
-
-            const highestDept =
-                document.getElementById(
-                    "highestDept"
-                );
-
-            if (highestDept) {
-                highestDept.textContent =
-                    stats.highest_dept || "N/A";
-            }
-
-
-            const lowestDept =
-                document.getElementById(
-                    "lowestDept"
-                );
-
-            if (lowestDept) {
-                lowestDept.textContent =
-                    stats.lowest_dept || "N/A";
-            }
-
-
-            const avgScore =
-                document.getElementById(
-                    "avgScore"
-                );
-
-            if (avgScore) {
-                avgScore.textContent =
-                    stats.avg_score || "0.0";
-            }
-
-
-            const avgPerc12 =
-                document.getElementById(
-                    "avgPerc12"
-                );
-
-            if (avgPerc12) {
-
-                avgPerc12.textContent =
-                    (stats.avg_perc12 || "0.0") +
-                    "%";
-            }
-
-
-            const latestStudent =
-                document.getElementById(
-                    "latestStudent"
-                );
-
-            if (latestStudent) {
-                latestStudent.textContent =
-                    stats.latest_student || "N/A";
-            }
-
+            // Department Overview List
+            renderDashboardDeptOverview(stats.department_overview || []);
 
             // ==================================================
-            // CHARTS
+            // 3. RECENT DATA TABLES
             // ==================================================
+            renderDashboardRecentAdmissions(stats.recent_admissions || []);
+            renderDashboardRecentPayments(stats.recent_payments || []);
 
+            // ==================================================
+            // 4. ATTENTION REQUIRED & ACTIVITY STREAM
+            // ==================================================
+            renderDashboardAlerts(stats.alerts || []);
+            renderDashboardActivity(stats.activity || []);
+            updateHeaderNotifications(stats.alerts || []);
+
+            // ==================================================
+            // 5. CHARTS (4 BALANCED MATRICES)
+            // ==================================================
             if (window.Chart) {
                 renderAnalyticsCharts(stats);
             }
-
         })
-
         .catch(err => {
-
-            console.error(
-                "Error fetching dashboard analytics:",
-                err
-            );
-
+            console.error("Error fetching dashboard analytics:", err);
+            const alertBox = document.getElementById("dashAlertsList");
+            if (alertBox) {
+                alertBox.innerHTML = `
+                    <div class="dash-alert-item danger">
+                        <div class="alert-icon">⚠️</div>
+                        <div class="alert-content">
+                            <strong>Unable to load live dashboard analytics</strong>
+                            <p>${escapeHtml(err.message || 'Please check server connection.')}</p>
+                        </div>
+                        <button type="button" class="btn-alert-action" onclick="updateDashboard()">Retry</button>
+                    </div>
+                `;
+            }
         });
 }
 
+// Update Dynamic Greeting and Live Formatted Date
+function updateDashboardHeaderTime() {
+    const greetingEl = document.getElementById("dashGreetingText");
+    const dateEl = document.getElementById("dashCurrentDate");
+    const now = new Date();
+
+    if (greetingEl) {
+        const hour = now.getHours();
+        if (hour < 12) {
+            greetingEl.textContent = "Good morning";
+        } else if (hour < 17) {
+            greetingEl.textContent = "Good afternoon";
+        } else {
+            greetingEl.textContent = "Good evening";
+        }
+    }
+
+    if (dateEl) {
+        const options = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
+        dateEl.textContent = now.toLocaleDateString('en-IN', options);
+    }
+}
+
+// Render Department Overview Widget
+function renderDashboardDeptOverview(deptList) {
+    const container = document.getElementById("dashDeptOverviewList");
+    if (!container) return;
+
+    if (!deptList || deptList.length === 0) {
+        container.innerHTML = `
+            <div class="dash-dept-row-item">
+                <span class="dash-d-name">Computer Engineering</span>
+                <span class="dash-d-meta"><strong>0</strong> students</span>
+            </div>
+            <div class="dash-dept-row-item">
+                <span class="dash-d-name">Information Technology</span>
+                <span class="dash-d-meta"><strong>0</strong> students</span>
+            </div>
+            <div class="dash-dept-row-item">
+                <span class="dash-d-name">AI & Data Science</span>
+                <span class="dash-d-meta"><strong>0</strong> students</span>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = deptList.slice(0, 5).map(d => `
+        <div class="dash-dept-row-item">
+            <span class="dash-d-name">${escapeHtml(d.name)}</span>
+            <span class="dash-d-meta"><strong>${d.students_count || 0}</strong> students (${d.attendance_rate || 100}% att)</span>
+        </div>
+    `).join("");
+}
+
+// Render Recent Admissions Mini Table
+function renderDashboardRecentAdmissions(admissions) {
+    const tbody = document.getElementById("dashRecentAdmissionsBody");
+    if (!tbody) return;
+
+    if (!admissions || admissions.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="table-empty-cell">No recent student admissions recorded.</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = admissions.slice(0, 6).map(s => {
+        const status = s.status || "Pending Verification";
+        let statusBadge = `<span class="att-status-pill pill-amber">⌛ Pending</span>`;
+        if (status === "Verified") {
+            statusBadge = `<span class="att-status-pill pill-green">✓ Verified</span>`;
+        } else if (status === "Under Review") {
+            statusBadge = `<span class="att-status-pill pill-blue">🔍 Review</span>`;
+        } else if (status === "Rejected") {
+            statusBadge = `<span class="att-status-pill pill-red">✕ Rejected</span>`;
+        }
+
+        const initials = (s.fullName || "Student").split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase();
+
+        return `
+            <tr>
+                <td>
+                    <div class="dash-student-cell">
+                        <div class="dash-avatar-circle" style="background: linear-gradient(135deg, #2563EB, #4F46E5);">${initials}</div>
+                        <strong>${escapeHtml(s.fullName)}</strong>
+                    </div>
+                </td>
+                <td><code class="dash-id-code">#${s.id}</code></td>
+                <td><span class="dash-dept-pill">${escapeHtml(s.department || '-')}</span></td>
+                <td><small style="color: #64748b;">${escapeHtml(s.created_at || 'Today')}</small></td>
+                <td>${statusBadge}</td>
+            </tr>
+        `;
+    }).join("");
+}
+
+// Render Recent Payments Mini Table
+function renderDashboardRecentPayments(payments) {
+    const tbody = document.getElementById("dashRecentPaymentsBody");
+    if (!tbody) return;
+
+    if (!payments || payments.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="table-empty-cell">No fee payment receipts recorded yet.</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = payments.slice(0, 6).map(p => {
+        const amount = Number(p.amount || 0);
+        return `
+            <tr>
+                <td><strong>${escapeHtml(p.student_name || 'Student')}</strong></td>
+                <td><code class="dash-id-code">${escapeHtml(p.transaction_id || `PAY-${p.id}`)}</code></td>
+                <td><strong style="color: #059669;">₹ ${amount.toLocaleString("en-IN")}</strong></td>
+                <td><span class="dash-dept-pill">${escapeHtml(p.payment_method || 'UPI')}</span></td>
+                <td><span class="att-status-pill pill-green">✓ Paid</span></td>
+            </tr>
+        `;
+    }).join("");
+}
+
+// Render Attention Required Alerts
+function renderDashboardAlerts(alerts) {
+    const container = document.getElementById("dashAlertsList");
+    if (!container) return;
+
+    if (!alerts || alerts.length === 0) {
+        container.innerHTML = `
+            <div class="dash-empty-alert-state">
+                <span class="empty-check">✓</span> Everything is up to date and in academic compliance.
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = alerts.map(a => {
+        const typeClass = a.type || "warning";
+        const icon = typeClass === "danger" ? "🚨" : (typeClass === "info" ? "💳" : "⚠️");
+        return `
+            <div class="dash-alert-item ${typeClass}">
+                <div class="alert-icon">${icon}</div>
+                <div class="alert-content">
+                    <strong>${escapeHtml(a.title)} (${a.count || 0})</strong>
+                    <p>${escapeHtml(a.description)}</p>
+                </div>
+                <button type="button" class="btn-alert-action" onclick="switchAdminSection('${a.action_target || 'pane-dashboard'}', null, '${a.title}')">
+                    ${escapeHtml(a.action_text || 'Review')}
+                </button>
+            </div>
+        `;
+    }).join("");
+}
+
+// Render Recent Administrative Activity Timeline
+function renderDashboardActivity(activity) {
+    const container = document.getElementById("dashActivityTimeline");
+    if (!container) return;
+
+    if (!activity || activity.length === 0) {
+        container.innerHTML = `<div class="dash-activity-empty">No institutional activity logged yet.</div>`;
+        return;
+    }
+
+    container.innerHTML = activity.map(item => `
+        <div class="activity-timeline-item">
+            <div class="activity-icon-bullet" style="background: ${item.color || '#2563EB'};">
+                ${item.icon || '📌'}
+            </div>
+            <div class="activity-details">
+                <strong>${escapeHtml(item.title)}</strong>
+                <p>${escapeHtml(item.description)}</p>
+                <small>${escapeHtml(item.timestamp || 'Recently')}</small>
+            </div>
+        </div>
+    `).join("");
+}
+
+// Header Notification Menu Handling
+function toggleNotificationMenu(force) {
+    const menu = document.getElementById("headerNotifDropdown");
+    if (!menu) return;
+
+    if (force === true) {
+        menu.style.display = "block";
+    } else if (force === false) {
+        menu.style.display = "none";
+    } else {
+        menu.style.display = menu.style.display === "none" ? "block" : "none";
+    }
+}
+
+function updateHeaderNotifications(alerts) {
+    const badge = document.getElementById("headerNotifCount");
+    const container = document.getElementById("notifDropdownBody");
+    if (!badge) return;
+
+    const count = (alerts || []).length;
+    badge.textContent = count;
+    badge.style.display = count > 0 ? "inline-flex" : "none";
+
+    if (container) {
+        if (!alerts || alerts.length === 0) {
+            container.innerHTML = `<div class="notif-empty-state">No unread notifications</div>`;
+        } else {
+            container.innerHTML = alerts.map(a => `
+                <div class="notif-item" onclick="toggleNotificationMenu(false); switchAdminSection('${a.action_target || 'pane-dashboard'}', null, '${a.title}')">
+                    <span class="notif-item-icon">🔔</span>
+                    <div class="notif-item-text">
+                        <strong>${escapeHtml(a.title)}</strong>
+                        <small>${escapeHtml(a.description)}</small>
+                    </div>
+                </div>
+            `).join("");
+        }
+    }
+}
+
+function markAllNotificationsRead() {
+    const badge = document.getElementById("headerNotifCount");
+    const container = document.getElementById("notifDropdownBody");
+    if (badge) {
+        badge.textContent = "0";
+        badge.style.display = "none";
+    }
+    if (container) {
+        container.innerHTML = `<div class="notif-empty-state">All notifications marked as read ✓</div>`;
+    }
+    showToast("All notifications marked as read.", "success");
+}
+
+// Executive PDF Report Export
+function exportDashboardExecutiveReport() {
+    window.print();
+}
 
 // ============================================================
-// RENDER ANALYTICS CHARTS
+// RENDER ANALYTICS CHARTS (PROFESSIONAL RESPONSIVE PALETTE)
 // ============================================================
 
 function renderAnalyticsCharts(stats) {
-
-    // ========================================================
-    // DEPARTMENT CHART
-    // ========================================================
-
-    const deptCtx =
-        document.getElementById(
-            "deptChart"
-        );
-
-
-    if (deptCtx) {
-
-        const deptLabels =
-            Object.keys(
-                stats.dept_stats || {}
-            );
-
-
-        const deptData =
-            Object.values(
-                stats.dept_stats || {}
-            );
-
-
-        if (deptChartInstance) {
-            deptChartInstance.destroy();
-        }
-
-
-        deptChartInstance =
-            new Chart(
-                deptCtx,
-                {
-                    type: "bar",
-
-                    data: {
-
-                        labels:
-                            deptLabels.length
-                                ? deptLabels
-                                : [
-                                    "Computer",
-                                    "IT",
-                                    "AI & DS",
-                                    "Mechanical",
-                                    "Civil"
-                                ],
-
-                        datasets: [{
-
-                            label:
-                                "Admissions",
-
-                            data:
-                                deptData.length
-                                    ? deptData
-                                    : [
-                                        0,
-                                        0,
-                                        0,
-                                        0,
-                                        0
-                                    ],
-
-                            backgroundColor: [
-                                "#2563eb",
-                                "#0d9488",
-                                "#8b5cf6",
-                                "#f59e0b",
-                                "#ef4444",
-                                "#64748b"
-                            ],
-
-                            borderRadius: 6
-
-                        }]
-                    },
-
-                    options: {
-
-                        responsive: true,
-
-                        maintainAspectRatio:
-                            false,
-
-                        plugins: {
-
-                            legend: {
-                                display: false
-                            }
-
-                        }
-
-                    }
-                }
-            );
-    }
-
-
-    // ========================================================
-    // GENDER CHART
-    // ========================================================
-
-    const genderCtx =
-        document.getElementById(
-            "genderChart"
-        );
-
-
-    if (genderCtx) {
-
-        const gStats =
-            stats.gender_stats || {
-
-                Male: 0,
-                Female: 0,
-                Other: 0
-
-            };
-
-
-        if (genderChartInstance) {
-            genderChartInstance.destroy();
-        }
-
-
-        genderChartInstance =
-            new Chart(
-                genderCtx,
-                {
-                    type: "doughnut",
-
-                    data: {
-
-                        labels: [
-                            "Male",
-                            "Female",
-                            "Other"
-                        ],
-
-                        datasets: [{
-
-                            data: [
-                                gStats.Male || 0,
-                                gStats.Female || 0,
-                                gStats.Other || 0
-                            ],
-
-                            backgroundColor: [
-                                "#3b82f6",
-                                "#ec4899",
-                                "#94a3b8"
-                            ]
-
-                        }]
-
-                    },
-
-                    options: {
-
-                        responsive: true,
-
-                        maintainAspectRatio:
-                            false
-
-                    }
-
-                }
-            );
-    }
-
-
-    // ========================================================
-    // MONTHLY CHART
-    // ========================================================
-
-    const monthlyCtx =
-        document.getElementById(
-            "monthlyChart"
-        );
-
-
+    // 1. MONTHLY ADMISSIONS TREND (SMOOTH GRADIENT LINE)
+    const monthlyCtx = document.getElementById("monthlyChart");
     if (monthlyCtx) {
-
-        const trends =
-            stats.monthly_trends || [];
-
-
-        const monthLabels =
-            trends.map(
-                t => t.month
-            );
-
-
-        const monthData =
-            trends.map(
-                t => t.count
-            );
-
+        const trends = stats.monthly_trends || [];
+        const monthLabels = trends.map(t => t.month);
+        const monthData = trends.map(t => t.count);
 
         if (monthlyChartInstance) {
             monthlyChartInstance.destroy();
         }
 
-
-        monthlyChartInstance =
-            new Chart(
-                monthlyCtx,
-                {
-                    type: "line",
-
-                    data: {
-
-                        labels:
-                            monthLabels.length
-                                ? monthLabels
-                                : [
-                                    "Jan",
-                                    "Feb",
-                                    "Mar",
-                                    "Apr",
-                                    "May",
-                                    "Jun"
-                                ],
-
-                        datasets: [{
-
-                            label:
-                                "Admissions",
-
-                            data:
-                                monthData.length
-                                    ? monthData
-                                    : [
-                                        0,
-                                        0,
-                                        0,
-                                        0,
-                                        0,
-                                        0
-                                    ],
-
-                            borderColor:
-                                "#1e3a8a",
-
-                            backgroundColor:
-                                "rgba(30, 58, 138, 0.1)",
-
-                            fill: true,
-
-                            tension: 0.3
-
-                        }]
-
-                    },
-
-                    options: {
-
-                        responsive: true,
-
-                        maintainAspectRatio:
-                            false
-
+        monthlyChartInstance = new Chart(monthlyCtx, {
+            type: "line",
+            data: {
+                labels: monthLabels.length ? monthLabels : ["Mar 2026", "Apr 2026", "May 2026", "Jun 2026", "Jul 2026", "Aug 2026"],
+                datasets: [{
+                    label: "Admissions",
+                    data: monthData.length ? monthData : [0, 0, 0, 0, 0, stats.total || 0],
+                    borderColor: "#2563EB",
+                    backgroundColor: "rgba(37, 99, 235, 0.08)",
+                    borderWidth: 2.5,
+                    fill: true,
+                    tension: 0.35,
+                    pointBackgroundColor: "#2563EB",
+                    pointBorderColor: "#FFFFFF",
+                    pointBorderWidth: 2,
+                    pointRadius: 4,
+                    pointHoverRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: "#172033",
+                        titleFont: { family: "'Plus Jakarta Sans', sans-serif", weight: "700" },
+                        bodyFont: { family: "'Inter', sans-serif" },
+                        padding: 10,
+                        cornerRadius: 6
                     }
-
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: "#F1F5F9" },
+                        ticks: { font: { family: "'Inter', sans-serif", size: 11 }, precision: 0 }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { font: { family: "'Inter', sans-serif", size: 11 } }
+                    }
                 }
-            );
+            }
+        });
     }
 
+    // 2. DEPARTMENT DISTRIBUTION (ENTERPRISE BAR CHART)
+    const deptCtx = document.getElementById("deptChart");
+    if (deptCtx) {
+        const deptLabels = Object.keys(stats.dept_stats || {});
+        const deptData = Object.values(stats.dept_stats || {});
 
-    // ========================================================
-    // ADMISSION TYPE CHART
-    // ========================================================
+        if (deptChartInstance) {
+            deptChartInstance.destroy();
+        }
 
-    const typeCtx =
-        document.getElementById(
-            "admissionTypeChart"
-        );
+        deptChartInstance = new Chart(deptCtx, {
+            type: "bar",
+            data: {
+                labels: deptLabels.length ? deptLabels.map(l => l.replace(" Engineering", "").replace("Artificial Intelligence & Data Science", "AI & DS")) : ["Computer", "IT", "AI & DS", "E&TC", "Mechanical", "Civil", "Electrical"],
+                datasets: [{
+                    label: "Enrolled Students",
+                    data: deptData.length ? deptData : [0, 0, 0, 0, 0, 0, 0],
+                    backgroundColor: [
+                        "#2563EB", // Computer
+                        "#0891B2", // IT
+                        "#7C3AED", // AI&DS
+                        "#059669", // ENTC
+                        "#EA580C", // Mech
+                        "#DC2626", // Civil
+                        "#D97706"  // Elec
+                    ],
+                    borderRadius: 6,
+                    barThickness: 22
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: "#172033",
+                        padding: 10,
+                        cornerRadius: 6
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: "#F1F5F9" },
+                        ticks: { font: { family: "'Inter', sans-serif", size: 11 }, precision: 0 }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { font: { family: "'Inter', sans-serif", size: 11 } }
+                    }
+                }
+            }
+        });
+    }
 
-
+    // 3. ADMISSION VERIFICATION STATUS DOUGHNUT
+    const typeCtx = document.getElementById("admissionTypeChart");
     if (typeCtx) {
-
-        const aTypes =
-            stats.admission_type_stats || {
-
-                CAP: 0,
-                Management: 0,
-                NRI: 0
-
-            };
-
+        const sStats = stats.status_stats || {
+            "Verified": 0,
+            "Pending Verification": 0,
+            "Under Review": 0,
+            "Rejected": 0
+        };
 
         if (admissionTypeChartInstance) {
             admissionTypeChartInstance.destroy();
         }
 
-
-        admissionTypeChartInstance =
-            new Chart(
-                typeCtx,
-                {
-                    type: "pie",
-
-                    data: {
-
-                        labels: [
-                            "CAP",
-                            "Management",
-                            "NRI"
-                        ],
-
-                        datasets: [{
-
-                            data: [
-                                aTypes.CAP || 0,
-                                aTypes.Management || 0,
-                                aTypes.NRI || 0
-                            ],
-
-                            backgroundColor: [
-                                "#10b981",
-                                "#f59e0b",
-                                "#6366f1"
-                            ]
-
-                        }]
-
-                    },
-
-                    options: {
-
-                        responsive: true,
-
-                        maintainAspectRatio:
-                            false
-
+        admissionTypeChartInstance = new Chart(typeCtx, {
+            type: "doughnut",
+            data: {
+                labels: ["Verified", "Pending Verification", "Under Review", "Rejected"],
+                datasets: [{
+                    data: [
+                        sStats["Verified"] || 0,
+                        sStats["Pending Verification"] || 0,
+                        sStats["Under Review"] || 0,
+                        sStats["Rejected"] || 0
+                    ],
+                    backgroundColor: [
+                        "#059669", // Verified (Green)
+                        "#D97706", // Pending (Amber)
+                        "#2563EB", // Under Review (Blue)
+                        "#DC2626"  // Rejected (Red)
+                    ],
+                    borderWidth: 2,
+                    borderColor: "#FFFFFF"
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: "68%",
+                plugins: {
+                    legend: {
+                        position: "bottom",
+                        labels: {
+                            font: { family: "'Inter', sans-serif", size: 11, weight: "600" },
+                            padding: 10,
+                            usePointStyle: true
+                        }
                     }
-
                 }
-            );
+            }
+        });
+    }
+
+    // 4. GENDER RATIO DOUGHNUT
+    const genderCtx = document.getElementById("genderChart");
+    if (genderCtx) {
+        const gStats = stats.gender_stats || { Male: 0, Female: 0, Other: 0 };
+
+        if (genderChartInstance) {
+            genderChartInstance.destroy();
+        }
+
+        genderChartInstance = new Chart(genderCtx, {
+            type: "doughnut",
+            data: {
+                labels: ["Male", "Female", "Other"],
+                datasets: [{
+                    data: [
+                        gStats.Male || 0,
+                        gStats.Female || 0,
+                        gStats.Other || 0
+                    ],
+                    backgroundColor: [
+                        "#2563EB", // Male
+                        "#EC4899", // Female
+                        "#64748B"  // Other
+                    ],
+                    borderWidth: 2,
+                    borderColor: "#FFFFFF"
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: "68%",
+                plugins: {
+                    legend: {
+                        position: "bottom",
+                        labels: {
+                            font: { family: "'Inter', sans-serif", size: 11, weight: "600" },
+                            padding: 10,
+                            usePointStyle: true
+                        }
+                    }
+                }
+            }
+        });
     }
 }
 
@@ -3616,12 +3643,18 @@ function toggleAdminProfileMenu(force) {
     }
 }
 
-// Close user dropdown when clicking outside
+// Close user dropdown and notifications dropdown when clicking outside
 document.addEventListener("click", function(e) {
-    const dropdown = document.getElementById("headerUserDropdownContainer");
-    const menu = document.getElementById("headerUserMenu");
-    if (dropdown && menu && !dropdown.contains(e.target)) {
-        menu.style.display = "none";
+    const userDropdown = document.getElementById("headerUserDropdownContainer");
+    const userMenu = document.getElementById("headerUserMenu");
+    if (userDropdown && userMenu && !userDropdown.contains(e.target)) {
+        userMenu.style.display = "none";
+    }
+
+    const notifDropdown = document.getElementById("headerNotificationWrapper");
+    const notifMenu = document.getElementById("headerNotifDropdown");
+    if (notifDropdown && notifMenu && !notifDropdown.contains(e.target)) {
+        notifMenu.style.display = "none";
     }
 });
 

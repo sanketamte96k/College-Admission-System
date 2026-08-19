@@ -177,10 +177,24 @@
                     <input type="text" id="globalSearchInput" placeholder="Quick search..." oninput="handleGlobalSearch(this.value)">
                 </div>
 
-                <!-- Notifications Button -->
-                <div class="header-notification-btn" title="System Notifications">
-                    <span class="notif-icon">🔔</span>
-                    <span class="notif-badge">3</span>
+                <!-- Notifications Button with Interactive Dropdown -->
+                <div class="header-notification-wrapper" id="headerNotificationWrapper">
+                    <button type="button" class="header-notification-btn" id="headerNotifBtn" onclick="toggleNotificationMenu()" title="System Notifications & Alerts">
+                        <span class="notif-icon">🔔</span>
+                        <span class="notif-badge" id="headerNotifCount">0</span>
+                    </button>
+                    <div class="header-notification-dropdown" id="headerNotifDropdown" style="display: none;">
+                        <div class="notif-dropdown-header">
+                            <strong>System Notifications</strong>
+                            <button type="button" class="btn-mark-all-read" onclick="markAllNotificationsRead()">Mark all read</button>
+                        </div>
+                        <div class="notif-dropdown-body" id="notifDropdownBody">
+                            <div class="notif-empty-state">No unread notifications</div>
+                        </div>
+                        <div class="notif-dropdown-footer">
+                            <button type="button" class="btn-view-all-notifs" onclick="toggleNotificationMenu(false); switchAdminSection('pane-notices', document.getElementById('nav-notices'), 'Notice Board')">View Notice Board →</button>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Quick Action CTA -->
@@ -223,121 +237,459 @@
             <!-- ============================================================ -->
             <div id="pane-dashboard" class="erp-section-pane active">
                 
-                <!-- Admin Analytics Dashboard Overview Grid -->
-                <div class="dashboard-grid">
-                    <div class="stat-card card-total">
-                        <div class="stat-icon">👥</div>
-                        <div class="stat-info">
-                            <h3 id="totalCount">0</h3>
-                            <p>Total Students</p>
-                            <span class="growth-tag tag-positive">↑ Active Students</span>
+                <!-- 1. DASHBOARD HERO & WELCOME HEADER -->
+                <div class="dash-hero-header">
+                    <div class="dash-hero-left">
+                        <div class="dash-welcome-pill">
+                            <span class="dash-status-dot"></span>
+                            <span id="dashGreetingText">Good evening</span>, <strong id="dashAdminGreeting">Administrator</strong> 👋
+                        </div>
+                        <h2 class="dash-hero-title">Zeal College ERP Administration Dashboard</h2>
+                        <p class="dash-hero-subtitle">Real-time centralized control panel for student admissions, classroom attendance, fee reconciliations, and campus operations.</p>
+                        <div class="dash-meta-pills">
+                            <span class="dash-date-badge"><span class="pill-icon">📅</span> <strong id="dashCurrentDate">Wednesday, 19 August 2026</strong></span>
+                            <span class="dash-status-badge"><span class="pill-icon">⚡</span> System Status: <strong style="color: #10B981;">Online &amp; Active</strong></span>
                         </div>
                     </div>
-                    <div class="stat-card card-comp">
-                        <div class="stat-icon">🏛️</div>
-                        <div class="stat-info">
-                            <h3 id="totalDeptsCount">0</h3>
-                            <p>Total Departments</p>
-                            <span class="growth-tag tag-neutral">Academic Branches</span>
+                    <div class="dash-hero-right">
+                        <a href="index.html" class="btn-primary btn-dash-hero-cta" title="Register New Student Candidate">
+                            <span>+</span> New Admission
+                        </a>
+                        <button type="button" class="btn-secondary btn-dash-hero-export" onclick="exportDashboardExecutiveReport()" title="Export ERP Summary Report">
+                            <span>📑</span> Export Report
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 2. QUICK ADMINISTRATIVE ACTIONS BAR -->
+                <div class="card dash-quick-actions-card">
+                    <div class="quick-actions-bar-top">
+                        <span class="quick-actions-label">⚡ QUICK ADMINISTRATIVE ACTIONS</span>
+                        <span class="quick-actions-sub">Frequently accessed institutional workflows</span>
+                    </div>
+                    <div class="quick-actions-grid">
+                        <a href="index.html" class="quick-action-tile action-admission">
+                            <div class="quick-action-icon" style="background: #EFF6FF; color: #2563EB; border: 1px solid #BFDBFE;">📝</div>
+                            <div class="quick-action-text">
+                                <strong>New Admission</strong>
+                                <small>Enroll candidate</small>
+                            </div>
+                        </a>
+                        <button type="button" class="quick-action-tile action-verify" onclick="switchAdminSection('pane-admissions', document.getElementById('nav-admissions'), 'Student Admissions & Verification')">
+                            <div class="quick-action-icon" style="background: #F5F3FF; color: #7C3AED; border: 1px solid #DDD6FE;">🔍</div>
+                            <div class="quick-action-text">
+                                <strong>Verify Students</strong>
+                                <small>Approve documents</small>
+                            </div>
+                        </button>
+                        <button type="button" class="quick-action-tile action-fees" onclick="switchAdminSection('pane-fees', document.getElementById('nav-fees'), 'Fee & Payment Management')">
+                            <div class="quick-action-icon" style="background: #ECFDF5; color: #059669; border: 1px solid #A7F3D0;">💳</div>
+                            <div class="quick-action-text">
+                                <strong>Record Payment</strong>
+                                <small>Manage fees &amp; ledger</small>
+                            </div>
+                        </button>
+                        <button type="button" class="quick-action-tile action-attendance" onclick="switchAdminSection('pane-attendance', document.getElementById('nav-attendance'), 'Attendance Management')">
+                            <div class="quick-action-icon" style="background: #EFF6FF; color: #1D4ED8; border: 1px solid #BFDBFE;">📅</div>
+                            <div class="quick-action-text">
+                                <strong>Mark Attendance</strong>
+                                <small>Daily branch roster</small>
+                            </div>
+                        </button>
+                        <button type="button" class="quick-action-tile action-notices" onclick="switchAdminSection('pane-notices', document.getElementById('nav-notices'), 'Notice Board')">
+                            <div class="quick-action-icon" style="background: #FFF7ED; color: #EA580C; border: 1px solid #FED7AA;">📢</div>
+                            <div class="quick-action-text">
+                                <strong>Create Notice</strong>
+                                <small>Circulars &amp; alerts</small>
+                            </div>
+                        </button>
+                        <button type="button" class="quick-action-tile action-reports" onclick="switchAdminSection('pane-reports', document.getElementById('nav-reports'), 'Analytics & Reports')">
+                            <div class="quick-action-icon" style="background: #F0FDF4; color: #16A34A; border: 1px solid #BBF7D0;">📈</div>
+                            <div class="quick-action-text">
+                                <strong>Generate Report</strong>
+                                <small>Executive analytics</small>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 3. TOP 6 PRIMARY KPI CARDS (Real Enterprise Metrics) -->
+                <div class="dash-kpi-grid">
+                    <!-- 1. Total Students -->
+                    <div class="dash-kpi-card kpi-card-students">
+                        <div class="dash-kpi-inner">
+                            <div class="dash-kpi-icon-box box-blue">👥</div>
+                            <div class="dash-kpi-data">
+                                <span class="dash-kpi-title">TOTAL STUDENTS</span>
+                                <h3 class="dash-kpi-num" id="totalCount">0</h3>
+                                <span class="dash-kpi-sub"><span class="kpi-status-tag tag-blue">● Active</span> Enrolled in college</span>
+                            </div>
+                        </div>
+                        <div class="dash-kpi-progress">
+                            <div class="dash-kpi-bar bar-blue" style="width: 100%;"></div>
                         </div>
                     </div>
-                    <div class="stat-card card-it">
-                        <div class="stat-icon">📅</div>
-                        <div class="stat-info">
-                            <h3 id="todayCount">0</h3>
-                            <p>Today's Admissions</p>
-                            <span class="growth-tag tag-positive">New Today</span>
+
+                    <!-- 2. New Admissions -->
+                    <div class="dash-kpi-card kpi-card-admissions">
+                        <div class="dash-kpi-inner">
+                            <div class="dash-kpi-icon-box box-indigo">📝</div>
+                            <div class="dash-kpi-data">
+                                <span class="dash-kpi-title">NEW ADMISSIONS</span>
+                                <h3 class="dash-kpi-num" id="monthCount">0</h3>
+                                <span class="dash-kpi-sub"><span class="kpi-status-tag tag-indigo">● Cycle</span> Registered candidates</span>
+                            </div>
+                        </div>
+                        <div class="dash-kpi-progress">
+                            <div class="dash-kpi-bar bar-indigo" style="width: 100%;"></div>
                         </div>
                     </div>
-                    <div class="stat-card card-aids">
-                        <div class="stat-icon">📊</div>
-                        <div class="stat-info">
-                            <h3 id="monthCount">0</h3>
-                            <p>This Month</p>
-                            <span class="growth-tag tag-positive">Monthly Count</span>
+
+                    <!-- 3. Today's Attendance -->
+                    <div class="dash-kpi-card kpi-card-attendance">
+                        <div class="dash-kpi-inner">
+                            <div class="dash-kpi-icon-box box-purple">📊</div>
+                            <div class="dash-kpi-data">
+                                <span class="dash-kpi-title">TODAY'S ATTENDANCE</span>
+                                <h3 class="dash-kpi-num" id="dashTodayAttRate">100%</h3>
+                                <span class="dash-kpi-sub"><span class="kpi-status-tag tag-purple">● Real-time</span> Class participation</span>
+                            </div>
+                        </div>
+                        <div class="dash-kpi-progress">
+                            <div class="dash-kpi-bar bar-purple" id="dashTodayAttBar" style="width: 100%;"></div>
                         </div>
                     </div>
-                    <div class="stat-card card-mech">
-                        <div class="stat-icon">👨‍🎓</div>
-                        <div class="stat-info">
-                            <h3 id="maleCount">0</h3>
-                            <p>Male Students</p>
-                            <span class="growth-tag tag-info">Gender Ratio</span>
+
+                    <!-- 4. Pending Fees -->
+                    <div class="dash-kpi-card kpi-card-fees">
+                        <div class="dash-kpi-inner">
+                            <div class="dash-kpi-icon-box box-orange">💳</div>
+                            <div class="dash-kpi-data">
+                                <span class="dash-kpi-title">PENDING FEES</span>
+                                <h3 class="dash-kpi-num" id="dashPendingFees">₹ 0</h3>
+                                <span class="dash-kpi-sub"><span class="kpi-status-tag tag-orange">● Balance</span> Outstanding dues</span>
+                            </div>
+                        </div>
+                        <div class="dash-kpi-progress">
+                            <div class="dash-kpi-bar bar-orange" id="dashPendingFeesBar" style="width: 100%;"></div>
                         </div>
                     </div>
-                    <div class="stat-card card-civil">
-                        <div class="stat-icon">👩‍🎓</div>
-                        <div class="stat-info">
-                            <h3 id="femaleCount">0</h3>
-                            <p>Female Students</p>
-                            <span class="growth-tag tag-info">Gender Ratio</span>
+
+                    <!-- 5. Pending Applications -->
+                    <div class="dash-kpi-card kpi-card-pending">
+                        <div class="dash-kpi-inner">
+                            <div class="dash-kpi-icon-box box-red">⏳</div>
+                            <div class="dash-kpi-data">
+                                <span class="dash-kpi-title">PENDING APPLICATIONS</span>
+                                <h3 class="dash-kpi-num" id="dashPendingApps">0</h3>
+                                <span class="dash-kpi-sub"><span class="kpi-status-tag tag-red">● Review</span> Awaiting approval</span>
+                            </div>
+                        </div>
+                        <div class="dash-kpi-progress">
+                            <div class="dash-kpi-bar bar-red" id="dashPendingAppsBar" style="width: 100%;"></div>
+                        </div>
+                    </div>
+
+                    <!-- 6. Active Departments -->
+                    <div class="dash-kpi-card kpi-card-depts">
+                        <div class="dash-kpi-inner">
+                            <div class="dash-kpi-icon-box box-green">🏢</div>
+                            <div class="dash-kpi-data">
+                                <span class="dash-kpi-title">ACTIVE DEPARTMENTS</span>
+                                <h3 class="dash-kpi-num" id="totalDeptsCount">7</h3>
+                                <span class="dash-kpi-sub"><span class="kpi-status-tag tag-green">● Academic</span> Engineering branches</span>
+                            </div>
+                        </div>
+                        <div class="dash-kpi-progress">
+                            <div class="dash-kpi-bar bar-green" style="width: 100%;"></div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Analytics Charts Grid (2x2) -->
-                <div class="charts-grid">
-                    <div class="chart-card">
-                        <h4>📊 Department-wise Admissions</h4>
-                        <div class="chart-container">
-                            <canvas id="deptChart"></canvas>
-                        </div>
+                <!-- 4. MAIN ANALYTICS CHARTS (Balanced 2x2 Responsive Grid) -->
+                <div class="dash-section-header">
+                    <div class="dash-section-header-left">
+                        <span class="dash-section-tag">ANALYTICS &amp; ADMISSION METRICS</span>
+                        <h3 class="dash-section-title">📊 Institutional Enrollment Trends &amp; Demographics</h3>
                     </div>
-                    <div class="chart-card">
-                        <h4>🍩 Gender Ratio (Male vs Female)</h4>
-                        <div class="chart-container">
-                            <canvas id="genderChart"></canvas>
+                </div>
+
+                <div class="dash-charts-grid">
+                    <!-- Chart 1: Admissions Trend -->
+                    <div class="card dash-chart-card">
+                        <div class="dash-chart-card-header">
+                            <div>
+                                <h4 class="dash-chart-title">📈 Monthly Admissions Trend</h4>
+                                <p class="dash-chart-sub">Candidate registrations over the past 6 months</p>
+                            </div>
+                            <span class="chart-tag-badge">MONTHLY</span>
                         </div>
-                    </div>
-                    <div class="chart-card">
-                        <h4>📈 Monthly Registration Trends</h4>
-                        <div class="chart-container">
+                        <div class="dash-chart-container">
                             <canvas id="monthlyChart"></canvas>
                         </div>
                     </div>
-                    <div class="chart-card">
-                        <h4>🍰 Admission Type Distribution</h4>
-                        <div class="chart-container">
+
+                    <!-- Chart 2: Department Distribution -->
+                    <div class="card dash-chart-card">
+                        <div class="dash-chart-card-header">
+                            <div>
+                                <h4 class="dash-chart-title">🏛️ Department-wise Enrollment</h4>
+                                <p class="dash-chart-sub">Student distribution across engineering branches</p>
+                            </div>
+                            <span class="chart-tag-badge">BRANCHES</span>
+                        </div>
+                        <div class="dash-chart-container">
+                            <canvas id="deptChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Chart 3: Admission Verification Status -->
+                    <div class="card dash-chart-card">
+                        <div class="dash-chart-card-header">
+                            <div>
+                                <h4 class="dash-chart-title">🍩 Admission Verification Status</h4>
+                                <p class="dash-chart-sub">Verification pipeline breakdown (Approved / Pending / Review / Rejected)</p>
+                            </div>
+                            <span class="chart-tag-badge">STATUS</span>
+                        </div>
+                        <div class="dash-chart-container">
                             <canvas id="admissionTypeChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Chart 4: Gender Ratio Distribution -->
+                    <div class="card dash-chart-card">
+                        <div class="dash-chart-card-header">
+                            <div>
+                                <h4 class="dash-chart-title">👥 Gender Diversity Ratio</h4>
+                                <p class="dash-chart-sub">Male vs Female student enrollment distribution</p>
+                            </div>
+                            <span class="chart-tag-badge">DIVERSITY</span>
+                        </div>
+                        <div class="dash-chart-container">
+                            <canvas id="genderChart"></canvas>
                         </div>
                     </div>
                 </div>
 
-                <!-- Key Statistics Highlights Panel -->
-                <div class="key-stats-panel">
-                    <div class="key-stat-box">
-                        <span class="key-stat-icon">🏆</span>
-                        <div>
-                            <small>Top Department</small>
-                            <h4 id="highestDept">Loading...</h4>
+                <!-- 5. CAMPUS OPERATIONS (Fee Collection, Attendance, Department Overview) -->
+                <div class="dash-section-header">
+                    <div class="dash-section-header-left">
+                        <span class="dash-section-tag">OPERATIONS &amp; RECONCILIATIONS</span>
+                        <h3 class="dash-section-title">🏛️ Financial, Attendance &amp; Branch Operations</h3>
+                    </div>
+                </div>
+
+                <div class="dash-ops-grid">
+                    <!-- Card 1: Fee Collection Overview -->
+                    <div class="card dash-ops-card ops-fees-card">
+                        <div class="dash-ops-card-header">
+                            <div class="dash-ops-header-icon" style="background: #ECFDF5; color: #059669; border: 1px solid #A7F3D0;">💳</div>
+                            <div>
+                                <h4 class="dash-ops-title">Fee Collection Overview</h4>
+                                <p class="dash-ops-sub">Annual institutional tuition collections &amp; dues</p>
+                            </div>
+                        </div>
+                        <div class="dash-fee-metrics">
+                            <div class="fee-metric-row">
+                                <span class="fee-lbl">Total Expected</span>
+                                <strong class="fee-val" id="dashTotalFeesExpected">₹ 0</strong>
+                            </div>
+                            <div class="fee-metric-row">
+                                <span class="fee-lbl" style="color: #059669;">● Collected Amount</span>
+                                <strong class="fee-val" style="color: #059669;" id="dashTotalFeesCollected">₹ 0</strong>
+                            </div>
+                            <div class="fee-metric-row">
+                                <span class="fee-lbl" style="color: #DC2626;">● Outstanding Pending</span>
+                                <strong class="fee-val" style="color: #DC2626;" id="dashTotalFeesPending">₹ 0</strong>
+                            </div>
+                        </div>
+                        <div class="dash-collection-progress-wrap">
+                            <div class="progress-meta">
+                                <span>Collection Rate</span>
+                                <strong id="dashFeeRateText">0%</strong>
+                            </div>
+                            <div class="dash-progress-track">
+                                <div class="dash-progress-fill" id="dashFeeRateBar" style="width: 0%; background: linear-gradient(90deg, #059669, #10B981);"></div>
+                            </div>
+                        </div>
+                        <div class="dash-ops-footer">
+                            <button type="button" class="dash-card-link-btn" onclick="switchAdminSection('pane-fees', document.getElementById('nav-fees'), 'Fee & Payment Management')">
+                                View Full Fee Ledger →
+                            </button>
                         </div>
                     </div>
-                    <div class="key-stat-box">
-                        <span class="key-stat-icon">📉</span>
-                        <div>
-                            <small>Lowest Department</small>
-                            <h4 id="lowestDept">Loading...</h4>
+
+                    <!-- Card 2: Attendance Summary -->
+                    <div class="card dash-ops-card ops-att-card">
+                        <div class="dash-ops-card-header">
+                            <div class="dash-ops-header-icon" style="background: #F5F3FF; color: #7C3AED; border: 1px solid #DDD6FE;">📊</div>
+                            <div>
+                                <h4 class="dash-ops-title">Today's Attendance Overview</h4>
+                                <p class="dash-ops-sub">Real-time classroom presence across college</p>
+                            </div>
+                        </div>
+                        <div class="dash-att-metrics">
+                            <div class="att-metric-pill">
+                                <span class="att-p-lbl">Present Today</span>
+                                <strong class="att-p-val" style="color: #059669;" id="dashAttPresentCount">0</strong>
+                            </div>
+                            <div class="att-metric-pill">
+                                <span class="att-p-lbl">Absent Today</span>
+                                <strong class="att-p-val" style="color: #DC2626;" id="dashAttAbsentCount">0</strong>
+                            </div>
+                            <div class="att-metric-pill">
+                                <span class="att-p-lbl">Total Marked</span>
+                                <strong class="att-p-val" style="color: #2563EB;" id="dashAttMarkedCount">0</strong>
+                            </div>
+                        </div>
+                        <div class="dash-collection-progress-wrap">
+                            <div class="progress-meta">
+                                <span>Class Attendance Rate (vs 75% Min)</span>
+                                <strong id="dashAttRatePct">100%</strong>
+                            </div>
+                            <div class="dash-progress-track">
+                                <div class="dash-progress-fill" id="dashAttProgressBar" style="width: 100%; background: linear-gradient(90deg, #7C3AED, #8B5CF6);"></div>
+                            </div>
+                        </div>
+                        <div class="dash-ops-footer">
+                            <button type="button" class="dash-card-link-btn" onclick="switchAdminSection('pane-attendance', document.getElementById('nav-attendance'), 'Attendance Management')">
+                                Manage Daily Attendance →
+                            </button>
                         </div>
                     </div>
-                    <div class="key-stat-box">
-                        <span class="key-stat-icon">🎯</span>
-                        <div>
-                            <small>Avg Entrance Score</small>
-                            <h4 id="avgScore">0.0</h4>
+
+                    <!-- Card 3: Department Performance -->
+                    <div class="card dash-ops-card ops-dept-card">
+                        <div class="dash-ops-card-header">
+                            <div class="dash-ops-header-icon" style="background: #EFF6FF; color: #2563EB; border: 1px solid #BFDBFE;">🏢</div>
+                            <div>
+                                <h4 class="dash-ops-title">Department Highlights</h4>
+                                <p class="dash-ops-sub">Branch-wise enrollment &amp; participation metrics</p>
+                            </div>
+                        </div>
+                        <div class="dash-dept-list" id="dashDeptOverviewList">
+                            <!-- Injected dynamically via view.js -->
+                            <div class="dash-dept-row-item">
+                                <span class="dash-d-name">Computer Engineering</span>
+                                <span class="dash-d-meta"><strong id="compCount">0</strong> students</span>
+                            </div>
+                            <div class="dash-dept-row-item">
+                                <span class="dash-d-name">Information Technology</span>
+                                <span class="dash-d-meta"><strong id="itCount">0</strong> students</span>
+                            </div>
+                            <div class="dash-dept-row-item">
+                                <span class="dash-d-name">AI &amp; Data Science</span>
+                                <span class="dash-d-meta"><strong id="aidsCount">0</strong> students</span>
+                            </div>
+                        </div>
+                        <div class="dash-ops-footer">
+                            <button type="button" class="dash-card-link-btn" onclick="switchAdminSection('pane-departments', document.getElementById('nav-departments'), 'Academic Departments')">
+                                View All Academic Departments →
+                            </button>
                         </div>
                     </div>
-                    <div class="key-stat-box">
-                        <span class="key-stat-icon">🎓</span>
-                        <div>
-                            <small>Avg 12th Percentage</small>
-                            <h4 id="avgPerc12">0.0%</h4>
+                </div>
+
+                <!-- 6. RECENT DATA TABLES (Admissions & Payments Side by Side) -->
+                <div class="dash-section-header">
+                    <div class="dash-section-header-left">
+                        <span class="dash-section-tag">LIVE TRANSACTION RECORDS</span>
+                        <h3 class="dash-section-title">📋 Recent Admissions &amp; Payment Transactions</h3>
+                    </div>
+                </div>
+
+                <div class="dash-tables-grid">
+                    <!-- Table 1: Recent Admissions -->
+                    <div class="card dash-table-card">
+                        <div class="dash-table-card-header">
+                            <div class="dash-table-title-wrap">
+                                <h4 class="dash-table-title">Recent Student Admissions</h4>
+                                <p class="dash-table-sub">Latest registered candidate profiles</p>
+                            </div>
+                            <button type="button" class="btn-link-action" onclick="switchAdminSection('pane-admissions', document.getElementById('nav-admissions'), 'Student Admissions & Verification')">
+                                View All Admissions →
+                            </button>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="data-table dash-mini-table">
+                                <thead>
+                                    <tr>
+                                        <th>Student</th>
+                                        <th>App ID</th>
+                                        <th>Branch</th>
+                                        <th>Date</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="dashRecentAdmissionsBody">
+                                    <tr><td colspan="5" class="table-empty-cell">Loading recent admissions...</td></tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
-                    <div class="key-stat-box">
-                        <span class="key-stat-icon">👤</span>
-                        <div>
-                            <small>Latest Registered</small>
-                            <h4 id="latestStudent">Loading...</h4>
+
+                    <!-- Table 2: Recent Fee Payments -->
+                    <div class="card dash-table-card">
+                        <div class="dash-table-card-header">
+                            <div class="dash-table-title-wrap">
+                                <h4 class="dash-table-title">Recent Fee Receipts</h4>
+                                <p class="dash-table-sub">Latest tuition payments recorded in system</p>
+                            </div>
+                            <button type="button" class="btn-link-action" onclick="switchAdminSection('pane-fees', document.getElementById('nav-fees'), 'Fee & Payment Management')">
+                                View All Payments →
+                            </button>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="data-table dash-mini-table">
+                                <thead>
+                                    <tr>
+                                        <th>Student</th>
+                                        <th>Receipt ID</th>
+                                        <th>Amount</th>
+                                        <th>Method</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="dashRecentPaymentsBody">
+                                    <tr><td colspan="5" class="table-empty-cell">Loading recent payments...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 7. ATTENTION REQUIRED & RECENT ACTIVITY -->
+                <div class="dash-bottom-grid">
+                    <!-- Left: Attention Required Alert Panel -->
+                    <div class="card dash-alert-panel-card">
+                        <div class="dash-alert-panel-header">
+                            <div class="alert-panel-icon-box">⚠️</div>
+                            <div>
+                                <h4 class="alert-panel-title">Attention Required</h4>
+                                <p class="alert-panel-sub">Critical institutional items needing administrative action</p>
+                            </div>
+                        </div>
+                        <div class="dash-alerts-list" id="dashAlertsList">
+                            <!-- Populated dynamically -->
+                            <div class="dash-empty-alert-state">
+                                <span>✓</span> Everything is up to date and in academic compliance.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right: Live Activity Stream -->
+                    <div class="card dash-activity-card">
+                        <div class="dash-activity-header">
+                            <div class="activity-header-icon-box">⚡</div>
+                            <div>
+                                <h4 class="activity-title">Recent Administrative Activity</h4>
+                                <p class="activity-sub">Live log of institutional actions</p>
+                            </div>
+                        </div>
+                        <div class="dash-activity-timeline" id="dashActivityTimeline">
+                            <!-- Populated dynamically -->
+                            <div class="dash-activity-empty">Loading activity feed...</div>
                         </div>
                     </div>
                 </div>
