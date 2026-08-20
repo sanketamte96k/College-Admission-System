@@ -8,6 +8,7 @@ from .ticket_routes import ticket_bp
 from .attendance_routes import attendance_bp
 from .department_routes import department_bp
 from .course_routes import course_bp
+from .examination_routes import examination_bp
 
 __all__ = [
     "auth_bp",
@@ -19,5 +20,6 @@ __all__ = [
     "ticket_bp",
     "attendance_bp",
     "department_bp",
-    "course_bp"
+    "course_bp",
+    "examination_bp"
 ]

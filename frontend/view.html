@@ -1962,19 +1962,207 @@
             </div>
 
             <!-- ============================================================ -->
-            <!-- PANE 8: EXAMINATIONS & GRADES                                -->
+            <!-- PANE 8: EXAMINATIONS & GRADES MANAGEMENT                     -->
             <!-- ============================================================ -->
-            <div id="pane-examinations" class="erp-section-pane">
-                <div class="erp-placeholder-card">
-                    <div class="erp-placeholder-icon">📑</div>
-                    <h3>Examination & Assessment Portal</h3>
-                    <p>Semester In-Sem & End-Sem Examinations, Practical Evaluations, and University Results Ledger.</p>
-                    <div class="erp-badge-grid">
-                        <span class="erp-badge-item">📝 Mid-Term In-Sem Exam</span>
-                        <span class="erp-badge-item">📊 SPPU University End-Sem</span>
-                        <span class="erp-badge-item">🏆 Grade Cards & Transcripts</span>
+            <div id="pane-examinations" class="erp-section-pane exam-page">
+
+                <!-- 1. HERO HEADER -->
+                <div class="exam-header exm-hero-card">
+                    <div class="exm-hero-content">
+                        <div class="exm-hero-badge">
+                            <span class="exm-pulse-dot"></span>
+                            📑 Assessment & Grading Portal
+                        </div>
+                        <h2 class="exm-hero-title">Examinations</h2>
+                        <p class="exm-hero-subtitle">Manage examinations, schedules, subjects, marks and student results.</p>
+                    </div>
+                    <div class="exam-actions exm-hero-actions">
+                        <button type="button" class="btn-exm-primary" onclick="openCreateExamModal()" title="Create New Examination">
+                            <span>+</span> Create Examination
+                        </button>
+                        <button type="button" class="btn-exm-glass" onclick="switchExamTab('schedule')" title="View Exam Timetable Schedule">
+                            <span>📅</span> Exam Schedule
+                        </button>
+                        <button type="button" class="btn-exm-glass" onclick="loadExaminations()" title="Refresh Examinations">
+                            <span>🔄</span> Refresh Data
+                        </button>
                     </div>
                 </div>
+
+                <!-- 2. EXAM STATISTICS CARDS -->
+                <div class="exam-stats exm-kpi-grid">
+                    <div class="exam-stat-card exm-kpi-card kpi-blue">
+                        <div class="exm-kpi-header">
+                            <div class="exm-kpi-icon">📝</div>
+                            <span class="exm-kpi-tag">Total</span>
+                        </div>
+                        <div class="exm-kpi-body">
+                            <small>TOTAL EXAMS</small>
+                            <h3 id="exmKpiTotal">0</h3>
+                            <span class="exm-kpi-sub">Configured assessments</span>
+                        </div>
+                    </div>
+
+                    <div class="exam-stat-card exm-kpi-card kpi-amber">
+                        <div class="exm-kpi-header">
+                            <div class="exm-kpi-icon">⏳</div>
+                            <span class="exm-kpi-tag">Upcoming</span>
+                        </div>
+                        <div class="exm-kpi-body">
+                            <small>UPCOMING EXAMS</small>
+                            <h3 id="exmKpiUpcoming">0</h3>
+                            <span class="exm-kpi-sub">Scheduled & Drafts</span>
+                        </div>
+                    </div>
+
+                    <div class="exam-stat-card exm-kpi-card kpi-indigo">
+                        <div class="exm-kpi-header">
+                            <div class="exm-kpi-icon">✓</div>
+                            <span class="exm-kpi-tag">Completed</span>
+                        </div>
+                        <div class="exm-kpi-body">
+                            <small>COMPLETED EXAMS</small>
+                            <h3 id="exmKpiCompleted">0</h3>
+                            <span class="exm-kpi-sub">Conducted exams</span>
+                        </div>
+                    </div>
+
+                    <div class="exam-stat-card exm-kpi-card kpi-green">
+                        <div class="exm-kpi-header">
+                            <div class="exm-kpi-icon">📊</div>
+                            <span class="exm-kpi-tag">Published</span>
+                        </div>
+                        <div class="exm-kpi-body">
+                            <small>PUBLISHED RESULTS</small>
+                            <h3 id="exmKpiPublished">0</h3>
+                            <span class="exm-kpi-sub">Official result ledgers</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. VIEW TOGGLE TABS -->
+                <div class="exm-tabs-bar" style="display:flex; gap:10px; border-bottom:2px solid #E2E8F0; padding-bottom:8px;">
+                    <button type="button" id="tabBtnExmRoster" class="exm-tab-btn active" onclick="switchExamTab('roster')">
+                        📑 Examinations Roster
+                    </button>
+                    <button type="button" id="tabBtnExmSchedule" class="exm-tab-btn" onclick="switchExamTab('schedule')">
+                        📅 Timetable Schedule View
+                    </button>
+                </div>
+
+                <!-- 4. FILTER TOOLBAR -->
+                <div class="exam-filters exm-filter-card">
+                    <div class="exm-filter-grid">
+                        <div class="exm-filter-field">
+                            <label class="exm-filter-label">Department</label>
+                            <select id="examDeptFilter" class="exm-control exm-select" onchange="loadExaminations()">
+                                <option value="">All Departments</option>
+                                <option value="Computer Engineering">Computer Engineering</option>
+                                <option value="Information Technology">Information Technology</option>
+                                <option value="Artificial Intelligence & Data Science">Artificial Intelligence & Data Science</option>
+                                <option value="Electronics & Telecommunication">Electronics & Telecommunication</option>
+                                <option value="Mechanical Engineering">Mechanical Engineering</option>
+                                <option value="Civil Engineering">Civil Engineering</option>
+                                <option value="Electrical Engineering">Electrical Engineering</option>
+                            </select>
+                        </div>
+
+                        <div class="exm-filter-field">
+                            <label class="exm-filter-label">Program / Course</label>
+                            <select id="examProgramFilter" class="exm-control exm-select" onchange="loadExaminations()">
+                                <option value="">All Programs</option>
+                                <option value="B.Tech Computer Engineering">B.Tech Computer Engineering</option>
+                                <option value="B.Tech Information Technology">B.Tech Information Technology</option>
+                                <option value="B.Tech AI & Data Science">B.Tech AI & Data Science</option>
+                                <option value="B.Tech Electronics & Telecommunication">B.Tech E&TC</option>
+                                <option value="B.Tech Mechanical Engineering">B.Tech Mechanical</option>
+                                <option value="B.Tech Civil Engineering">B.Tech Civil</option>
+                                <option value="B.Tech Electrical Engineering">B.Tech Electrical</option>
+                            </select>
+                        </div>
+
+                        <div class="exm-filter-field">
+                            <label class="exm-filter-label">Academic Year</label>
+                            <select id="examYearFilter" class="exm-control exm-select" onchange="loadExaminations()">
+                                <option value="">All Years</option>
+                                <option value="1">1st Year (FE)</option>
+                                <option value="2">2nd Year (SE)</option>
+                                <option value="3">3rd Year (TE)</option>
+                                <option value="4">4th Year (BE)</option>
+                            </select>
+                        </div>
+
+                        <div class="exm-filter-field">
+                            <label class="exm-filter-label">Semester</label>
+                            <select id="examSemFilter" class="exm-control exm-select" onchange="loadExaminations()">
+                                <option value="">All Semesters</option>
+                                <option value="1">Semester 1</option>
+                                <option value="2">Semester 2</option>
+                                <option value="3">Semester 3</option>
+                                <option value="4">Semester 4</option>
+                                <option value="5">Semester 5</option>
+                                <option value="6">Semester 6</option>
+                                <option value="7">Semester 7</option>
+                                <option value="8">Semester 8</option>
+                            </select>
+                        </div>
+
+                        <div class="exm-filter-field">
+                            <label class="exm-filter-label">Exam Type</label>
+                            <select id="examTypeFilter" class="exm-control exm-select" onchange="loadExaminations()">
+                                <option value="">All Exam Types</option>
+                                <option value="Mid Semester">Mid Semester</option>
+                                <option value="Internal Assessment">Internal Assessment</option>
+                                <option value="End Semester">End Semester</option>
+                                <option value="Practical">Practical</option>
+                                <option value="Viva">Viva</option>
+                                <option value="Unit Test">Unit Test</option>
+                                <option value="Supplementary">Supplementary</option>
+                            </select>
+                        </div>
+
+                        <div class="exm-filter-field">
+                            <label class="exm-filter-label">Status</label>
+                            <select id="examStatusFilter" class="exm-control exm-select" onchange="loadExaminations()">
+                                <option value="">All Statuses</option>
+                                <option value="Draft">Draft</option>
+                                <option value="Scheduled">Scheduled</option>
+                                <option value="Ongoing">Ongoing</option>
+                                <option value="Completed">Completed</option>
+                                <option value="Results Pending">Results Pending</option>
+                                <option value="Published">Published</option>
+                                <option value="Cancelled">Cancelled</option>
+                            </select>
+                        </div>
+
+                        <div class="exm-filter-field filter-search">
+                            <label class="exm-filter-label">Search Exam / Subject</label>
+                            <div class="exm-input-icon-wrap">
+                                <span class="exm-input-icon">🔍</span>
+                                <input type="text" id="examSearchInput" class="exm-control" placeholder="Search exam name, subject code..." onkeyup="if(event.key==='Enter') loadExaminations()">
+                            </div>
+                        </div>
+
+                        <div class="exm-filter-btns">
+                            <button type="button" class="btn-exm-action btn-apply" onclick="loadExaminations()">
+                                Search
+                            </button>
+                            <button type="button" class="btn-exm-action btn-reset" onclick="resetExamFilters()">
+                                Reset
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 5. MAIN CONTENT AREA -->
+                <div id="examRosterContainer" class="exam-table-card">
+                    <!-- Dynamically rendered examinations table -->
+                </div>
+
+                <div id="examScheduleContainer" class="exam-schedule-card" style="display:none;">
+                    <!-- Dynamically rendered schedule timetable -->
+                </div>
+
             </div>
 
             <!-- ============================================================ -->
@@ -2683,14 +2871,160 @@
     </div>
 </div>
 
-<!-- Semester Subjects Inspector Modal -->
-<div id="semesterSubjectsModal" class="modal course-modal">
-    <div class="modal-content" style="max-width: 850px;">
+<!-- Create / Edit Examination Modal -->
+<div id="examCreateEditModal" class="modal exam-modal">
+    <div class="modal-content" style="max-width: 720px;">
         <div class="modal-header">
-            <h3 id="semModalTitle">📚 Semester Subjects Roster</h3>
-            <span class="close-btn" onclick="closeSemesterSubjectsModal()">&times;</span>
+            <h3 id="examModalTitle">📝 Create New Examination</h3>
+            <span class="close-btn" onclick="closeCreateExamModal()">&times;</span>
         </div>
-        <div class="modal-body" id="semModalBody">
+        <div class="modal-body">
+            <form id="examForm" onsubmit="submitExamForm(event)">
+                <input type="hidden" id="examModalId">
+
+                <div class="form-group" style="margin-bottom:14px;">
+                    <label style="font-size:12px; font-weight:700; color:#475569;">Examination Name *</label>
+                    <input type="text" id="exmModalName" required placeholder="e.g. End-Sem: Database Management Systems" class="form-input" style="width:100%; height:40px; padding:0 12px; border:1px solid #CBD5E1; border-radius:6px;">
+                </div>
+
+                <div class="form-grid-2" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px;">
+                    <div class="form-group">
+                        <label style="font-size:12px; font-weight:700; color:#475569;">Department *</label>
+                        <select id="exmModalDept" required class="form-select" onchange="onExamDeptYearSemChange()" style="width:100%; height:40px; padding:0 12px; border:1px solid #CBD5E1; border-radius:6px;">
+                            <option value="Computer Engineering">Computer Engineering</option>
+                            <option value="Information Technology">Information Technology</option>
+                            <option value="Artificial Intelligence & Data Science">Artificial Intelligence & Data Science</option>
+                            <option value="Electronics & Telecommunication">Electronics & Telecommunication</option>
+                            <option value="Mechanical Engineering">Mechanical Engineering</option>
+                            <option value="Civil Engineering">Civil Engineering</option>
+                            <option value="Electrical Engineering">Electrical Engineering</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label style="font-size:12px; font-weight:700; color:#475569;">Program / Course *</label>
+                        <input type="text" id="exmModalProgram" required placeholder="e.g. B.Tech Computer Engineering" class="form-input" style="width:100%; height:40px; padding:0 12px; border:1px solid #CBD5E1; border-radius:6px;">
+                    </div>
+
+                    <div class="form-group">
+                        <label style="font-size:12px; font-weight:700; color:#475569;">Academic Year *</label>
+                        <select id="exmModalYear" required class="form-select" onchange="onExamDeptYearSemChange()" style="width:100%; height:40px; padding:0 12px; border:1px solid #CBD5E1; border-radius:6px;">
+                            <option value="1">1st Year (FE)</option>
+                            <option value="2">2nd Year (SE)</option>
+                            <option value="3">3rd Year (TE)</option>
+                            <option value="4">4th Year (BE)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label style="font-size:12px; font-weight:700; color:#475569;">Semester *</label>
+                        <select id="exmModalSem" required class="form-select" onchange="onExamDeptYearSemChange()" style="width:100%; height:40px; padding:0 12px; border:1px solid #CBD5E1; border-radius:6px;">
+                            <option value="1">Semester 1</option>
+                            <option value="2">Semester 2</option>
+                            <option value="3">Semester 3</option>
+                            <option value="4">Semester 4</option>
+                            <option value="5">Semester 5</option>
+                            <option value="6">Semester 6</option>
+                            <option value="7">Semester 7</option>
+                            <option value="8">Semester 8</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group" style="grid-column: span 2;">
+                        <label style="font-size:12px; font-weight:700; color:#475569;">Subject * (Cascaded for selected Semester)</label>
+                        <select id="exmModalSubjectSelect" required class="form-select" style="width:100%; height:40px; padding:0 12px; border:1px solid #CBD5E1; border-radius:6px;">
+                            <option value="">-- Select Subject --</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label style="font-size:12px; font-weight:700; color:#475569;">Exam Type *</label>
+                        <select id="exmModalType" required class="form-select" style="width:100%; height:40px; padding:0 12px; border:1px solid #CBD5E1; border-radius:6px;">
+                            <option value="End Semester">End Semester</option>
+                            <option value="Mid Semester">Mid Semester</option>
+                            <option value="Internal Assessment">Internal Assessment</option>
+                            <option value="Practical">Practical</option>
+                            <option value="Viva">Viva</option>
+                            <option value="Unit Test">Unit Test</option>
+                            <option value="Supplementary">Supplementary</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label style="font-size:12px; font-weight:700; color:#475569;">Exam Date *</label>
+                        <input type="date" id="exmModalDate" required class="form-input" style="width:100%; height:40px; padding:0 12px; border:1px solid #CBD5E1; border-radius:6px;">
+                    </div>
+
+                    <div class="form-group">
+                        <label style="font-size:12px; font-weight:700; color:#475569;">Start Time</label>
+                        <input type="text" id="exmModalStartTime" value="10:00 AM" class="form-input" style="width:100%; height:40px; padding:0 12px; border:1px solid #CBD5E1; border-radius:6px;">
+                    </div>
+
+                    <div class="form-group">
+                        <label style="font-size:12px; font-weight:700; color:#475569;">End Time</label>
+                        <input type="text" id="exmModalEndTime" value="01:00 PM" class="form-input" style="width:100%; height:40px; padding:0 12px; border:1px solid #CBD5E1; border-radius:6px;">
+                    </div>
+
+                    <div class="form-group">
+                        <label style="font-size:12px; font-weight:700; color:#475569;">Maximum Marks *</label>
+                        <input type="number" id="exmModalMaxMarks" value="100" min="10" max="200" required class="form-input" style="width:100%; height:40px; padding:0 12px; border:1px solid #CBD5E1; border-radius:6px;">
+                    </div>
+
+                    <div class="form-group">
+                        <label style="font-size:12px; font-weight:700; color:#475569;">Passing Marks *</label>
+                        <input type="number" id="exmModalPassMarks" value="40" min="5" max="100" required class="form-input" style="width:100%; height:40px; padding:0 12px; border:1px solid #CBD5E1; border-radius:6px;">
+                    </div>
+
+                    <div class="form-group" style="grid-column: span 2;">
+                        <label style="font-size:12px; font-weight:700; color:#475569;">Status</label>
+                        <select id="exmModalStatus" class="form-select" style="width:100%; height:40px; padding:0 12px; border:1px solid #CBD5E1; border-radius:6px;">
+                            <option value="Draft">Draft</option>
+                            <option value="Scheduled">Scheduled</option>
+                            <option value="Ongoing">Ongoing</option>
+                            <option value="Completed">Completed</option>
+                            <option value="Results Pending">Results Pending</option>
+                            <option value="Published">Published</option>
+                            <option value="Cancelled">Cancelled</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-top:14px;">
+                    <label style="font-size:12px; font-weight:700; color:#475569;">Instructions / Guidelines</label>
+                    <textarea id="exmModalInstructions" rows="3" placeholder="Syllabus units covered, allowed materials, calculator policy..." style="width:100%; padding:10px; border:1px solid #CBD5E1; border-radius:6px; font-family:inherit;"></textarea>
+                </div>
+
+                <div style="margin-top:20px; display:flex; justify-content:flex-end; gap:10px;">
+                    <button type="button" class="btn-secondary" onclick="closeCreateExamModal()">Cancel</button>
+                    <button type="submit" class="btn-primary" id="saveExamBtn" style="background:#2563EB; color:white; border:none; padding:10px 20px; border-radius:6px; font-weight:700; cursor:pointer;">Save Examination</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Exam Marks Evaluation & Result Publication Modal -->
+<div id="examMarksEvaluationModal" class="modal exam-modal">
+    <div class="modal-content" style="max-width: 950px;">
+        <div class="modal-header">
+            <h3 id="marksModalTitle">📊 Student Marks & Result Evaluation Ledger</h3>
+            <span class="close-btn" onclick="closeExamMarksModal()">&times;</span>
+        </div>
+        <div class="modal-body" id="marksModalBody">
+            <!-- Dynamically populated -->
+        </div>
+    </div>
+</div>
+
+<!-- View Examination Details Modal -->
+<div id="examViewDetailsModal" class="modal exam-modal">
+    <div class="modal-content" style="max-width: 750px;">
+        <div class="modal-header">
+            <h3 id="examDetailsModalTitle">👁 Examination Summary & Score Analytics</h3>
+            <span class="close-btn" onclick="closeExamDetailsModal()">&times;</span>
+        </div>
+        <div class="modal-body" id="examDetailsModalBody">
             <!-- Dynamically populated -->
         </div>
     </div>

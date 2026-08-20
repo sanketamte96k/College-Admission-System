@@ -3594,6 +3594,8 @@ function switchAdminSection(paneId, btnEl, pageTitle = "Dashboard Overview") {
         loadDepartments();
     } else if (paneId === "pane-courses") {
         loadCourses();
+    } else if (paneId === "pane-examinations") {
+        loadExaminations();
     }
 
     // Scroll to top of content
@@ -5517,5 +5519,622 @@ async function confirmDeleteSubject(subId) {
         loadCourses();
     } catch (err) {
         alert("Failed to delete subject: " + err.message);
+    }
+}
+
+/* ============================================================ */
+/* EXAMINATIONS & GRADES MODULE JAVASCRIPT                     */
+/* ============================================================ */
+
+let currentExamTab = 'roster';
+let currentExamData = [];
+
+async function loadExaminations() {
+    const container = document.getElementById("examRosterContainer");
+    if (container && currentExamTab === 'roster') {
+        container.innerHTML = `
+            <div style="text-align:center; padding:50px 20px;">
+                <div class="spinner-border text-primary" role="status" style="width:2.5rem; height:2.5rem; border:4px solid #E2E8F0; border-top-color:#2563EB; border-radius:50%; animation:spin 0.8s linear infinite; margin:0 auto 12px;"></div>
+                <h4 style="color:#1E293B; font-weight:700;">Loading Examinations & Assessments...</h4>
+                <p style="color:#64748B; font-size:13px;">Fetching exam schedules, subjects, and results ledger from database.</p>
+            </div>
+        `;
+    }
+
+    const dept = document.getElementById("examDeptFilter")?.value || "";
+    const program = document.getElementById("examProgramFilter")?.value || "";
+    const year = document.getElementById("examYearFilter")?.value || "";
+    const sem = document.getElementById("examSemFilter")?.value || "";
+    const examType = document.getElementById("examTypeFilter")?.value || "";
+    const status = document.getElementById("examStatusFilter")?.value || "";
+    const search = document.getElementById("examSearchInput")?.value || "";
+
+    const params = new URLSearchParams();
+    if (dept) params.append("department", dept);
+    if (program) params.append("program", program);
+    if (year) params.append("academic_year", year);
+    if (sem) params.append("semester", sem);
+    if (examType) params.append("exam_type", examType);
+    if (status) params.append("status", status);
+    if (search) params.append("search", search);
+
+    try {
+        const response = await fetch(`/api/examinations?${params.toString()}`);
+        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+
+        const data = await response.json();
+        currentExamData = data.examinations || [];
+
+        // Update KPI metrics
+        const summary = data.summary || {};
+        if (document.getElementById("exmKpiTotal")) document.getElementById("exmKpiTotal").textContent = summary.total_exams || 0;
+        if (document.getElementById("exmKpiUpcoming")) document.getElementById("exmKpiUpcoming").textContent = summary.upcoming_exams || 0;
+        if (document.getElementById("exmKpiCompleted")) document.getElementById("exmKpiCompleted").textContent = summary.completed_exams || 0;
+        if (document.getElementById("exmKpiPublished")) document.getElementById("exmKpiPublished").textContent = summary.published_results || 0;
+
+        if (currentExamTab === 'roster') {
+            renderExaminationsTable(currentExamData);
+        } else {
+            renderExamSchedule(currentExamData);
+        }
+    } catch (err) {
+        console.error("Failed to load examinations:", err);
+        if (container) {
+            container.innerHTML = `
+                <div style="background:#FEF2F2; border:1px solid #FCA5A5; border-radius:10px; padding:30px; text-align:center; color:#991B1B;">
+                    <div style="font-size:32px; margin-bottom:8px;">⚠️</div>
+                    <h3 style="margin:0 0 6px 0; font-weight:700;">Unable to Load Examinations</h3>
+                    <p style="margin:0 0 16px 0; font-size:13px; color:#B91C1C;">${err.message || "Network error fetching data."}</p>
+                    <button type="button" onclick="loadExaminations()" style="background:#DC2626; color:white; border:none; padding:8px 18px; border-radius:6px; font-weight:700; cursor:pointer;">Retry</button>
+                </div>
+            `;
+        }
+    }
+}
+
+function switchExamTab(tab) {
+    currentExamTab = tab;
+
+    const rosterBtn = document.getElementById("tabBtnExmRoster");
+    const scheduleBtn = document.getElementById("tabBtnExmSchedule");
+    const rosterBox = document.getElementById("examRosterContainer");
+    const scheduleBox = document.getElementById("examScheduleContainer");
+
+    if (tab === 'roster') {
+        if (rosterBtn) rosterBtn.classList.add("active");
+        if (scheduleBtn) scheduleBtn.classList.remove("active");
+        if (rosterBox) rosterBox.style.display = "block";
+        if (scheduleBox) scheduleBox.style.display = "none";
+        renderExaminationsTable(currentExamData);
+    } else {
+        if (scheduleBtn) scheduleBtn.classList.add("active");
+        if (rosterBtn) rosterBtn.classList.remove("active");
+        if (rosterBox) rosterBox.style.display = "none";
+        if (scheduleBox) scheduleBox.style.display = "block";
+        renderExamSchedule(currentExamData);
+    }
+}
+
+function renderExaminationsTable(exams) {
+    const container = document.getElementById("examRosterContainer");
+    if (!container) return;
+
+    if (!exams || exams.length === 0) {
+        container.innerHTML = `
+            <div style="background:#FFFFFF; border:1px dashed #CBD5E1; border-radius:12px; padding:50px 20px; text-align:center; color:#64748B;">
+                <div style="font-size:40px; margin-bottom:10px;">📑</div>
+                <h3 style="color:#1E293B; font-weight:700; margin:0 0 8px 0;">No Examinations Found</h3>
+                <p style="font-size:13px; margin:0 0 20px 0;">No examination records match the selected filters.</p>
+                <button type="button" onclick="openCreateExamModal()" style="background:#2563EB; color:white; border:none; padding:10px 20px; border-radius:6px; font-weight:700; cursor:pointer;">+ Create Examination</button>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = `
+        <div style="background:#FFFFFF; border:1px solid #E2E8F0; border-radius:12px; overflow:hidden; box-shadow:0 2px 6px rgba(0,0,0,0.02);">
+            <div style="overflow-x:auto;">
+                <table class="exam-table" style="width:100%; border-collapse:collapse; font-size:12.5px;">
+                    <thead>
+                        <tr style="background:#F8FAFC; border-bottom:2px solid #E2E8F0; text-align:left;">
+                            <th style="padding:12px; color:#475569; font-weight:700;">EXAM NAME & SUBJECT</th>
+                            <th style="padding:12px; color:#475569; font-weight:700;">DEPARTMENT & PROGRAM</th>
+                            <th style="padding:12px; color:#475569; font-weight:700;">YEAR / SEM</th>
+                            <th style="padding:12px; color:#475569; font-weight:700;">TYPE</th>
+                            <th style="padding:12px; color:#475569; font-weight:700;">DATE & TIME</th>
+                            <th style="padding:12px; color:#475569; font-weight:700;">STATUS</th>
+                            <th style="padding:12px; color:#475569; font-weight:700; text-align:right;">ACTIONS</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${exams.map(e => {
+                            let badgeStyle = "background:#F1F5F9; color:#475569;";
+                            if (e.status === "Scheduled") badgeStyle = "background:#EFF6FF; color:#2563EB;";
+                            else if (e.status === "Ongoing") badgeStyle = "background:#FEF3C7; color:#D97706;";
+                            else if (e.status === "Completed") badgeStyle = "background:#E0E7FF; color:#4F46E5;";
+                            else if (e.status === "Results Pending") badgeStyle = "background:#F3E8FF; color:#9333EA;";
+                            else if (e.status === "Published") badgeStyle = "background:#DCFCE7; color:#16A34A;";
+                            else if (e.status === "Cancelled") badgeStyle = "background:#FEE2E2; color:#DC2626;";
+
+                            return `
+                                <tr style="border-bottom:1px solid #F1F5F9;">
+                                    <td style="padding:12px;">
+                                        <strong style="color:#0F172A; font-size:13px; display:block;">${e.name}</strong>
+                                        <span style="font-size:11.5px; font-weight:700; color:#2563EB;">📘 ${e.subject_code} — ${e.subject_name}</span>
+                                    </td>
+                                    <td style="padding:12px;">
+                                        <span style="color:#1E293B; font-weight:600; display:block;">🏢 ${e.department}</span>
+                                        <small style="color:#64748B;">${e.program}</small>
+                                    </td>
+                                    <td style="padding:12px;">
+                                        <span style="font-weight:700; color:#475569;">Year ${e.academic_year}</span>
+                                        <small style="color:#64748B; display:block;">Sem ${e.semester}</small>
+                                    </td>
+                                    <td style="padding:12px;">
+                                        <span style="font-size:11px; font-weight:700; padding:2px 8px; border-radius:10px; background:#F1F5F9; color:#334155;">
+                                            ${e.exam_type}
+                                        </span>
+                                    </td>
+                                    <td style="padding:12px;">
+                                        <span style="font-weight:700; color:#0F172A; display:block;">📅 ${e.exam_date}</span>
+                                        <small style="color:#64748B;">⏰ ${e.start_time} - ${e.end_time}</small>
+                                    </td>
+                                    <td style="padding:12px;">
+                                        <span style="font-size:11.5px; font-weight:700; padding:3px 10px; border-radius:12px; ${badgeStyle}">
+                                            ${e.status}
+                                        </span>
+                                    </td>
+                                    <td style="padding:12px; text-align:right;">
+                                        <div style="display:flex; justify-content:flex-end; gap:4px;">
+                                            <button type="button" onclick="openExamMarksModal(${e.id})" style="background:#EFF6FF; color:#2563EB; border:1px solid #BFDBFE; border-radius:4px; padding:4px 8px; font-size:11px; font-weight:700; cursor:pointer;" title="Enter Marks & Evaluate">
+                                                📊 Evaluate
+                                            </button>
+                                            <button type="button" onclick="openExamDetailsModal(${e.id})" style="background:#F1F5F9; color:#334155; border:1px solid #CBD5E1; border-radius:4px; padding:4px 8px; font-size:11px; font-weight:700; cursor:pointer;" title="View Details">
+                                                👁 View
+                                            </button>
+                                            <button type="button" onclick="confirmDeleteExam(${e.id})" style="background:#FEF2F2; color:#DC2626; border:1px solid #FECACA; border-radius:4px; padding:4px 8px; font-size:11px; font-weight:700; cursor:pointer;" title="Delete Exam">
+                                                🗑
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+}
+
+function renderExamSchedule(exams) {
+    const container = document.getElementById("examScheduleContainer");
+    if (!container) return;
+
+    if (!exams || exams.length === 0) {
+        container.innerHTML = `
+            <div style="background:#FFFFFF; border:1px dashed #CBD5E1; border-radius:12px; padding:40px; text-align:center; color:#64748B;">
+                <p>No scheduled exams found for timetable view.</p>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = `
+        <div style="background:#FFFFFF; border:1px solid #E2E8F0; border-radius:12px; padding:24px;">
+            <h3 style="margin:0 0 16px 0; font-size:17px; font-weight:800; color:#0F172A;">📅 Academic Examination Timetable Schedule</h3>
+            <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:16px;">
+                ${exams.map(e => `
+                    <div style="border:1px solid #E2E8F0; border-left:4px solid #2563EB; border-radius:8px; padding:16px; background:#F8FAFC;">
+                        <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                            <span style="font-size:11px; font-weight:800; color:#2563EB; background:#EFF6FF; padding:2px 8px; border-radius:4px;">
+                                ${e.department} — Year ${e.academic_year} Sem ${e.semester}
+                            </span>
+                            <span style="font-size:11px; font-weight:700; color:#64748B;">${e.exam_type}</span>
+                        </div>
+                        <h4 style="margin:0 0 4px 0; font-size:14px; font-weight:800; color:#1E293B;">${e.name}</h4>
+                        <p style="margin:0 0 8px 0; font-size:12px; font-weight:700; color:#334155;">📘 ${e.subject_code}: ${e.subject_name}</p>
+                        <div style="display:flex; gap:16px; font-size:11.5px; color:#475569;">
+                            <span>📅 <strong>${e.exam_date}</strong></span>
+                            <span>⏰ <strong>${e.start_time} - ${e.end_time}</strong></span>
+                            <span>💯 Max: <strong>${e.max_marks}</strong></span>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `;
+}
+
+function resetExamFilters() {
+    if (document.getElementById("examDeptFilter")) document.getElementById("examDeptFilter").value = "";
+    if (document.getElementById("examProgramFilter")) document.getElementById("examProgramFilter").value = "";
+    if (document.getElementById("examYearFilter")) document.getElementById("examYearFilter").value = "";
+    if (document.getElementById("examSemFilter")) document.getElementById("examSemFilter").value = "";
+    if (document.getElementById("examTypeFilter")) document.getElementById("examTypeFilter").value = "";
+    if (document.getElementById("examStatusFilter")) document.getElementById("examStatusFilter").value = "";
+    if (document.getElementById("examSearchInput")) document.getElementById("examSearchInput").value = "";
+
+    loadExaminations();
+}
+
+// Cascading subject dropdown handler for Create Exam Modal
+async function onExamDeptYearSemChange() {
+    const dept = document.getElementById("exmModalDept")?.value || "";
+    const year = document.getElementById("exmModalYear")?.value || "";
+    const sem = document.getElementById("exmModalSem")?.value || "";
+    const select = document.getElementById("exmModalSubjectSelect");
+
+    if (!select) return;
+
+    select.innerHTML = `<option value="">Loading subjects for Sem ${sem}...</option>`;
+
+    try {
+        const params = new URLSearchParams();
+        if (dept) params.append("department", dept);
+        if (year) params.append("academic_year", year);
+        if (sem) params.append("semester", sem);
+
+        const res = await fetch(`/api/courses?${params.toString()}`);
+        if (!res.ok) throw new Error("Failed to fetch subjects");
+
+        const data = await res.json();
+        let matchedSubjects = [];
+
+        if (data.curriculum) {
+            data.curriculum.forEach(y => {
+                if (y.academic_year == year) {
+                    y.semesters.forEach(s => {
+                        if (s.semester_number == sem) {
+                            matchedSubjects = s.subjects || [];
+                        }
+                    });
+                }
+            });
+        }
+
+        if (matchedSubjects.length === 0) {
+            select.innerHTML = `<option value="">No subjects found for Semester ${sem}</option>`;
+        } else {
+            select.innerHTML = matchedSubjects.map(s => `
+                <option value="${s.code}" data-name="${s.name}">${s.code} — ${s.name} (${s.credits} credits)</option>
+            `).join('');
+        }
+    } catch (err) {
+        select.innerHTML = `<option value="">Error loading subjects</option>`;
+    }
+}
+
+function openCreateExamModal() {
+    const modal = document.getElementById("examCreateEditModal");
+    const form = document.getElementById("examForm");
+    const title = document.getElementById("examModalTitle");
+
+    if (form) form.reset();
+    document.getElementById("examModalId").value = "";
+    if (title) title.textContent = "📝 Create New Examination";
+
+    onExamDeptYearSemChange();
+    if (modal) modal.style.display = "block";
+}
+
+function closeCreateExamModal() {
+    const modal = document.getElementById("examCreateEditModal");
+    if (modal) modal.style.display = "none";
+}
+
+async function submitExamForm(e) {
+    e.preventDefault();
+
+    const id = document.getElementById("examModalId").value;
+    const name = document.getElementById("exmModalName").value;
+    const department = document.getElementById("exmModalDept").value;
+    const program = document.getElementById("exmModalProgram").value;
+    const academic_year = parseInt(document.getElementById("exmModalYear").value);
+    const semester = parseInt(document.getElementById("exmModalSem").value);
+
+    const subSelect = document.getElementById("exmModalSubjectSelect");
+    const subject_code = subSelect.value;
+    const selectedOpt = subSelect.options[subSelect.selectedIndex];
+    const subject_name = selectedOpt ? selectedOpt.getAttribute("data-name") || selectedOpt.text : subject_code;
+
+    const exam_type = document.getElementById("exmModalType").value;
+    const exam_date = document.getElementById("exmModalDate").value;
+    const start_time = document.getElementById("exmModalStartTime").value;
+    const end_time = document.getElementById("exmModalEndTime").value;
+    const max_marks = parseInt(document.getElementById("exmModalMaxMarks").value);
+    const passing_marks = parseInt(document.getElementById("exmModalPassMarks").value);
+    const status = document.getElementById("exmModalStatus").value;
+    const instructions = document.getElementById("exmModalInstructions").value;
+
+    const payload = {
+        name, department, program, academic_year, semester,
+        subject_code, subject_name, exam_type, exam_date,
+        start_time, end_time, max_marks, passing_marks, status, instructions
+    };
+
+    const url = id ? `/api/examinations/${id}` : "/api/examinations";
+    const method = id ? "PUT" : "POST";
+
+    try {
+        const res = await fetch(url, {
+            method: method,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+            alert(`Error: ${data.error || "Failed to save examination."}`);
+            return;
+        }
+
+        alert(data.message || "Examination saved successfully!");
+        closeCreateExamModal();
+        loadExaminations();
+    } catch (err) {
+        console.error("Save exam error:", err);
+        alert("Failed to submit examination request.");
+    }
+}
+
+// ============================================================
+// MARKS EVALUATION & RESULT PUBLICATION MODAL
+// ============================================================
+
+async function openExamMarksModal(examId) {
+    const modal = document.getElementById("examMarksEvaluationModal");
+    const titleEl = document.getElementById("marksModalTitle");
+    const bodyEl = document.getElementById("marksModalBody");
+
+    if (bodyEl) {
+        bodyEl.innerHTML = `<div style="text-align:center; padding:40px;"><div class="spinner-border text-primary" role="status"></div><p>Loading student marks roster...</p></div>`;
+    }
+
+    if (modal) modal.style.display = "block";
+
+    try {
+        const res = await fetch(`/api/examinations/${examId}/marks`);
+        if (!res.ok) throw new Error("Failed to fetch marks roster");
+
+        const data = await res.json();
+        const exam = data.examination;
+        const marks = data.marks || [];
+
+        if (titleEl) titleEl.textContent = `📊 Evaluation Ledger — ${exam.name} (${exam.subject_code})`;
+
+        let html = `
+            <div style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:8px; padding:14px; margin-bottom:16px; display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                    <h4 style="margin:0 0 4px 0; color:#0F172A; font-weight:800;">${exam.name}</h4>
+                    <span style="font-size:12px; color:#475569;">
+                        🏢 ${exam.department} | Year ${exam.academic_year} Sem ${exam.semester} | 💯 Max Marks: <strong>${exam.max_marks}</strong> (Pass: ${exam.passing_marks})
+                    </span>
+                </div>
+                <div style="display:flex; gap:8px;">
+                    <button type="button" onclick="saveExamMarks(${exam.id})" style="background:#2563EB; color:white; border:none; padding:8px 16px; border-radius:6px; font-weight:700; cursor:pointer;">
+                        💾 Save Marks Draft
+                    </button>
+                    ${exam.status === 'Published' ? `
+                        <button type="button" onclick="unpublishExamResults(${exam.id})" style="background:#F59E0B; color:white; border:none; padding:8px 16px; border-radius:6px; font-weight:700; cursor:pointer;">
+                            ↩ Unpublish Results
+                        </button>
+                    ` : `
+                        <button type="button" onclick="publishExamResults(${exam.id})" style="background:#16A34A; color:white; border:none; padding:8px 16px; border-radius:6px; font-weight:700; cursor:pointer;">
+                            🚀 Publish Results
+                        </button>
+                    `}
+                </div>
+            </div>
+
+            <div style="overflow-x:auto;">
+                <table class="exam-marks-table" style="width:100%; border-collapse:collapse; font-size:12.5px;">
+                    <thead>
+                        <tr style="background:#F1F5F9; border-bottom:2px solid #CBD5E1; text-align:left;">
+                            <th style="padding:10px;">ROLL NO / APP NO</th>
+                            <th style="padding:10px;">STUDENT NAME</th>
+                            <th style="padding:10px;">MARKS OBTAINED (${exam.max_marks})</th>
+                            <th style="padding:10px; text-align:center;">ABSENT?</th>
+                            <th style="padding:10px;">GRADE</th>
+                            <th style="padding:10px;">RESULT</th>
+                            <th style="padding:10px;">REMARKS</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${marks.map(m => `
+                            <tr style="border-bottom:1px solid #F1F5F9;">
+                                <td style="padding:10px; font-weight:700; color:#2563EB;">${m.roll_no}</td>
+                                <td style="padding:10px; font-weight:700; color:#0F172A;">${m.student_name}</td>
+                                <td style="padding:10px;">
+                                    <input type="number" min="0" max="${exam.max_marks}" step="0.5" id="mark_val_${m.student_id}" value="${m.marks_obtained !== null && m.marks_obtained !== undefined ? m.marks_obtained : ''}" ${m.is_absent ? 'disabled' : ''} style="width:90px; height:34px; padding:0 8px; border:1px solid #CBD5E1; border-radius:4px; font-weight:700;">
+                                </td>
+                                <td style="padding:10px; text-align:center;">
+                                    <input type="checkbox" id="mark_absent_${m.student_id}" ${m.is_absent ? 'checked' : ''} onchange="document.getElementById('mark_val_${m.student_id}').disabled = this.checked;">
+                                </td>
+                                <td style="padding:10px; font-weight:800; color:#4F46E5;">${m.grade}</td>
+                                <td style="padding:10px;">
+                                    <span style="font-size:11px; font-weight:700; padding:2px 8px; border-radius:10px; background:${m.result_status === 'Pass' ? '#DCFCE7' : (m.result_status === 'Fail' ? '#FEE2E2' : '#F1F5F9')}; color:${m.result_status === 'Pass' ? '#16A34A' : (m.result_status === 'Fail' ? '#DC2626' : '#64748B')};">
+                                        ${m.result_status}
+                                    </span>
+                                </td>
+                                <td style="padding:10px;">
+                                    <input type="text" id="mark_rem_${m.student_id}" value="${m.remarks || ''}" placeholder="Remarks..." style="width:100%; height:34px; padding:0 8px; border:1px solid #CBD5E1; border-radius:4px;">
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `;
+
+        if (bodyEl) bodyEl.innerHTML = html;
+    } catch (err) {
+        if (bodyEl) bodyEl.innerHTML = `<div style="color:red; padding:20px;">Error: ${err.message}</div>`;
+    }
+}
+
+function closeExamMarksModal() {
+    const modal = document.getElementById("examMarksEvaluationModal");
+    if (modal) modal.style.display = "none";
+}
+
+async function saveExamMarks(examId) {
+    const inputs = document.querySelectorAll(`[id^="mark_val_"]`);
+    const marksData = [];
+
+    inputs.forEach(input => {
+        const studentId = input.id.replace("mark_val_", "");
+        const absentCb = document.getElementById(`mark_absent_${studentId}`);
+        const remInput = document.getElementById(`mark_rem_${studentId}`);
+
+        marksData.push({
+            student_id: parseInt(studentId),
+            marks_obtained: input.value !== "" ? parseFloat(input.value) : null,
+            is_absent: absentCb ? absentCb.checked : false,
+            remarks: remInput ? remInput.value : ""
+        });
+    });
+
+    try {
+        const res = await fetch(`/api/examinations/${examId}/marks`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ marks: marksData })
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+            alert(`Save Marks Error: ${data.error || "Failed to save marks."}`);
+            return;
+        }
+
+        alert(data.message || "Marks saved successfully!");
+        openExamMarksModal(examId);
+        loadExaminations();
+    } catch (err) {
+        alert("Failed to save marks: " + err.message);
+    }
+}
+
+async function publishExamResults(examId) {
+    if (!confirm("Are you sure you want to publish results for this examination?")) return;
+
+    try {
+        const res = await fetch(`/api/examinations/${examId}/publish`, { method: "POST" });
+        const data = await res.json();
+
+        if (!res.ok) {
+            alert(`Publish Error: ${data.error || "Failed to publish results."}`);
+            return;
+        }
+
+        alert(data.message || "Results published successfully!");
+        closeExamMarksModal();
+        loadExaminations();
+    } catch (err) {
+        alert("Failed to publish results: " + err.message);
+    }
+}
+
+async function unpublishExamResults(examId) {
+    if (!confirm("Unpublish results for this examination?")) return;
+
+    try {
+        const res = await fetch(`/api/examinations/${examId}/unpublish`, { method: "POST" });
+        const data = await res.json();
+
+        if (!res.ok) {
+            alert(`Unpublish Error: ${data.error || "Failed to unpublish results."}`);
+            return;
+        }
+
+        alert(data.message || "Results unpublished.");
+        closeExamMarksModal();
+        loadExaminations();
+    } catch (err) {
+        alert("Failed to unpublish results: " + err.message);
+    }
+}
+
+async function openExamDetailsModal(examId) {
+    const modal = document.getElementById("examViewDetailsModal");
+    const bodyEl = document.getElementById("examDetailsModalBody");
+
+    if (bodyEl) bodyEl.innerHTML = `<div style="padding:30px; text-align:center;"><div class="spinner-border text-primary"></div></div>`;
+    if (modal) modal.style.display = "block";
+
+    try {
+        const res = await fetch(`/api/examinations/${examId}`);
+        if (!res.ok) throw new Error("Failed to fetch examination details");
+
+        const exam = await res.json();
+        const ev = exam.evaluation_summary || {};
+
+        bodyEl.innerHTML = `
+            <div style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:8px; padding:16px; margin-bottom:16px;">
+                <h3 style="margin:0 0 6px 0; color:#0F172A; font-weight:800;">${exam.name}</h3>
+                <p style="margin:0 0 10px 0; font-size:13px; color:#475569;">📘 Subject: <strong>${exam.subject_code} — ${exam.subject_name}</strong></p>
+                <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; font-size:12px; color:#334155;">
+                    <div>🏢 <strong>${exam.department}</strong></div>
+                    <div>🎓 <strong>${exam.program}</strong></div>
+                    <div>📅 Date: <strong>${exam.exam_date}</strong></div>
+                    <div>⏰ Time: <strong>${exam.start_time} - ${exam.end_time}</strong></div>
+                    <div>💯 Max Marks: <strong>${exam.max_marks}</strong></div>
+                    <div>✓ Pass Marks: <strong>${exam.passing_marks}</strong></div>
+                </div>
+            </div>
+
+            <h4 style="margin:0 0 10px 0; font-size:14px; font-weight:800; color:#1E293B;">📊 Evaluation & Class Performance Analytics</h4>
+            <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:12px; margin-bottom:16px;">
+                <div style="background:#EFF6FF; border:1px solid #BFDBFE; border-radius:8px; padding:12px; text-align:center;">
+                    <small style="color:#2563EB; font-weight:700;">TOTAL STUDENTS</small>
+                    <h3 style="margin:4px 0 0 0; color:#1E3A8A;">${ev.total_students || 0}</h3>
+                </div>
+                <div style="background:#F0FDF4; border:1px solid #BBF7D0; border-radius:8px; padding:12px; text-align:center;">
+                    <small style="color:#16A34A; font-weight:700;">PASSED</small>
+                    <h3 style="margin:4px 0 0 0; color:#14532D;">${ev.passed_count || 0} (${ev.pass_percentage || 0}%)</h3>
+                </div>
+                <div style="background:#FEF2F2; border:1px solid #FECACA; border-radius:8px; padding:12px; text-align:center;">
+                    <small style="color:#DC2626; font-weight:700;">FAILED</small>
+                    <h3 style="margin:4px 0 0 0; color:#7F1D1D;">${ev.failed_count || 0}</h3>
+                </div>
+                <div style="background:#FAF5FF; border:1px solid #E9D5FF; border-radius:8px; padding:12px; text-align:center;">
+                    <small style="color:#9333EA; font-weight:700;">AVG SCORE</small>
+                    <h3 style="margin:4px 0 0 0; color:#581C87;">${ev.average_score || 0}</h3>
+                </div>
+            </div>
+
+            ${exam.instructions ? `
+                <div style="background:#FFFBEB; border:1px solid #FDE68A; border-radius:8px; padding:12px; font-size:12.5px; color:#92400E;">
+                    <strong>Instructions:</strong> ${exam.instructions}
+                </div>
+            ` : ''}
+        `;
+    } catch (err) {
+        bodyEl.innerHTML = `<div style="color:red;">Error loading details: ${err.message}</div>`;
+    }
+}
+
+function closeExamDetailsModal() {
+    const modal = document.getElementById("examViewDetailsModal");
+    if (modal) modal.style.display = "none";
+}
+
+async function confirmDeleteExam(examId) {
+    if (!confirm("Are you sure you want to delete this examination?")) return;
+
+    try {
+        const res = await fetch(`/api/examinations/${examId}`, { method: "DELETE" });
+        const data = await res.json();
+
+        if (!res.ok) {
+            alert(`Delete Blocked: ${data.error || "Failed to delete examination."}`);
+            return;
+        }
+
+        alert(data.message || "Examination deleted successfully.");
+        loadExaminations();
+    } catch (err) {
+        alert("Failed to delete examination: " + err.message);
     }
 }

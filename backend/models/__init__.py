@@ -8,5 +8,10 @@ from .attendance import Attendance
 from .department import Department
 from .course import Course
 from .subject import Subject
+from .examination import Examination
+from .exam_mark import ExamMark
 
-__all__ = ["db", "Admin", "Student", "Payment", "Ticket", "SeatMatrix", "Attendance", "Department", "Course", "Subject"]
+__all__ = [
+    "db", "Admin", "Student", "Payment", "Ticket", "SeatMatrix",
+    "Attendance", "Department", "Course", "Subject", "Examination", "ExamMark"
+]

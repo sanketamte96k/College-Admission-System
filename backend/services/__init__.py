@@ -7,6 +7,7 @@ from .receipt_service import ReceiptService
 from .attendance_service import AttendanceService
 from .department_service import DepartmentService
 from .course_service import CourseService
+from .examination_service import ExaminationService
 
 __all__ = [
     "StudentService",
@@ -17,5 +18,6 @@ __all__ = [
     "ReceiptService",
     "AttendanceService",
     "DepartmentService",
-    "CourseService"
+    "CourseService",
+    "ExaminationService"
 ]
