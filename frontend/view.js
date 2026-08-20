@@ -3592,6 +3592,8 @@ function switchAdminSection(paneId, btnEl, pageTitle = "Dashboard Overview") {
         fetchStudentKpiStats();
     } else if (paneId === "pane-departments") {
         loadDepartments();
+    } else if (paneId === "pane-courses") {
+        loadCourses();
     }
 
     // Scroll to top of content
@@ -5049,5 +5051,471 @@ async function confirmDeleteDepartment(deptId) {
     } catch (err) {
         console.error("confirmDeleteDepartment error:", err);
         showToast("Error deleting department: " + err.message, "error");
+    }
+}
+
+/* ============================================================ */
+/* COURSES & CURRICULUM MODULE JAVASCRIPT                       */
+/* ============================================================ */
+
+let currentCurriculumData = null;
+
+async function loadCourses() {
+    const container = document.getElementById("coursesCurriculumContainer");
+    if (container) {
+        container.innerHTML = `
+            <div style="text-align:center; padding:60px 20px;">
+                <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem; border: 4px solid #E2E8F0; border-top-color: #2563EB; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px;"></div>
+                <h4 style="color:#1E293B; font-weight:700;">Loading Curriculum & Academic Programs...</h4>
+                <p style="color:#64748B; font-size:13px;">Fetching year-wise and semester-wise subject rosters from database.</p>
+            </div>
+        `;
+    }
+
+    const dept = document.getElementById("courseDeptFilter")?.value || "";
+    const program = document.getElementById("courseProgramFilter")?.value || "";
+    const year = document.getElementById("courseYearFilter")?.value || "";
+    const sem = document.getElementById("courseSemFilter")?.value || "";
+    const search = document.getElementById("courseSearchInput")?.value || "";
+
+    const params = new URLSearchParams();
+    if (dept) params.append("department", dept);
+    if (program) params.append("program", program);
+    if (year) params.append("academic_year", year);
+    if (sem) params.append("semester", sem);
+    if (search) params.append("search", search);
+
+    try {
+        const response = await fetch(`/api/courses?${params.toString()}`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        const data = await response.json();
+        currentCurriculumData = data;
+        renderCurriculumView(data);
+    } catch (err) {
+        console.error("Failed to load curriculum:", err);
+        if (container) {
+            container.innerHTML = `
+                <div style="background:#FEF2F2; border:1px solid #FCA5A5; border-radius:10px; padding:30px; text-align:center; color:#991B1B;">
+                    <div style="font-size:32px; margin-bottom:8px;">⚠️</div>
+                    <h3 style="margin:0 0 6px 0; font-weight:700;">Unable to Load Curriculum</h3>
+                    <p style="margin:0 0 16px 0; font-size:13px; color:#B91C1C;">${err.message || "Network error fetching data."}</p>
+                    <button type="button" onclick="loadCourses()" style="background:#DC2626; color:white; border:none; padding:8px 18px; border-radius:6px; font-weight:700; cursor:pointer;">Retry</button>
+                </div>
+            `;
+        }
+    }
+}
+
+function renderCurriculumView(data) {
+    const summary = data.summary || {};
+    const curriculum = data.curriculum || [];
+
+    // 1. Update KPI Metrics
+    const programsEl = document.getElementById("crsKpiPrograms");
+    if (programsEl) programsEl.textContent = summary.total_programs || 0;
+
+    const subjectsEl = document.getElementById("crsKpiSubjects");
+    if (subjectsEl) subjectsEl.textContent = summary.total_subjects || 0;
+
+    const creditsEl = document.getElementById("crsKpiCredits");
+    if (creditsEl) creditsEl.textContent = summary.total_credits || 0;
+
+    const typesEl = document.getElementById("crsKpiTypes");
+    if (typesEl) typesEl.textContent = `${summary.core_subjects || 0} Core / ${summary.elective_subjects || 0} Elec`;
+
+    const container = document.getElementById("coursesCurriculumContainer");
+    if (!container) return;
+
+    if (!curriculum || curriculum.length === 0) {
+        container.innerHTML = `
+            <div style="background:#FFFFFF; border:1px dashed #CBD5E1; border-radius:12px; padding:50px 20px; text-align:center; color:#64748B;">
+                <div style="font-size:40px; margin-bottom:10px;">🎓</div>
+                <h3 style="color:#1E293B; font-weight:700; margin:0 0 8px 0;">No Curriculum Records Found</h3>
+                <p style="font-size:13px; margin:0 0 20px 0;">No subjects match the selected filters or search parameters.</p>
+                <button type="button" onclick="openAddCourseModal()" style="background:#2563EB; color:white; border:none; padding:10px 20px; border-radius:6px; font-weight:700; cursor:pointer;">+ Add New Course Program</button>
+            </div>
+        `;
+        return;
+    }
+
+    let html = '';
+
+    curriculum.forEach(yearGroup => {
+        const yearNum = yearGroup.academic_year;
+        const yearName = yearGroup.year_name;
+        const sems = yearGroup.semesters || [];
+
+        html += `
+            <div class="course-year crs-year-section" style="margin-bottom: 28px;">
+                <div class="crs-year-header" style="display:flex; align-items:center; gap:12px; margin-bottom:14px; padding-bottom:8px; border-bottom:2px solid #E2E8F0;">
+                    <div style="background:#2563EB; color:white; font-weight:800; font-size:12px; padding:4px 12px; border-radius:6px; text-transform:uppercase; letter-spacing:0.5px;">
+                        YEAR ${yearNum}
+                    </div>
+                    <h3 style="margin:0; font-size:17px; font-weight:800; color:#0F172A;">${yearName} Curriculum</h3>
+                </div>
+
+                <div class="crs-semesters-grid" style="display:grid; grid-template-columns: repeat(2, 1fr); gap:16px;">
+        `;
+
+        sems.forEach(sem => {
+            const semNum = sem.semester_number;
+            const subCount = sem.subject_count;
+            const credits = sem.total_credits;
+            const coreCount = sem.core_count;
+            const elecCount = sem.elective_count;
+            const subjects = sem.subjects || [];
+
+            html += `
+                <div class="course-semester course-semester-card crs-sem-card" style="background:#FFFFFF; border:1px solid #E2E8F0; border-radius:12px; padding:20px; box-shadow:0 2px 6px rgba(0,0,0,0.02); display:flex; flex-direction:column; justify-content:space-between; transition:all 0.2s ease;">
+                    <div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                            <span style="font-size:13px; font-weight:800; color:#2563EB; background:#EFF6FF; padding:4px 10px; border-radius:6px; border:1px solid #BFDBFE;">
+                                Semester ${semNum}
+                            </span>
+                            <span style="font-size:11.5px; font-weight:700; color:#64748B;">
+                                🏅 ${credits} Credits
+                            </span>
+                        </div>
+
+                        <h4 style="margin:0 0 6px 0; font-size:15px; font-weight:800; color:#1E293B;">
+                            ${sem.semester_name}
+                        </h4>
+
+                        <div style="display:flex; gap:12px; font-size:12px; color:#475569; margin-bottom:14px;">
+                            <span>📘 <strong>${subCount}</strong> Subjects</span>
+                            <span>✓ <strong>${coreCount}</strong> Core</span>
+                            <span>⭐ <strong>${elecCount}</strong> Elective</span>
+                        </div>
+
+                        <div style="background:#F8FAFC; border-radius:8px; padding:10px; margin-bottom:16px;">
+                            <small style="font-size:10px; font-weight:700; color:#94A3B8; text-transform:uppercase; display:block; margin-bottom:6px;">Sample Subjects:</small>
+                            ${subjects.length > 0 ? `
+                                <ul style="margin:0; padding-left:16px; font-size:12px; color:#334155;">
+                                    ${subjects.slice(0, 3).map(s => `<li><strong>${s.code}</strong> — ${s.name} (${s.credits} cr)</li>`).join('')}
+                                    ${subjects.length > 3 ? `<li style="color:#64748B; font-style:italic;">+ ${subjects.length - 3} more subjects...</li>` : ''}
+                                </ul>
+                            ` : '<span style="font-size:12px; color:#94A3B8; font-style:italic;">No subjects defined for this semester.</span>'}
+                        </div>
+                    </div>
+
+                    <div class="course-actions crs-sem-actions" style="display:flex; gap:8px;">
+                        <button type="button" onclick="viewSemesterSubjects(${yearNum}, ${semNum})" style="flex:1; height:34px; background:#F1F5F9; color:#1E293B; border:1px solid #CBD5E1; border-radius:6px; font-size:12px; font-weight:700; cursor:pointer; transition:all 0.15s ease;">
+                            👁 View Subjects
+                        </button>
+                        <button type="button" onclick="openAddSubjectModal('', '', ${yearNum}, ${semNum})" style="height:34px; padding:0 12px; background:#2563EB; color:white; border:none; border-radius:6px; font-size:12px; font-weight:700; cursor:pointer;">
+                            + Add Subject
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+
+        html += `
+                </div>
+            </div>
+        `;
+    });
+
+    container.innerHTML = html;
+}
+
+function resetCourseFilters() {
+    const dept = document.getElementById("courseDeptFilter");
+    const prog = document.getElementById("courseProgramFilter");
+    const yr = document.getElementById("courseYearFilter");
+    const sem = document.getElementById("courseSemFilter");
+    const search = document.getElementById("courseSearchInput");
+
+    if (dept) dept.value = "";
+    if (prog) prog.value = "";
+    if (yr) yr.value = "";
+    if (sem) sem.value = "";
+    if (search) search.value = "";
+
+    loadCourses();
+}
+
+// ============================================================
+// SEMESTER SUBJECTS INSPECTOR MODAL
+// ============================================================
+
+function viewSemesterSubjects(yearNum, semNum) {
+    const modal = document.getElementById("semesterSubjectsModal");
+    const titleEl = document.getElementById("semModalTitle");
+    const bodyEl = document.getElementById("semModalBody");
+
+    if (!currentCurriculumData || !currentCurriculumData.curriculum) return;
+
+    let targetSem = null;
+    currentCurriculumData.curriculum.forEach(y => {
+        if (y.academic_year === yearNum) {
+            y.semesters.forEach(s => {
+                if (s.semester_number === semNum) {
+                    targetSem = s;
+                }
+            });
+        }
+    });
+
+    if (!targetSem) return;
+
+    if (titleEl) {
+        titleEl.textContent = `📚 ${targetSem.semester_name} Subjects Roster (${yearNum}st/nd/rd/th Year)`;
+    }
+
+    const subs = targetSem.subjects || [];
+
+    let html = `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; padding-bottom:10px; border-bottom:1px solid #E2E8F0;">
+            <div>
+                <span style="font-size:13px; font-weight:700; color:#475569;">Total Subjects: <strong>${subs.length}</strong></span> |
+                <span style="font-size:13px; font-weight:700; color:#475569;">Total Credits: <strong>${targetSem.total_credits}</strong></span>
+            </div>
+            <button type="button" onclick="openAddSubjectModal('', '', ${yearNum}, ${semNum})" style="background:#2563EB; color:white; border:none; padding:6px 14px; border-radius:6px; font-size:12px; font-weight:700; cursor:pointer;">
+                + Add Subject to Sem ${semNum}
+            </button>
+        </div>
+    `;
+
+    if (subs.length === 0) {
+        html += `
+            <div style="text-align:center; padding:30px; color:#64748B;">
+                <p>No subjects added for Semester ${semNum} yet.</p>
+            </div>
+        `;
+    } else {
+        html += `
+            <div style="overflow-x:auto;">
+                <table class="course-subject-table" style="width:100%; border-collapse:collapse; font-size:12.5px;">
+                    <thead>
+                        <tr style="background:#F8FAFC; border-bottom:2px solid #E2E8F0; text-align:left;">
+                            <th style="padding:10px; color:#475569; font-weight:700;">CODE</th>
+                            <th style="padding:10px; color:#475569; font-weight:700;">SUBJECT NAME</th>
+                            <th style="padding:10px; color:#475569; font-weight:700;">CREDITS</th>
+                            <th style="padding:10px; color:#475569; font-weight:700;">TYPE</th>
+                            <th style="padding:10px; color:#475569; font-weight:700;">STATUS</th>
+                            <th style="padding:10px; color:#475569; font-weight:700; text-align:right;">ACTIONS</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${subs.map(s => `
+                            <tr style="border-bottom:1px solid #F1F5F9;">
+                                <td style="padding:10px; font-weight:800; color:#2563EB;">${s.code}</td>
+                                <td style="padding:10px;">
+                                    <strong style="color:#0F172A;">${s.name}</strong>
+                                    ${s.description ? `<br><small style="color:#64748B;">${s.description}</small>` : ''}
+                                </td>
+                                <td style="padding:10px; font-weight:700;">${s.credits}</td>
+                                <td style="padding:10px;">
+                                    <span style="font-size:11px; font-weight:700; padding:2px 8px; border-radius:10px; background:${s.subject_type === 'Core' ? '#EFF6FF' : '#FEF3C7'}; color:${s.subject_type === 'Core' ? '#2563EB' : '#D97706'};">
+                                        ${s.subject_type}
+                                    </span>
+                                </td>
+                                <td style="padding:10px;">
+                                    <span style="font-size:11px; font-weight:700; color:${s.status === 'Active' ? '#16A34A' : '#94A3B8'};">
+                                        ${s.status}
+                                    </span>
+                                </td>
+                                <td style="padding:10px; text-align:right;">
+                                    <button type="button" onclick="openEditSubjectModal(${s.id})" style="background:#EFF6FF; color:#2563EB; border:1px solid #BFDBFE; border-radius:4px; padding:4px 8px; font-size:11px; font-weight:700; cursor:pointer; margin-right:4px;">✏️ Edit</button>
+                                    <button type="button" onclick="confirmDeleteSubject(${s.id})" style="background:#FEF2F2; color:#DC2626; border:1px solid #FECACA; border-radius:4px; padding:4px 8px; font-size:11px; font-weight:700; cursor:pointer;">🗑 Delete</button>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    }
+
+    if (bodyEl) bodyEl.innerHTML = html;
+    if (modal) modal.style.display = "block";
+}
+
+function closeSemesterSubjectsModal() {
+    const modal = document.getElementById("semesterSubjectsModal");
+    if (modal) modal.style.display = "none";
+}
+
+// ============================================================
+// COURSE PROGRAM MODAL
+// ============================================================
+
+function openAddCourseModal() {
+    const modal = document.getElementById("courseAddEditModal");
+    const form = document.getElementById("courseForm");
+    const title = document.getElementById("courseModalTitle");
+
+    if (form) form.reset();
+    document.getElementById("courseModalId").value = "";
+    if (title) title.textContent = "🎓 Add New Academic Program";
+
+    if (modal) modal.style.display = "block";
+}
+
+function closeCourseModal() {
+    const modal = document.getElementById("courseAddEditModal");
+    if (modal) modal.style.display = "none";
+}
+
+async function submitCourseForm(e) {
+    e.preventDefault();
+
+    const id = document.getElementById("courseModalId").value;
+    const name = document.getElementById("crsModalName").value;
+    const code = document.getElementById("crsModalCode").value;
+    const department = document.getElementById("crsModalDept").value;
+    const degree_type = document.getElementById("crsModalDegree").value;
+    const duration_years = document.getElementById("crsModalYears").value;
+    const total_credits = document.getElementById("crsModalCredits").value;
+    const description = document.getElementById("crsModalDesc").value;
+
+    const payload = {
+        name, code, department, degree_type,
+        duration_years: parseInt(duration_years),
+        total_credits: parseInt(total_credits),
+        description
+    };
+
+    const url = id ? `/api/courses/${id}` : "/api/courses";
+    const method = id ? "PUT" : "POST";
+
+    try {
+        const res = await fetch(url, {
+            method: method,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+            alert(`Error: ${data.error || "Failed to save program."}`);
+            return;
+        }
+
+        alert(data.message || "Program saved successfully!");
+        closeCourseModal();
+        loadCourses();
+    } catch (err) {
+        console.error("Save program error:", err);
+        alert("Failed to submit program request.");
+    }
+}
+
+// ============================================================
+// SUBJECT MODAL
+// ============================================================
+
+function openAddSubjectModal(dept = "", program = "", year = 1, sem = 1) {
+    const modal = document.getElementById("subjectAddEditModal");
+    const form = document.getElementById("subjectForm");
+    const title = document.getElementById("subjectModalTitle");
+
+    if (form) form.reset();
+    document.getElementById("subModalId").value = "";
+    if (title) title.textContent = "📘 Add New Subject";
+
+    if (dept) document.getElementById("subModalDept").value = dept;
+    if (program) document.getElementById("subModalProgram").value = program;
+    if (year) document.getElementById("subModalYear").value = year;
+    if (sem) document.getElementById("subModalSem").value = sem;
+
+    if (modal) modal.style.display = "block";
+}
+
+function closeSubjectModal() {
+    const modal = document.getElementById("subjectAddEditModal");
+    if (modal) modal.style.display = "none";
+}
+
+async function openEditSubjectModal(subId) {
+    try {
+        const res = await fetch(`/api/subjects/${subId}`);
+        if (!res.ok) throw new Error("Subject not found");
+        const sub = await res.json();
+
+        document.getElementById("subModalId").value = sub.id;
+        document.getElementById("subModalCode").value = sub.code;
+        document.getElementById("subModalName").value = sub.name;
+        document.getElementById("subModalDept").value = sub.department;
+        document.getElementById("subModalProgram").value = sub.program;
+        document.getElementById("subModalYear").value = sub.academic_year;
+        document.getElementById("subModalSem").value = sub.semester;
+        document.getElementById("subModalCredits").value = sub.credits;
+        document.getElementById("subModalType").value = sub.subject_type;
+        document.getElementById("subModalDesc").value = sub.description || "";
+
+        document.getElementById("subjectModalTitle").textContent = `✏️ Edit Subject (${sub.code})`;
+        document.getElementById("subjectAddEditModal").style.display = "block";
+    } catch (err) {
+        alert("Failed to fetch subject details: " + err.message);
+    }
+}
+
+async function submitSubjectForm(e) {
+    e.preventDefault();
+
+    const id = document.getElementById("subModalId").value;
+    const code = document.getElementById("subModalCode").value;
+    const name = document.getElementById("subModalName").value;
+    const department = document.getElementById("subModalDept").value;
+    const program = document.getElementById("subModalProgram").value;
+    const academic_year = parseInt(document.getElementById("subModalYear").value);
+    const semester = parseInt(document.getElementById("subModalSem").value);
+    const credits = parseInt(document.getElementById("subModalCredits").value);
+    const subject_type = document.getElementById("subModalType").value;
+    const description = document.getElementById("subModalDesc").value;
+
+    const payload = {
+        code, name, department, program,
+        academic_year, semester, credits,
+        subject_type, description
+    };
+
+    const url = id ? `/api/subjects/${id}` : "/api/subjects";
+    const method = id ? "PUT" : "POST";
+
+    try {
+        const res = await fetch(url, {
+            method: method,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+            alert(`Error: ${data.error || "Failed to save subject."}`);
+            return;
+        }
+
+        alert(data.message || "Subject saved successfully!");
+        closeSubjectModal();
+        closeSemesterSubjectsModal();
+        loadCourses();
+    } catch (err) {
+        console.error("Save subject error:", err);
+        alert("Failed to save subject record.");
+    }
+}
+
+async function confirmDeleteSubject(subId) {
+    if (!confirm("Are you sure you want to delete this subject?")) return;
+
+    try {
+        const res = await fetch(`/api/subjects/${subId}`, { method: "DELETE" });
+        const data = await res.json();
+
+        if (!res.ok) {
+            alert(`Delete Blocked: ${data.error || "Failed to delete subject."}`);
+            return;
+        }
+
+        alert(data.message || "Subject deleted successfully.");
+        closeSemesterSubjectsModal();
+        loadCourses();
+    } catch (err) {
+        alert("Failed to delete subject: " + err.message);
     }
 }

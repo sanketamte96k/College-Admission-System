@@ -24,7 +24,7 @@ from email_service import init_mail_config
 from utils import setup_logger
 from routes import (
     auth_bp, student_bp, analytics_bp, ai_bp,
-    admin_erp_bp, payment_bp, ticket_bp, attendance_bp, department_bp
+    admin_erp_bp, payment_bp, ticket_bp, attendance_bp, department_bp, course_bp
 )
 
 def create_app(config_name=None):
@@ -95,6 +95,7 @@ def create_app(config_name=None):
     app.register_blueprint(ticket_bp)
     app.register_blueprint(attendance_bp)
     app.register_blueprint(department_bp)
+    app.register_blueprint(course_bp)
 
     # Custom HTTP Error Handlers
     @app.errorhandler(404)

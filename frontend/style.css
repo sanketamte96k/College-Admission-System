@@ -8075,3 +8075,297 @@ body.dark-mode h1, body.dark-mode h2, body.dark-mode h3, body.dark-mode h4, body
         grid-template-columns: 1fr;
     }
 }
+
+/* ============================================================ */
+/* SCOPED COURSES & CURRICULUM MODULE ENTERPRISE STYLING        */
+/* ============================================================ */
+
+#pane-courses,
+.course-page {
+    width: 100% !important;
+    display: none;
+    flex-direction: column;
+    gap: 20px;
+    box-sizing: border-box;
+}
+
+#pane-courses.active,
+.course-page.active {
+    display: flex !important;
+}
+
+/* 1. HERO HEADER CARD */
+#pane-courses .crs-hero-card,
+.course-header {
+    background: linear-gradient(135deg, #1E1B4B 0%, #0F172A 100%);
+    border-radius: 12px;
+    padding: 24px 28px;
+    color: #FFFFFF;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.15);
+    position: relative;
+    overflow: hidden;
+}
+
+#pane-courses .crs-hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 11.5px;
+    font-weight: 700;
+    color: #E2E8F0;
+    margin-bottom: 8px;
+}
+
+#pane-courses .crs-pulse-dot {
+    width: 8px;
+    height: 8px;
+    background: #6366F1;
+    border-radius: 50%;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.4);
+}
+
+#pane-courses .crs-hero-title {
+    font-size: 22px;
+    font-weight: 800;
+    color: #FFFFFF;
+    margin: 0 0 4px 0;
+}
+
+#pane-courses .crs-hero-subtitle {
+    font-size: 13px;
+    color: #94A3B8;
+    margin: 0;
+}
+
+#pane-courses .crs-hero-actions,
+.course-actions {
+    display: flex;
+    gap: 10px;
+}
+
+#pane-courses .btn-crs-primary {
+    background: #6366F1;
+    color: #FFFFFF;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+#pane-courses .btn-crs-primary:hover {
+    background: #4F46E5;
+}
+
+#pane-courses .btn-crs-glass {
+    background: rgba(255, 255, 255, 0.1);
+    color: #FFFFFF;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    backdrop-filter: blur(4px);
+    transition: all 0.2s ease;
+}
+
+#pane-courses .btn-crs-glass:hover {
+    background: rgba(255, 255, 255, 0.18);
+}
+
+/* 2. KPI METRICS GRID */
+#pane-courses .crs-kpi-grid,
+.course-summary {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+}
+
+#pane-courses .crs-kpi-card,
+.course-summary-card {
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 10px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: all 0.2s ease;
+}
+
+#pane-courses .crs-kpi-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+#pane-courses .crs-kpi-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+}
+
+#pane-courses .crs-kpi-card.kpi-blue .crs-kpi-icon { background: #EFF6FF; color: #2563EB; }
+#pane-courses .crs-kpi-card.kpi-indigo .crs-kpi-icon { background: #EEF2FF; color: #4F46E5; }
+#pane-courses .crs-kpi-card.kpi-purple .crs-kpi-icon { background: #F3E8FF; color: #9333EA; }
+#pane-courses .crs-kpi-card.kpi-green .crs-kpi-icon { background: #F0FDF4; color: #16A34A; }
+
+#pane-courses .crs-kpi-tag {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 12px;
+    background: #F1F5F9;
+    color: #475569;
+}
+
+#pane-courses .crs-kpi-body small {
+    font-size: 10px;
+    font-weight: 700;
+    color: #64748B;
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 2px;
+}
+
+#pane-courses .crs-kpi-body h3 {
+    font-size: 22px;
+    font-weight: 800;
+    color: #0F172A;
+    margin: 0 0 2px 0;
+}
+
+#pane-courses .crs-kpi-sub {
+    font-size: 11px;
+    color: #94A3B8;
+}
+
+/* 3. FILTER BAR */
+#pane-courses .crs-filter-card,
+.course-filters {
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 10px;
+    padding: 16px 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+}
+
+#pane-courses .crs-filter-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr 1.5fr auto;
+    gap: 12px;
+    align-items: flex-end;
+}
+
+#pane-courses .crs-filter-field {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+#pane-courses .crs-filter-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #475569;
+    text-transform: uppercase;
+}
+
+#pane-courses .crs-control {
+    width: 100%;
+    height: 38px;
+    padding: 0 10px;
+    border: 1px solid #CBD5E1;
+    border-radius: 6px;
+    font-size: 12.5px;
+    color: #0F172A;
+    background: #FFFFFF;
+    outline: none;
+    box-sizing: border-box;
+}
+
+#pane-courses .crs-input-icon-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+#pane-courses .crs-input-icon {
+    position: absolute;
+    left: 10px;
+    font-size: 13px;
+    color: #94A3B8;
+    pointer-events: none;
+}
+
+#pane-courses .crs-input-icon-wrap input {
+    padding-left: 32px;
+}
+
+#pane-courses .crs-filter-btns {
+    display: flex;
+    gap: 6px;
+}
+
+#pane-courses .btn-crs-action {
+    height: 38px;
+    padding: 0 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    border: none;
+}
+
+#pane-courses .btn-apply { background: #6366F1; color: white; }
+#pane-courses .btn-reset { background: #F1F5F9; color: #475569; border: 1px solid #CBD5E1; }
+
+/* 4. ACADEMIC YEAR CONTAINER & SEMESTER CARDS */
+#pane-courses .course-year-container,
+.course-year-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.course-subject-table th,
+.course-subject-table td {
+    padding: 10px 12px;
+}
+
+@media (max-width: 1200px) {
+    #pane-courses .crs-filter-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (max-width: 992px) {
+    #pane-courses .crs-kpi-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    #pane-courses .crs-semesters-grid {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+@media (max-width: 640px) {
+    #pane-courses .crs-kpi-grid,
+    #pane-courses .crs-filter-grid {
+        grid-template-columns: 1fr;
+    }
+}

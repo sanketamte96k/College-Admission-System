@@ -6,5 +6,7 @@ from .ticket import Ticket
 from .seat_matrix import SeatMatrix
 from .attendance import Attendance
 from .department import Department
+from .course import Course
+from .subject import Subject
 
-__all__ = ["db", "Admin", "Student", "Payment", "Ticket", "SeatMatrix", "Attendance", "Department"]
+__all__ = ["db", "Admin", "Student", "Payment", "Ticket", "SeatMatrix", "Attendance", "Department", "Course", "Subject"]

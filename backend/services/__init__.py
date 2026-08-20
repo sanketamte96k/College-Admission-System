@@ -6,6 +6,7 @@ from .payment_service import PaymentService
 from .receipt_service import ReceiptService
 from .attendance_service import AttendanceService
 from .department_service import DepartmentService
+from .course_service import CourseService
 
 __all__ = [
     "StudentService",
@@ -15,5 +16,6 @@ __all__ = [
     "PaymentService",
     "ReceiptService",
     "AttendanceService",
-    "DepartmentService"
+    "DepartmentService",
+    "CourseService"
 ]

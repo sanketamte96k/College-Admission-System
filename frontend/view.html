@@ -1803,20 +1803,162 @@
             </div>
 
             <!-- ============================================================ -->
-            <!-- PANE 7: COURSES & CURRICULUM                                 -->
+            <!-- PANE 7: COURSES & CURRICULUM MANAGEMENT                      -->
             <!-- ============================================================ -->
-            <div id="pane-courses" class="erp-section-pane">
-                <div class="erp-placeholder-card">
-                    <div class="erp-placeholder-icon">🎓</div>
-                    <h3>Curriculum & Course Catalog</h3>
-                    <p>Accredited 4-Year B.Tech Degree Programs, CBCS Credit System, and Electives Management.</p>
-                    <div class="erp-badge-grid">
-                        <span class="erp-badge-item">📘 8 Semesters</span>
-                        <span class="erp-badge-item">🏅 160 Credits</span>
-                        <span class="erp-badge-item">🧪 Advanced Laboratories</span>
-                        <span class="erp-badge-item">🏭 Industry Capstone Projects</span>
+            <div id="pane-courses" class="erp-section-pane course-page">
+
+                <!-- 1. HERO HEADER -->
+                <div class="course-header crs-hero-card">
+                    <div class="crs-hero-content">
+                        <div class="crs-hero-badge">
+                            <span class="crs-pulse-dot"></span>
+                            🎓 Academic Curriculum & Programs
+                        </div>
+                        <h2 class="crs-hero-title">Courses & Curriculum</h2>
+                        <p class="crs-hero-subtitle">Manage academic programs, year-wise curriculum, semesters and subjects.</p>
+                    </div>
+                    <div class="course-actions crs-hero-actions">
+                        <button type="button" class="btn-crs-primary" onclick="openAddCourseModal()" title="Add New Academic Program">
+                            <span>+</span> Add Course / Program
+                        </button>
+                        <button type="button" class="btn-crs-glass" onclick="loadCourses()" title="Refresh Curriculum Data">
+                            <span>🔄</span> Refresh Data
+                        </button>
                     </div>
                 </div>
+
+                <!-- 2. SUMMARY METRICS CARDS -->
+                <div class="course-summary crs-kpi-grid">
+                    <div class="course-summary-card crs-kpi-card kpi-blue">
+                        <div class="crs-kpi-header">
+                            <div class="crs-kpi-icon">🎓</div>
+                            <span class="crs-kpi-tag">Programs</span>
+                        </div>
+                        <div class="crs-kpi-body">
+                            <small>TOTAL PROGRAMS</small>
+                            <h3 id="crsKpiPrograms">0</h3>
+                            <span class="crs-kpi-sub">Degree programs</span>
+                        </div>
+                    </div>
+
+                    <div class="course-summary-card crs-kpi-card kpi-indigo">
+                        <div class="crs-kpi-header">
+                            <div class="crs-kpi-icon">📘</div>
+                            <span class="crs-kpi-tag">Subjects</span>
+                        </div>
+                        <div class="crs-kpi-body">
+                            <small>TOTAL SUBJECTS</small>
+                            <h3 id="crsKpiSubjects">0</h3>
+                            <span class="crs-kpi-sub">Offered units</span>
+                        </div>
+                    </div>
+
+                    <div class="course-summary-card crs-kpi-card kpi-purple">
+                        <div class="crs-kpi-header">
+                            <div class="crs-kpi-icon">🏅</div>
+                            <span class="crs-kpi-tag">Credits</span>
+                        </div>
+                        <div class="crs-kpi-body">
+                            <small>TOTAL CREDITS</small>
+                            <h3 id="crsKpiCredits">0</h3>
+                            <span class="crs-kpi-sub">CBCS Credit Pool</span>
+                        </div>
+                    </div>
+
+                    <div class="course-summary-card crs-kpi-card kpi-green">
+                        <div class="crs-kpi-header">
+                            <div class="crs-kpi-icon">⚖️</div>
+                            <span class="crs-kpi-tag">Core / Electives</span>
+                        </div>
+                        <div class="crs-kpi-body">
+                            <small>SUBJECT TYPES</small>
+                            <h3 id="crsKpiTypes">0 Core / 0 Elec</h3>
+                            <span class="crs-kpi-sub">Curriculum distribution</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. FILTER BAR -->
+                <div class="course-filters crs-filter-card">
+                    <div class="crs-filter-grid">
+                        <div class="crs-filter-field">
+                            <label class="crs-filter-label">Department</label>
+                            <select id="courseDeptFilter" class="crs-control crs-select" onchange="loadCourses()">
+                                <option value="">All Departments</option>
+                                <option value="Computer Engineering">Computer Engineering</option>
+                                <option value="Information Technology">Information Technology</option>
+                                <option value="Artificial Intelligence & Data Science">Artificial Intelligence & Data Science</option>
+                                <option value="Electronics & Telecommunication">Electronics & Telecommunication</option>
+                                <option value="Mechanical Engineering">Mechanical Engineering</option>
+                                <option value="Civil Engineering">Civil Engineering</option>
+                                <option value="Electrical Engineering">Electrical Engineering</option>
+                            </select>
+                        </div>
+
+                        <div class="crs-filter-field">
+                            <label class="crs-filter-label">Program / Course</label>
+                            <select id="courseProgramFilter" class="crs-control crs-select" onchange="loadCourses()">
+                                <option value="">All Programs</option>
+                                <option value="B.Tech Computer Engineering">B.Tech Computer Engineering</option>
+                                <option value="B.Tech Information Technology">B.Tech Information Technology</option>
+                                <option value="B.Tech AI & Data Science">B.Tech AI & Data Science</option>
+                                <option value="B.Tech Electronics & Telecommunication">B.Tech E&TC</option>
+                                <option value="B.Tech Mechanical Engineering">B.Tech Mechanical</option>
+                                <option value="B.Tech Civil Engineering">B.Tech Civil</option>
+                                <option value="B.Tech Electrical Engineering">B.Tech Electrical</option>
+                            </select>
+                        </div>
+
+                        <div class="crs-filter-field">
+                            <label class="crs-filter-label">Academic Year</label>
+                            <select id="courseYearFilter" class="crs-control crs-select" onchange="loadCourses()">
+                                <option value="">All Academic Years</option>
+                                <option value="1">1st Year (FE)</option>
+                                <option value="2">2nd Year (SE)</option>
+                                <option value="3">3rd Year (TE)</option>
+                                <option value="4">4th Year (BE)</option>
+                            </select>
+                        </div>
+
+                        <div class="crs-filter-field">
+                            <label class="crs-filter-label">Semester</label>
+                            <select id="courseSemFilter" class="crs-control crs-select" onchange="loadCourses()">
+                                <option value="">All Semesters</option>
+                                <option value="1">Semester 1</option>
+                                <option value="2">Semester 2</option>
+                                <option value="3">Semester 3</option>
+                                <option value="4">Semester 4</option>
+                                <option value="5">Semester 5</option>
+                                <option value="6">Semester 6</option>
+                                <option value="7">Semester 7</option>
+                                <option value="8">Semester 8</option>
+                            </select>
+                        </div>
+
+                        <div class="crs-filter-field filter-search">
+                            <label class="crs-filter-label">Search Subject / Code</label>
+                            <div class="crs-input-icon-wrap">
+                                <span class="crs-input-icon">🔍</span>
+                                <input type="text" id="courseSearchInput" class="crs-control" placeholder="Search subject code, name..." onkeyup="if(event.key==='Enter') loadCourses()">
+                            </div>
+                        </div>
+
+                        <div class="crs-filter-btns">
+                            <button type="button" class="btn-crs-action btn-apply" onclick="loadCourses()">
+                                Apply
+                            </button>
+                            <button type="button" class="btn-crs-action btn-reset" onclick="resetCourseFilters()">
+                                Reset
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. ACADEMIC YEAR & SEMESTER CURRICULUM CONTAINER -->
+                <div id="coursesCurriculumContainer" class="course-year-container">
+                    <!-- Dynamically rendered by loadCourses() -->
+                </div>
+
             </div>
 
             <!-- ============================================================ -->
@@ -2395,14 +2537,160 @@
     </div>
 </div>
 
-<!-- View Department Details Modal -->
-<div id="dptViewModal" class="modal">
+<!-- Course Program Add/Edit Modal -->
+<div id="courseAddEditModal" class="modal course-modal">
     <div class="modal-content" style="max-width: 650px;">
         <div class="modal-header">
-            <h3>🏢 Department Information &amp; Metrics</h3>
-            <span class="close-btn" onclick="closeViewDepartmentModal()">&times;</span>
+            <h3 id="courseModalTitle">🎓 Add New Academic Program</h3>
+            <span class="close-btn" onclick="closeCourseModal()">&times;</span>
         </div>
-        <div class="modal-body" id="dptViewModalBody">
+        <div class="modal-body">
+            <form id="courseForm" onsubmit="submitCourseForm(event)">
+                <input type="hidden" id="courseModalId">
+                <div class="form-grid-2" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px;">
+                    <div class="form-group">
+                        <label style="font-size:12px; font-weight:700; color:#475569;">Program Name *</label>
+                        <input type="text" id="crsModalName" required placeholder="e.g. B.Tech Computer Engineering" class="form-input" style="width:100%; height:40px; padding:0 12px; border:1px solid #CBD5E1; border-radius:6px;">
+                    </div>
+                    <div class="form-group">
+                        <label style="font-size:12px; font-weight:700; color:#475569;">Program Code *</label>
+                        <input type="text" id="crsModalCode" required placeholder="e.g. BTECH-COMP" class="form-input" style="width:100%; height:40px; padding:0 12px; border:1px solid #CBD5E1; border-radius:6px;">
+                    </div>
+                    <div class="form-group">
+                        <label style="font-size:12px; font-weight:700; color:#475569;">Department *</label>
+                        <select id="crsModalDept" required class="form-select" style="width:100%; height:40px; padding:0 12px; border:1px solid #CBD5E1; border-radius:6px;">
+                            <option value="Computer Engineering">Computer Engineering</option>
+                            <option value="Information Technology">Information Technology</option>
+                            <option value="Artificial Intelligence & Data Science">Artificial Intelligence & Data Science</option>
+                            <option value="Electronics & Telecommunication">Electronics & Telecommunication</option>
+                            <option value="Mechanical Engineering">Mechanical Engineering</option>
+                            <option value="Civil Engineering">Civil Engineering</option>
+                            <option value="Electrical Engineering">Electrical Engineering</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label style="font-size:12px; font-weight:700; color:#475569;">Degree Type</label>
+                        <input type="text" id="crsModalDegree" value="B.Tech" class="form-input" style="width:100%; height:40px; padding:0 12px; border:1px solid #CBD5E1; border-radius:6px;">
+                    </div>
+                    <div class="form-group">
+                        <label style="font-size:12px; font-weight:700; color:#475569;">Duration (Years)</label>
+                        <input type="number" id="crsModalYears" value="4" min="1" max="6" class="form-input" style="width:100%; height:40px; padding:0 12px; border:1px solid #CBD5E1; border-radius:6px;">
+                    </div>
+                    <div class="form-group">
+                        <label style="font-size:12px; font-weight:700; color:#475569;">Total Credits</label>
+                        <input type="number" id="crsModalCredits" value="160" min="10" max="300" class="form-input" style="width:100%; height:40px; padding:0 12px; border:1px solid #CBD5E1; border-radius:6px;">
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-top:14px;">
+                    <label style="font-size:12px; font-weight:700; color:#475569;">Program Description</label>
+                    <textarea id="crsModalDesc" rows="3" placeholder="Overview of program objectives, accreditation, and degree outcomes..." style="width:100%; padding:10px; border:1px solid #CBD5E1; border-radius:6px; font-family:inherit;"></textarea>
+                </div>
+
+                <div style="margin-top:20px; display:flex; justify-content:flex-end; gap:10px;">
+                    <button type="button" class="btn-secondary" onclick="closeCourseModal()">Cancel</button>
+                    <button type="submit" class="btn-primary" id="saveCourseBtn" style="background:#2563EB; color:white; border:none; padding:10px 20px; border-radius:6px; font-weight:700; cursor:pointer;">Save Program</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Subject Add/Edit Modal -->
+<div id="subjectAddEditModal" class="modal course-modal">
+    <div class="modal-content" style="max-width: 680px;">
+        <div class="modal-header">
+            <h3 id="subjectModalTitle">📘 Add New Subject</h3>
+            <span class="close-btn" onclick="closeSubjectModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="subjectForm" onsubmit="submitSubjectForm(event)">
+                <input type="hidden" id="subModalId">
+                <div class="form-grid-2" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px;">
+                    <div class="form-group">
+                        <label style="font-size:12px; font-weight:700; color:#475569;">Subject Code *</label>
+                        <input type="text" id="subModalCode" required placeholder="e.g. CS301" class="form-input" style="width:100%; height:40px; padding:0 12px; border:1px solid #CBD5E1; border-radius:6px;">
+                    </div>
+                    <div class="form-group">
+                        <label style="font-size:12px; font-weight:700; color:#475569;">Subject Name *</label>
+                        <input type="text" id="subModalName" required placeholder="e.g. Data Structures & Algorithms" class="form-input" style="width:100%; height:40px; padding:0 12px; border:1px solid #CBD5E1; border-radius:6px;">
+                    </div>
+                    <div class="form-group">
+                        <label style="font-size:12px; font-weight:700; color:#475569;">Department *</label>
+                        <select id="subModalDept" required class="form-select" style="width:100%; height:40px; padding:0 12px; border:1px solid #CBD5E1; border-radius:6px;">
+                            <option value="Computer Engineering">Computer Engineering</option>
+                            <option value="Information Technology">Information Technology</option>
+                            <option value="Artificial Intelligence & Data Science">Artificial Intelligence & Data Science</option>
+                            <option value="Electronics & Telecommunication">Electronics & Telecommunication</option>
+                            <option value="Mechanical Engineering">Mechanical Engineering</option>
+                            <option value="Civil Engineering">Civil Engineering</option>
+                            <option value="Electrical Engineering">Electrical Engineering</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label style="font-size:12px; font-weight:700; color:#475569;">Program / Degree *</label>
+                        <input type="text" id="subModalProgram" required placeholder="e.g. B.Tech Computer Engineering" class="form-input" style="width:100%; height:40px; padding:0 12px; border:1px solid #CBD5E1; border-radius:6px;">
+                    </div>
+                    <div class="form-group">
+                        <label style="font-size:12px; font-weight:700; color:#475569;">Academic Year (1 to 4) *</label>
+                        <select id="subModalYear" required class="form-select" style="width:100%; height:40px; padding:0 12px; border:1px solid #CBD5E1; border-radius:6px;">
+                            <option value="1">1st Year (FE)</option>
+                            <option value="2">2nd Year (SE)</option>
+                            <option value="3">3rd Year (TE)</option>
+                            <option value="4">4th Year (BE)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label style="font-size:12px; font-weight:700; color:#475569;">Semester (1 to 8) *</label>
+                        <select id="subModalSem" required class="form-select" style="width:100%; height:40px; padding:0 12px; border:1px solid #CBD5E1; border-radius:6px;">
+                            <option value="1">Semester 1</option>
+                            <option value="2">Semester 2</option>
+                            <option value="3">Semester 3</option>
+                            <option value="4">Semester 4</option>
+                            <option value="5">Semester 5</option>
+                            <option value="6">Semester 6</option>
+                            <option value="7">Semester 7</option>
+                            <option value="8">Semester 8</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label style="font-size:12px; font-weight:700; color:#475569;">Credits</label>
+                        <input type="number" id="subModalCredits" value="4" min="1" max="10" class="form-input" style="width:100%; height:40px; padding:0 12px; border:1px solid #CBD5E1; border-radius:6px;">
+                    </div>
+                    <div class="form-group">
+                        <label style="font-size:12px; font-weight:700; color:#475569;">Subject Type</label>
+                        <select id="subModalType" class="form-select" style="width:100%; height:40px; padding:0 12px; border:1px solid #CBD5E1; border-radius:6px;">
+                            <option value="Core">Core</option>
+                            <option value="Elective">Elective</option>
+                            <option value="Lab">Lab</option>
+                            <option value="Project">Project</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-top:14px;">
+                    <label style="font-size:12px; font-weight:700; color:#475569;">Subject Description / Syllabus Highlights</label>
+                    <textarea id="subModalDesc" rows="3" placeholder="Topics covered, prerequisite units, and learning outcomes..." style="width:100%; padding:10px; border:1px solid #CBD5E1; border-radius:6px; font-family:inherit;"></textarea>
+                </div>
+
+                <div style="margin-top:20px; display:flex; justify-content:flex-end; gap:10px;">
+                    <button type="button" class="btn-secondary" onclick="closeSubjectModal()">Cancel</button>
+                    <button type="submit" class="btn-primary" id="saveSubjectBtn" style="background:#2563EB; color:white; border:none; padding:10px 20px; border-radius:6px; font-weight:700; cursor:pointer;">Save Subject</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Semester Subjects Inspector Modal -->
+<div id="semesterSubjectsModal" class="modal course-modal">
+    <div class="modal-content" style="max-width: 850px;">
+        <div class="modal-header">
+            <h3 id="semModalTitle">📚 Semester Subjects Roster</h3>
+            <span class="close-btn" onclick="closeSemesterSubjectsModal()">&times;</span>
+        </div>
+        <div class="modal-body" id="semModalBody">
             <!-- Dynamically populated -->
         </div>
     </div>
