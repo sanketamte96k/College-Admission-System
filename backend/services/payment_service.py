@@ -225,6 +225,134 @@ class PaymentService:
         return [p.to_dict() for p in payments]
 
     @staticmethod
+    def get_fee_dashboard_summary():
+        """Aggregated fee collection metrics for ERP fee dashboard"""
+        all_students = Student.query.all()
+        all_payments = Payment.query.filter(Payment.status.in_(["SUCCESS", "Paid"])).all()
+
+        total_expected = 0.0
+        student_summaries = []
+
+        for st in all_students:
+            _, total_fee = PaymentService.get_fee_breakdown_for_student(st)
+            total_expected += total_fee
+            st_payments = [p for p in all_payments if p.student_id == st.id]
+            paid = sum(float(p.amount) for p in st_payments)
+            pending = max(0.0, round(total_fee - paid, 2))
+            student_summaries.append({
+                "student": st,
+                "total_fee": total_fee,
+                "paid": paid,
+                "pending": pending
+            })
+
+        total_collected = round(sum(float(p.amount) for p in all_payments), 2)
+        total_pending = round(max(0.0, total_expected - total_collected), 2)
+
+        # Monthly & Today collections
+        now = datetime.utcnow()
+        this_month_collection = sum(
+            float(p.amount) for p in all_payments
+            if p.payment_date and p.payment_date.year == now.year and p.payment_date.month == now.month
+        )
+        today_collection = sum(
+            float(p.amount) for p in all_payments
+            if p.payment_date and p.payment_date.date() == now.date()
+        )
+
+        fully_paid_count = sum(1 for s in student_summaries if s["pending"] <= 0)
+        pending_students_count = sum(1 for s in student_summaries if s["pending"] > 0)
+        partially_paid_count = sum(1 for s in student_summaries if 0 < s["paid"] < s["total_fee"])
+        overdue_count = sum(1 for s in student_summaries if s["pending"] > 0 and s["paid"] == 0)
+
+        return {
+            "total_expected": round(total_expected, 2),
+            "total_collected": total_collected,
+            "total_pending": total_pending,
+            "this_month_collection": round(this_month_collection, 2),
+            "today_collection": round(today_collection, 2),
+            "fully_paid_count": fully_paid_count,
+            "pending_students_count": pending_students_count,
+            "partially_paid_count": partially_paid_count,
+            "overdue_count": overdue_count,
+            "total_students": len(all_students)
+        }
+
+    @staticmethod
+    def get_all_student_fees(department="", program="", academic_year="", semester="", fee_status="", search=""):
+        """Get filtered fee ledger list for all students"""
+        query = Student.query
+
+        if department:
+            query = query.filter(Student.department == department)
+        if search:
+            sq = search.strip()
+            query = query.filter(
+                db.or_(
+                    Student.fullName.ilike(f"%{sq}%"),
+                    Student.email.ilike(f"%{sq}%"),
+                    Student.mobile.ilike(f"%{sq}%"),
+                    Student.enrollment_number.ilike(f"%{sq}%")
+                )
+            )
+
+        students = query.order_by(Student.id.asc()).all()
+
+        results = []
+        for st in students:
+            summary = PaymentService.get_student_fee_summary(st.id)
+            if not summary:
+                continue
+
+            status = summary["payment_status"]
+            if fee_status:
+                if fee_status == "Paid" and status != "Paid": continue
+                if fee_status == "Partially Paid" and status != "Partially Paid": continue
+                if fee_status == "Pending" and status != "Pending": continue
+                if fee_status == "Overdue" and (status != "Pending" or summary["paid_amount"] > 0): continue
+
+            results.append({
+                "student_id": st.id,
+                "student_name": st.fullName,
+                "enrollment_number": st.enrollment_number or f"STU-{st.id:04d}",
+                "department": st.department,
+                "course": st.course or "B.Tech Computer Engineering",
+                "academic_year": st.academic_year or "2026-27",
+                "admission_type": st.admissionType or "CAP",
+                "total_fee": summary["total_fee"],
+                "paid_amount": summary["paid_amount"],
+                "pending_amount": summary["pending_amount"],
+                "status": status,
+                "due_date": "2026-10-31",
+                "fee_breakdown": summary["fee_breakdown"],
+                "payment_count": summary["payment_count"]
+            })
+
+        return results
+
+    @staticmethod
+    def get_all_payment_history(department="", fee_type="", payment_method="", search=""):
+        """Get master payment history across all students"""
+        query = Payment.query.order_by(Payment.id.desc())
+
+        if fee_type:
+            query = query.filter(Payment.fee_type == fee_type)
+        if payment_method:
+            query = query.filter(Payment.payment_method == payment_method)
+
+        payments = query.all()
+        results = []
+        for p in payments:
+            p_dict = p.to_dict()
+            st = Student.query.get(p.student_id)
+            p_dict["student_name"] = st.fullName if st else "Unknown Student"
+            p_dict["department"] = st.department if st else ""
+            p_dict["enrollment_number"] = (st.enrollment_number or f"STU-{st.id:04d}") if st else ""
+            results.append(p_dict)
+
+        return results
+
+    @staticmethod
     def process_payment(student_id, amount=95000.0, payment_mode="UPI / Online"):
         """Legacy simulator method for backward compatibility"""
         res, msg = PaymentService.record_payment(
@@ -237,4 +365,5 @@ class PaymentService:
         if res:
             return res["payment"], msg
         return None, msg
+
 

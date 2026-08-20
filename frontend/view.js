@@ -3596,6 +3596,8 @@ function switchAdminSection(paneId, btnEl, pageTitle = "Dashboard Overview") {
         loadCourses();
     } else if (paneId === "pane-examinations") {
         loadExaminations();
+    } else if (paneId === "pane-fees") {
+        loadFees();
     }
 
     // Scroll to top of content
@@ -6138,3 +6140,464 @@ async function confirmDeleteExam(examId) {
         alert("Failed to delete examination: " + err.message);
     }
 }
+
+/* ============================================================ */
+/* FEES & PAYMENTS MODULE JAVASCRIPT                           */
+/* ============================================================ */
+
+let currentFeeTab = 'roster';
+let currentStudentFeeData = [];
+let masterPaymentHistoryData = [];
+
+async function loadFees() {
+    const container = document.getElementById("feesRosterContainer");
+    if (container && currentFeeTab === 'roster') {
+        container.innerHTML = `
+            <div style="text-align:center; padding:50px 20px;">
+                <div class="spinner-border text-primary" role="status" style="width:2.5rem; height:2.5rem; border:4px solid #E2E8F0; border-top-color:#2563EB; border-radius:50%; animation:spin 0.8s linear infinite; margin:0 auto 12px;"></div>
+                <h4 style="color:#1E293B; font-weight:700;">Loading Fee Ledgers & Collection Stats...</h4>
+                <p style="color:#64748B; font-size:13px;">Calculating student balances, breakdown, and payment transactions.</p>
+            </div>
+        `;
+    }
+
+    try {
+        // Fetch dashboard KPI metrics
+        const dashRes = await fetch('/api/fees/dashboard');
+        if (dashRes.ok) {
+            const dash = await dashRes.json();
+            if (document.getElementById("feeKpiExpected")) document.getElementById("feeKpiExpected").textContent = `₹${(dash.total_expected || 0).toLocaleString('en-IN')}`;
+            if (document.getElementById("feeKpiCollected")) document.getElementById("feeKpiCollected").textContent = `₹${(dash.total_collected || 0).toLocaleString('en-IN')}`;
+            if (document.getElementById("feeKpiPending")) document.getElementById("feeKpiPending").textContent = `₹${(dash.total_pending || 0).toLocaleString('en-IN')}`;
+            if (document.getElementById("feeKpiMonth")) document.getElementById("feeKpiMonth").textContent = `₹${(dash.this_month_collection || 0).toLocaleString('en-IN')}`;
+        }
+
+        if (currentFeeTab === 'roster') {
+            const dept = document.getElementById("feeDeptFilter")?.value || "";
+            const status = document.getElementById("feeStatusFilter")?.value || "";
+            const search = document.getElementById("feeSearchInput")?.value || "";
+
+            const params = new URLSearchParams();
+            if (dept) params.append("department", dept);
+            if (status) params.append("status", status);
+            if (search) params.append("search", search);
+
+            const rosterRes = await fetch(`/api/fees/students?${params.toString()}`);
+            if (!rosterRes.ok) throw new Error("Failed to fetch student fee roster");
+
+            currentStudentFeeData = await rosterRes.json();
+            renderFeesTable(currentStudentFeeData);
+        } else {
+            const historyRes = await fetch(`/api/fees/history`);
+            if (!historyRes.ok) throw new Error("Failed to fetch payment history");
+
+            masterPaymentHistoryData = await historyRes.json();
+            renderFeeHistoryLog(masterPaymentHistoryData);
+        }
+    } catch (err) {
+        console.error("Failed to load fees:", err);
+        if (container) {
+            container.innerHTML = `
+                <div style="background:#FEF2F2; border:1px solid #FCA5A5; border-radius:10px; padding:30px; text-align:center; color:#991B1B;">
+                    <div style="font-size:32px; margin-bottom:8px;">⚠️</div>
+                    <h3 style="margin:0 0 6px 0; font-weight:700;">Unable to Load Fee Records</h3>
+                    <p style="margin:0 0 16px 0; font-size:13px; color:#B91C1C;">${err.message || "Network error fetching fee data."}</p>
+                    <button type="button" onclick="loadFees()" style="background:#DC2626; color:white; border:none; padding:8px 18px; border-radius:6px; font-weight:700; cursor:pointer;">Retry</button>
+                </div>
+            `;
+        }
+    }
+}
+
+function switchFeeTab(tab) {
+    currentFeeTab = tab;
+
+    const rosterBtn = document.getElementById("tabBtnFeeRoster");
+    const historyBtn = document.getElementById("tabBtnFeeHistory");
+    const rosterBox = document.getElementById("feesRosterContainer");
+    const historyBox = document.getElementById("feesHistoryContainer");
+
+    if (tab === 'roster') {
+        if (rosterBtn) rosterBtn.classList.add("active");
+        if (historyBtn) historyBtn.classList.remove("active");
+        if (rosterBox) rosterBox.style.display = "block";
+        if (historyBox) historyBox.style.display = "none";
+        loadFees();
+    } else {
+        if (historyBtn) historyBtn.classList.add("active");
+        if (rosterBtn) rosterBtn.classList.remove("active");
+        if (rosterBox) rosterBox.style.display = "none";
+        if (historyBox) historyBox.style.display = "block";
+        loadFees();
+    }
+}
+
+function renderFeesTable(students) {
+    const container = document.getElementById("feesRosterContainer");
+    if (!container) return;
+
+    if (!students || students.length === 0) {
+        container.innerHTML = `
+            <div style="background:#FFFFFF; border:1px dashed #CBD5E1; border-radius:12px; padding:50px 20px; text-align:center; color:#64748B;">
+                <div style="font-size:40px; margin-bottom:10px;">💳</div>
+                <h3 style="color:#1E293B; font-weight:700; margin:0 0 8px 0;">No Student Fee Ledgers Found</h3>
+                <p style="font-size:13px; margin:0 0 20px 0;">No student fee records match the current filter parameters.</p>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = `
+        <div style="background:#FFFFFF; border:1px solid #E2E8F0; border-radius:12px; overflow:hidden; box-shadow:0 2px 6px rgba(0,0,0,0.02);">
+            <div style="overflow-x:auto;">
+                <table class="fee-table" style="width:100%; border-collapse:collapse; font-size:12.5px;">
+                    <thead>
+                        <tr style="background:#F8FAFC; border-bottom:2px solid #E2E8F0; text-align:left;">
+                            <th style="padding:12px; color:#475569; font-weight:700;">STUDENT & ENROLLMENT NO</th>
+                            <th style="padding:12px; color:#475569; font-weight:700;">DEPARTMENT & PROGRAM</th>
+                            <th style="padding:12px; color:#475569; font-weight:700;">TOTAL FEE</th>
+                            <th style="padding:12px; color:#475569; font-weight:700;">PAID AMOUNT</th>
+                            <th style="padding:12px; color:#475569; font-weight:700;">PENDING DUES</th>
+                            <th style="padding:12px; color:#475569; font-weight:700;">STATUS</th>
+                            <th style="padding:12px; color:#475569; font-weight:700; text-align:right;">ACTIONS</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${students.map(s => {
+                            let badgeStyle = "background:#FEF3C7; color:#D97706;";
+                            if (s.status === "Paid") badgeStyle = "background:#DCFCE7; color:#16A34A;";
+                            else if (s.status === "Partially Paid") badgeStyle = "background:#EFF6FF; color:#2563EB;";
+                            else if (s.status === "Overdue") badgeStyle = "background:#FEE2E2; color:#DC2626;";
+
+                            return `
+                                <tr style="border-bottom:1px solid #F1F5F9;">
+                                    <td style="padding:12px;">
+                                        <strong style="color:#0F172A; font-size:13px; display:block;">${s.student_name}</strong>
+                                        <span style="font-size:11.5px; font-weight:700; color:#2563EB;">🆔 ${s.enrollment_number}</span>
+                                    </td>
+                                    <td style="padding:12px;">
+                                        <span style="color:#1E293B; font-weight:600; display:block;">🏢 ${s.department}</span>
+                                        <small style="color:#64748B;">${s.course}</small>
+                                    </td>
+                                    <td style="padding:12px; font-weight:700; color:#0F172A;">
+                                        ₹${(s.total_fee || 0).toLocaleString('en-IN')}
+                                    </td>
+                                    <td style="padding:12px; font-weight:800; color:#16A34A;">
+                                        ₹${(s.paid_amount || 0).toLocaleString('en-IN')}
+                                    </td>
+                                    <td style="padding:12px; font-weight:800; color:${s.pending_amount > 0 ? '#DC2626' : '#64748B'};">
+                                        ₹${(s.pending_amount || 0).toLocaleString('en-IN')}
+                                    </td>
+                                    <td style="padding:12px;">
+                                        <span style="font-size:11.5px; font-weight:700; padding:3px 10px; border-radius:12px; ${badgeStyle}">
+                                            ${s.status}
+                                        </span>
+                                    </td>
+                                    <td style="padding:12px; text-align:right;">
+                                        <div style="display:flex; justify-content:flex-end; gap:4px;">
+                                            <button type="button" onclick="openRecordPaymentModal(${s.student_id})" style="background:#EFF6FF; color:#2563EB; border:1px solid #BFDBFE; border-radius:4px; padding:4px 8px; font-size:11px; font-weight:700; cursor:pointer;" title="Record Payment">
+                                                💳 Pay
+                                            </button>
+                                            <button type="button" onclick="openStudentFeeDetailsModal(${s.student_id})" style="background:#F1F5F9; color:#334155; border:1px solid #CBD5E1; border-radius:4px; padding:4px 8px; font-size:11px; font-weight:700; cursor:pointer;" title="View Details">
+                                                👁 Details
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+}
+
+function renderFeeHistoryLog(history) {
+    const container = document.getElementById("feesHistoryContainer");
+    if (!container) return;
+
+    if (!history || history.length === 0) {
+        container.innerHTML = `
+            <div style="background:#FFFFFF; border:1px dashed #CBD5E1; border-radius:12px; padding:40px; text-align:center; color:#64748B;">
+                <p>No payment transactions recorded yet.</p>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = `
+        <div style="background:#FFFFFF; border:1px solid #E2E8F0; border-radius:12px; padding:20px;">
+            <h3 style="margin:0 0 16px 0; font-size:16px; font-weight:800; color:#0F172A;">📜 Master Payment Transactions Ledger</h3>
+            <div style="overflow-x:auto;">
+                <table class="fee-table" style="width:100%; border-collapse:collapse; font-size:12.5px;">
+                    <thead>
+                        <tr style="background:#F8FAFC; border-bottom:2px solid #E2E8F0; text-align:left;">
+                            <th style="padding:10px;">RECEIPT NO</th>
+                            <th style="padding:10px;">DATE</th>
+                            <th style="padding:10px;">STUDENT</th>
+                            <th style="padding:10px;">FEE TYPE</th>
+                            <th style="padding:10px;">AMOUNT</th>
+                            <th style="padding:10px;">METHOD</th>
+                            <th style="padding:10px;">REF ID</th>
+                            <th style="padding:10px;">ACTIONS</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${history.map(p => `
+                            <tr style="border-bottom:1px solid #F1F5F9;">
+                                <td style="padding:10px; font-weight:800; color:#2563EB;">${p.receipt_number}</td>
+                                <td style="padding:10px; color:#475569;">${p.payment_date}</td>
+                                <td style="padding:10px; font-weight:700; color:#0F172A;">${p.student_name}</td>
+                                <td style="padding:10px;"><span style="font-weight:700; color:#475569;">${p.fee_type}</span></td>
+                                <td style="padding:10px; font-weight:800; color:#16A34A;">₹${(p.amount || 0).toLocaleString('en-IN')}</td>
+                                <td style="padding:10px;">${p.payment_method}</td>
+                                <td style="padding:10px; font-size:11.5px; color:#64748B;">${p.transaction_id}</td>
+                                <td style="padding:10px;">
+                                    <button type="button" onclick="downloadReceiptPdf(${p.id})" style="background:#DCFCE7; color:#16A34A; border:1px solid #86EFAC; border-radius:4px; padding:4px 8px; font-size:11px; font-weight:700; cursor:pointer;" title="Download PDF Receipt">
+                                        📄 PDF Receipt
+                                    </button>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+}
+
+function resetFeeFilters() {
+    if (document.getElementById("feeDeptFilter")) document.getElementById("feeDeptFilter").value = "";
+    if (document.getElementById("feeStatusFilter")) document.getElementById("feeStatusFilter").value = "";
+    if (document.getElementById("feeSearchInput")) document.getElementById("feeSearchInput").value = "";
+
+    loadFees();
+}
+
+async function openRecordPaymentModal(studentId = null) {
+    const modal = document.getElementById("recordPaymentModal");
+    const form = document.getElementById("recordPaymentForm");
+    const select = document.getElementById("payModalStudentSelect");
+
+    if (form) form.reset();
+    document.getElementById("payModalDate").value = new Date().toISOString().split('T')[0];
+
+    // Populate student select dropdown
+    try {
+        const res = await fetch("/api/students/module?page=1&per_page=100");
+        if (res.ok) {
+            const data = await res.json();
+            const students = data.students || [];
+            select.innerHTML = `<option value="">-- Select Student --</option>` + students.map(s => `
+                <option value="${s.id}" ${studentId && s.id == studentId ? 'selected' : ''}>${s.fullName} (${s.department})</option>
+            `).join('');
+        }
+    } catch (err) {
+        console.error("Failed to load students for payment modal:", err);
+    }
+
+    if (studentId) {
+        onPaymentStudentSelectChange(studentId);
+    }
+
+    if (modal) modal.style.display = "block";
+}
+
+function closeRecordPaymentModal() {
+    const modal = document.getElementById("recordPaymentModal");
+    if (modal) modal.style.display = "none";
+}
+
+async function onPaymentStudentSelectChange(preselectedId = null) {
+    const studentId = preselectedId || document.getElementById("payModalStudentSelect")?.value;
+    const noticeEl = document.getElementById("payModalBalanceNotice");
+    if (!studentId || !noticeEl) {
+        if (noticeEl) noticeEl.style.display = "none";
+        return;
+    }
+
+    try {
+        const res = await fetch(`/api/students/${studentId}/fees`);
+        if (res.ok) {
+            const summary = await res.json();
+            noticeEl.style.display = "block";
+            noticeEl.innerHTML = `
+                📌 <strong>Candidate:</strong> ${summary.student_name} | Total Fee: <strong>₹${(summary.total_fee || 0).toLocaleString('en-IN')}</strong> |
+                Paid: <strong style="color:#16A34A;">₹${(summary.paid_amount || 0).toLocaleString('en-IN')}</strong> |
+                Outstanding Dues: <strong style="color:#DC2626;">₹${(summary.pending_amount || 0).toLocaleString('en-IN')}</strong>
+            `;
+
+            if (!preselectedId) {
+                document.getElementById("payModalAmount").value = summary.pending_amount > 0 ? summary.pending_amount : "";
+            }
+        }
+    } catch (err) {
+        noticeEl.style.display = "none";
+    }
+}
+
+async function submitPaymentForm(e) {
+    e.preventDefault();
+
+    const studentId = document.getElementById("payModalStudentSelect").value;
+    const amount = document.getElementById("payModalAmount").value;
+    const fee_type = document.getElementById("payModalFeeType").value;
+    const payment_method = document.getElementById("payModalMethod").value;
+    const transaction_id = document.getElementById("payModalTxnId").value;
+    const payment_date = document.getElementById("payModalDate").value;
+    const remarks = document.getElementById("payModalRemarks").value;
+
+    if (!studentId || !amount) {
+        alert("Student selection and payment amount are required.");
+        return;
+    }
+
+    const payload = {
+        amount: parseFloat(amount),
+        fee_type,
+        payment_method,
+        transaction_id,
+        payment_date,
+        remarks
+    };
+
+    try {
+        const res = await fetch(`/api/students/${studentId}/payments`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+            alert(`Payment Error: ${data.error || "Failed to record payment."}`);
+            return;
+        }
+
+        alert(data.message || "Payment recorded successfully!");
+        closeRecordPaymentModal();
+
+        // Offer instant receipt PDF download
+        if (data.payment && data.payment.id) {
+            if (confirm("Payment recorded! Download official PDF Fee Receipt now?")) {
+                downloadReceiptPdf(data.payment.id);
+            }
+        }
+
+        loadFees();
+    } catch (err) {
+        alert("Failed to submit payment: " + err.message);
+    }
+}
+
+async function openStudentFeeDetailsModal(studentId) {
+    const modal = document.getElementById("studentFeeDetailsModal");
+    const bodyEl = document.getElementById("feeDetailsModalBody");
+
+    if (bodyEl) bodyEl.innerHTML = `<div style="text-align:center; padding:40px;"><div class="spinner-border text-primary"></div><p>Loading fee ledger...</p></div>`;
+    if (modal) modal.style.display = "block";
+
+    try {
+        const res = await fetch(`/api/students/${studentId}/fees`);
+        if (!res.ok) throw new Error("Failed to fetch student fee details");
+
+        const summary = await res.json();
+        const breakdown = summary.fee_breakdown || {};
+        const payments = summary.payments || [];
+
+        bodyEl.innerHTML = `
+            <div style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:8px; padding:16px; margin-bottom:16px; display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                    <h3 style="margin:0 0 4px 0; color:#0F172A; font-weight:800;">${summary.student_name}</h3>
+                    <span style="font-size:12px; color:#475569;">
+                        🏢 Department: <strong>${summary.department}</strong> | Quota: <strong>${summary.admission_type}</strong>
+                    </span>
+                </div>
+                <div>
+                    <button type="button" onclick="openRecordPaymentModal(${summary.student_id})" style="background:#2563EB; color:white; border:none; padding:8px 16px; border-radius:6px; font-weight:700; cursor:pointer;">
+                        + Record Payment
+                    </button>
+                </div>
+            </div>
+
+            <h4 style="margin:0 0 10px 0; font-size:14px; font-weight:800; color:#1E293B;">📊 Fee Collection & Balance Summary</h4>
+            <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:12px; margin-bottom:16px;">
+                <div style="background:#EFF6FF; border:1px solid #BFDBFE; border-radius:8px; padding:12px; text-align:center;">
+                    <small style="color:#2563EB; font-weight:700;">TOTAL ANNUAL FEE</small>
+                    <h3 style="margin:4px 0 0 0; color:#1E3A8A;">₹${(summary.total_fee || 0).toLocaleString('en-IN')}</h3>
+                </div>
+                <div style="background:#F0FDF4; border:1px solid #BBF7D0; border-radius:8px; padding:12px; text-align:center;">
+                    <small style="color:#16A34A; font-weight:700;">PAID AMOUNT</small>
+                    <h3 style="margin:4px 0 0 0; color:#14532D;">₹${(summary.paid_amount || 0).toLocaleString('en-IN')}</h3>
+                </div>
+                <div style="background:#FEF2F2; border:1px solid #FECACA; border-radius:8px; padding:12px; text-align:center;">
+                    <small style="color:#DC2626; font-weight:700;">OUTSTANDING DUES</small>
+                    <h3 style="margin:4px 0 0 0; color:#7F1D1D;">₹${(summary.pending_amount || 0).toLocaleString('en-IN')}</h3>
+                </div>
+            </div>
+
+            <h4 style="margin:0 0 10px 0; font-size:14px; font-weight:800; color:#1E293B;">🏷 Prescribed Fee Category Breakdown</h4>
+            <div style="background:#FFFFFF; border:1px solid #E2E8F0; border-radius:8px; overflow:hidden; margin-bottom:16px;">
+                <table style="width:100%; border-collapse:collapse; font-size:12.5px;">
+                    <tbody>
+                        ${Object.entries(breakdown).map(([cat, val]) => `
+                            <tr style="border-bottom:1px solid #F1F5F9;">
+                                <td style="padding:8px 12px; font-weight:700; color:#334155;">${cat}</td>
+                                <td style="padding:8px 12px; font-weight:800; color:#0F172A; text-align:right;">₹${(val || 0).toLocaleString('en-IN')}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+
+            <h4 style="margin:0 0 10px 0; font-size:14px; font-weight:800; color:#1E293B;">📜 Payment Transactions History</h4>
+            <div style="background:#FFFFFF; border:1px solid #E2E8F0; border-radius:8px; overflow:hidden;">
+                <table style="width:100%; border-collapse:collapse; font-size:12px;">
+                    <thead>
+                        <tr style="background:#F8FAFC; border-bottom:1px solid #E2E8F0; text-align:left;">
+                            <th style="padding:8px 10px;">RECEIPT NO</th>
+                            <th style="padding:8px 10px;">DATE</th>
+                            <th style="padding:8px 10px;">FEE TYPE</th>
+                            <th style="padding:8px 10px;">AMOUNT</th>
+                            <th style="padding:8px 10px;">METHOD</th>
+                            <th style="padding:8px 10px; text-align:right;">ACTION</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${payments.length > 0 ? payments.map(p => `
+                            <tr style="border-bottom:1px solid #F1F5F9;">
+                                <td style="padding:8px 10px; font-weight:700; color:#2563EB;">${p.receipt_number}</td>
+                                <td style="padding:8px 10px; color:#475569;">${p.payment_date}</td>
+                                <td style="padding:8px 10px;">${p.fee_type}</td>
+                                <td style="padding:8px 10px; font-weight:800; color:#16A34A;">₹${(p.amount || 0).toLocaleString('en-IN')}</td>
+                                <td style="padding:8px 10px;">${p.payment_method}</td>
+                                <td style="padding:8px 10px; text-align:right;">
+                                    <button type="button" onclick="downloadReceiptPdf(${p.id})" style="background:#DCFCE7; color:#16A34A; border:1px solid #86EFAC; border-radius:4px; padding:2px 8px; font-size:11px; font-weight:700; cursor:pointer;">
+                                        📄 PDF Receipt
+                                    </button>
+                                </td>
+                            </tr>
+                        `).join('') : `
+                            <tr><td colspan="6" style="padding:15px; text-align:center; color:#94A3B8;">No payments recorded yet for this candidate.</td></tr>
+                        `}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    } catch (err) {
+        bodyEl.innerHTML = `<div style="color:red;">Error loading details: ${err.message}</div>`;
+    }
+}
+
+function closeStudentFeeDetailsModal() {
+    const modal = document.getElementById("studentFeeDetailsModal");
+    if (modal) modal.style.display = "none";
+}
+
+function downloadReceiptPdf(paymentId) {
+    window.open(`/api/payments/${paymentId}/receipt`, '_blank');
+}
+
+// Backward compatibility alias for fee details
+window.viewStudentDetails = openStudentFeeDetailsModal;

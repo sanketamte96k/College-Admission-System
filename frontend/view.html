@@ -2166,6 +2166,153 @@
             </div>
 
             <!-- ============================================================ -->
+            <!-- PANE 8B: FEES & PAYMENTS MANAGEMENT                          -->
+            <!-- ============================================================ -->
+            <div id="pane-fees" class="erp-section-pane fee-page">
+
+                <!-- 1. HERO HEADER -->
+                <div class="fee-header fee-hero-card">
+                    <div class="fee-hero-content">
+                        <div class="fee-hero-badge">
+                            <span class="fee-pulse-dot"></span>
+                            💳 Revenue & Fee Collection Ledger
+                        </div>
+                        <h2 class="fee-hero-title">Fees & Payments</h2>
+                        <p class="fee-hero-subtitle">Manage fee structures, student payments, installments, receipts and outstanding balances.</p>
+                    </div>
+                    <div class="fee-actions fee-hero-actions">
+                        <button type="button" class="btn-fee-primary" onclick="openRecordPaymentModal()" title="Record Student Payment">
+                            <span>+</span> Record Payment
+                        </button>
+                        <button type="button" class="btn-fee-glass" onclick="switchFeeTab('history')" title="View Master Payment History">
+                            <span>📜</span> Payment History Log
+                        </button>
+                        <button type="button" class="btn-fee-glass" onclick="loadFees()" title="Refresh Fee Data">
+                            <span>🔄</span> Refresh Data
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 2. FEE STATISTICS KPI CARDS -->
+                <div class="fee-stats fee-kpi-grid">
+                    <div class="fee-stat-card fee-kpi-card kpi-blue">
+                        <div class="fee-kpi-header">
+                            <div class="fee-kpi-icon">💰</div>
+                            <span class="fee-kpi-tag">Expected</span>
+                        </div>
+                        <div class="fee-kpi-body">
+                            <small>TOTAL EXPECTED FEES</small>
+                            <h3 id="feeKpiExpected">₹0</h3>
+                            <span class="fee-kpi-sub">Total annual fee dues</span>
+                        </div>
+                    </div>
+
+                    <div class="fee-stat-card fee-kpi-card kpi-green">
+                        <div class="fee-kpi-header">
+                            <div class="fee-kpi-icon">✓</div>
+                            <span class="fee-kpi-tag">Collected</span>
+                        </div>
+                        <div class="fee-kpi-body">
+                            <small>TOTAL FEES COLLECTED</small>
+                            <h3 id="feeKpiCollected">₹0</h3>
+                            <span class="fee-kpi-sub">Realized revenue</span>
+                        </div>
+                    </div>
+
+                    <div class="fee-stat-card fee-kpi-card kpi-amber">
+                        <div class="fee-kpi-header">
+                            <div class="fee-kpi-icon">⏳</div>
+                            <span class="fee-kpi-tag">Outstanding</span>
+                        </div>
+                        <div class="fee-kpi-body">
+                            <small>PENDING DUES</small>
+                            <h3 id="feeKpiPending">₹0</h3>
+                            <span class="fee-kpi-sub">Uncollected student balance</span>
+                        </div>
+                    </div>
+
+                    <div class="fee-stat-card fee-kpi-card kpi-purple">
+                        <div class="fee-kpi-header">
+                            <div class="fee-kpi-icon">📈</div>
+                            <span class="fee-kpi-tag">This Month</span>
+                        </div>
+                        <div class="fee-kpi-body">
+                            <small>MONTHLY COLLECTION</small>
+                            <h3 id="feeKpiMonth">₹0</h3>
+                            <span class="fee-kpi-sub">Collections in current month</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. VIEW TOGGLE TABS -->
+                <div class="fee-tabs-bar" style="display:flex; gap:10px; border-bottom:2px solid #E2E8F0; padding-bottom:8px;">
+                    <button type="button" id="tabBtnFeeRoster" class="fee-tab-btn active" onclick="switchFeeTab('roster')">
+                        👨‍🎓 Student Fee Ledgers
+                    </button>
+                    <button type="button" id="tabBtnFeeHistory" class="fee-tab-btn" onclick="switchFeeTab('history')">
+                        📜 Payment Transactions Log
+                    </button>
+                </div>
+
+                <!-- 4. FILTER TOOLBAR -->
+                <div class="fee-filters fee-filter-card">
+                    <div class="fee-filter-grid">
+                        <div class="fee-filter-field">
+                            <label class="fee-filter-label">Department</label>
+                            <select id="feeDeptFilter" class="fee-control fee-select" onchange="loadFees()">
+                                <option value="">All Departments</option>
+                                <option value="Computer Engineering">Computer Engineering</option>
+                                <option value="Information Technology">Information Technology</option>
+                                <option value="Artificial Intelligence & Data Science">Artificial Intelligence & Data Science</option>
+                                <option value="Electronics & Telecommunication">Electronics & Telecommunication</option>
+                                <option value="Mechanical Engineering">Mechanical Engineering</option>
+                                <option value="Civil Engineering">Civil Engineering</option>
+                                <option value="Electrical Engineering">Electrical Engineering</option>
+                            </select>
+                        </div>
+
+                        <div class="fee-filter-field">
+                            <label class="fee-filter-label">Fee Status</label>
+                            <select id="feeStatusFilter" class="fee-control fee-select" onchange="loadFees()">
+                                <option value="">All Statuses</option>
+                                <option value="Paid">Fully Paid</option>
+                                <option value="Partially Paid">Partially Paid</option>
+                                <option value="Pending">Pending</option>
+                                <option value="Overdue">Overdue</option>
+                            </select>
+                        </div>
+
+                        <div class="fee-filter-field filter-search" style="grid-column: span 2;">
+                            <label class="fee-filter-label">Search Student / Roll No</label>
+                            <div class="fee-input-icon-wrap">
+                                <span class="fee-input-icon">🔍</span>
+                                <input type="text" id="feeSearchInput" class="fee-control" placeholder="Search student name, email, roll no..." onkeyup="if(event.key==='Enter') loadFees()">
+                            </div>
+                        </div>
+
+                        <div class="fee-filter-btns" style="grid-column: span 4; display:flex; justify-content:flex-end; gap:8px;">
+                            <button type="button" class="btn-fee-action btn-apply" onclick="loadFees()">
+                                Filter
+                            </button>
+                            <button type="button" class="btn-fee-action btn-reset" onclick="resetFeeFilters()">
+                                Reset
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 5. MAIN CONTENT CONTAINERS -->
+                <div id="feesRosterContainer" class="fee-table-card">
+                    <!-- Dynamically rendered student fee ledger table -->
+                </div>
+
+                <div id="feesHistoryContainer" class="fee-history-card" style="display:none;">
+                    <!-- Dynamically rendered payment history log -->
+                </div>
+
+            </div>
+
+            <!-- ============================================================ -->
             <!-- PANE 9: ANALYTICS & REPORTS                                  -->
             <!-- ============================================================ -->
             <div id="pane-reports" class="erp-section-pane">
@@ -3025,6 +3172,95 @@
             <span class="close-btn" onclick="closeExamDetailsModal()">&times;</span>
         </div>
         <div class="modal-body" id="examDetailsModalBody">
+            <!-- Dynamically populated -->
+        </div>
+    </div>
+</div>
+
+<!-- Record Student Payment Modal -->
+<div id="recordPaymentModal" class="modal fee-modal">
+    <div class="modal-content" style="max-width: 680px;">
+        <div class="modal-header">
+            <h3 id="paymentModalTitle">💳 Record Student Fee Payment</h3>
+            <span class="close-btn" onclick="closeRecordPaymentModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="recordPaymentForm" onsubmit="submitPaymentForm(event)">
+                <input type="hidden" id="payModalStudentId">
+
+                <div class="form-group" style="margin-bottom:14px;">
+                    <label style="font-size:12px; font-weight:700; color:#475569;">Select Candidate / Student *</label>
+                    <select id="payModalStudentSelect" required class="form-select" onchange="onPaymentStudentSelectChange()" style="width:100%; height:40px; padding:0 12px; border:1px solid #CBD5E1; border-radius:6px;">
+                        <option value="">-- Choose Student --</option>
+                    </select>
+                </div>
+
+                <div id="payModalBalanceNotice" style="background:#EFF6FF; border:1px solid #BFDBFE; border-radius:6px; padding:10px 14px; margin-bottom:14px; font-size:12.5px; color:#1E40AF; display:none;">
+                    <!-- Dynamically populated student fee balance snippet -->
+                </div>
+
+                <div class="form-grid-2" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px;">
+                    <div class="form-group">
+                        <label style="font-size:12px; font-weight:700; color:#475569;">Fee Category / Type *</label>
+                        <select id="payModalFeeType" required class="form-select" style="width:100%; height:40px; padding:0 12px; border:1px solid #CBD5E1; border-radius:6px;">
+                            <option value="Tuition Fee">Tuition Fee</option>
+                            <option value="Development Fee">Development Fee</option>
+                            <option value="Examination Fee">Examination Fee</option>
+                            <option value="Library Fee">Library Fee</option>
+                            <option value="Laboratory Fee">Laboratory Fee</option>
+                            <option value="Other Fee">Other Fee</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label style="font-size:12px; font-weight:700; color:#475569;">Payment Amount (INR) *</label>
+                        <input type="number" id="payModalAmount" step="100" min="1" required placeholder="e.g. 25000" class="form-input" style="width:100%; height:40px; padding:0 12px; border:1px solid #CBD5E1; border-radius:6px; font-weight:700;">
+                    </div>
+
+                    <div class="form-group">
+                        <label style="font-size:12px; font-weight:700; color:#475569;">Payment Method *</label>
+                        <select id="payModalMethod" required class="form-select" style="width:100%; height:40px; padding:0 12px; border:1px solid #CBD5E1; border-radius:6px;">
+                            <option value="UPI">UPI</option>
+                            <option value="Cash">Cash</option>
+                            <option value="Bank Transfer">Bank Transfer / NEFT</option>
+                            <option value="Online Payment">Online Payment Gateway</option>
+                            <option value="Demand Draft">Demand Draft (DD)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label style="font-size:12px; font-weight:700; color:#475569;">Transaction / Reference ID</label>
+                        <input type="text" id="payModalTxnId" placeholder="e.g. UPI/1234567890 (auto if empty)" class="form-input" style="width:100%; height:40px; padding:0 12px; border:1px solid #CBD5E1; border-radius:6px;">
+                    </div>
+
+                    <div class="form-group" style="grid-column: span 2;">
+                        <label style="font-size:12px; font-weight:700; color:#475569;">Payment Date</label>
+                        <input type="date" id="payModalDate" class="form-input" style="width:100%; height:40px; padding:0 12px; border:1px solid #CBD5E1; border-radius:6px;">
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-top:14px;">
+                    <label style="font-size:12px; font-weight:700; color:#475569;">Remarks / Notes</label>
+                    <textarea id="payModalRemarks" rows="2" placeholder="e.g. Installment 1 of annual fees paid via UPI" style="width:100%; padding:10px; border:1px solid #CBD5E1; border-radius:6px; font-family:inherit;"></textarea>
+                </div>
+
+                <div style="margin-top:20px; display:flex; justify-content:flex-end; gap:10px;">
+                    <button type="button" class="btn-secondary" onclick="closeRecordPaymentModal()">Cancel</button>
+                    <button type="submit" class="btn-primary" id="savePaymentBtn" style="background:#2563EB; color:white; border:none; padding:10px 20px; border-radius:6px; font-weight:700; cursor:pointer;">Record Transaction</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Student Fee Breakdown & Payment History Modal -->
+<div id="studentFeeDetailsModal" class="modal fee-modal">
+    <div class="modal-content" style="max-width: 850px;">
+        <div class="modal-header">
+            <h3 id="feeDetailsModalTitle">💳 Student Fee Ledger & Payment Breakdown</h3>
+            <span class="close-btn" onclick="closeStudentFeeDetailsModal()">&times;</span>
+        </div>
+        <div class="modal-body" id="feeDetailsModalBody">
             <!-- Dynamically populated -->
         </div>
     </div>

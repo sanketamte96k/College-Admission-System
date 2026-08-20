@@ -43,6 +43,63 @@ def download_payment_receipt(payment_id, student_id=None):
 
 
 # ============================================================
+# FEE DASHBOARD & INSTITUTIONAL FEE LEDGER ENDPOINTS
+# ============================================================
+@payment_bp.route("/api/fees/dashboard", methods=["GET"])
+def get_fee_dashboard():
+    try:
+        data = PaymentService.get_fee_dashboard_summary()
+        return jsonify(data), 200
+    except Exception as e:
+        current_app.logger.exception("Error fetching fee dashboard metrics")
+        return jsonify({"error": str(e)}), 500
+
+
+@payment_bp.route("/api/fees/students", methods=["GET"])
+def get_all_student_fees_roster():
+    department = request.args.get("department", "", type=str).strip()
+    program = request.args.get("program", "", type=str).strip()
+    academic_year = request.args.get("academic_year", "", type=str).strip()
+    semester = request.args.get("semester", "", type=str).strip()
+    fee_status = request.args.get("status", "", type=str).strip()
+    search = request.args.get("search", "", type=str).strip()
+
+    try:
+        roster = PaymentService.get_all_student_fees(
+            department=department,
+            program=program,
+            academic_year=academic_year,
+            semester=semester,
+            fee_status=fee_status,
+            search=search
+        )
+        return jsonify(roster), 200
+    except Exception as e:
+        current_app.logger.exception("Error fetching student fee roster")
+        return jsonify({"error": str(e)}), 500
+
+
+@payment_bp.route("/api/fees/history", methods=["GET"])
+def get_master_payment_history():
+    department = request.args.get("department", "", type=str).strip()
+    fee_type = request.args.get("fee_type", "", type=str).strip()
+    payment_method = request.args.get("payment_method", "", type=str).strip()
+    search = request.args.get("search", "", type=str).strip()
+
+    try:
+        history = PaymentService.get_all_payment_history(
+            department=department,
+            fee_type=fee_type,
+            payment_method=payment_method,
+            search=search
+        )
+        return jsonify(history), 200
+    except Exception as e:
+        current_app.logger.exception("Error fetching master payment history")
+        return jsonify({"error": str(e)}), 500
+
+
+# ============================================================
 # ADMIN OR AUTHORIZED STUDENT: GET STUDENT FEE SUMMARY
 # ============================================================
 @payment_bp.route("/api/students/<int:student_id>/fees", methods=["GET"])
