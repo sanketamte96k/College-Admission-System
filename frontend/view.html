@@ -1030,40 +1030,342 @@
             <!-- ============================================================ -->
             <!-- PANE 3: STUDENTS DIRECTORY                                   -->
             <!-- ============================================================ -->
+            <!-- ============================================================ -->
+            <!-- PANE 3: STUDENTS DIRECTORY & MANAGEMENT                      -->
+            <!-- ============================================================ -->
             <div id="pane-students" class="erp-section-pane">
-                <div class="att-section-intro">
-                    <div class="att-section-intro-text">
-                        <h3>👥 Enrolled Students Directory</h3>
-                        <p>Search, view academic profiles, inspect uploaded credentials, and manage all enrolled students across branches.</p>
+
+                <!-- 1. PAGE HERO HEADER CARD -->
+                <div class="stu-hero-card">
+                    <div class="stu-hero-content">
+                        <div class="stu-hero-badge">
+                            <span class="stu-badge-pulse"></span>
+                            👥 Student Information System
+                        </div>
+                        <h2 class="stu-hero-title">Student Management</h2>
+                        <p class="stu-hero-subtitle">Manage enrolled students, academic information, profiles and student records from one centralized system.</p>
+                    </div>
+                    <div class="stu-hero-actions">
+                        <a href="index.html" class="btn-stu-primary" title="Register New Student Candidate">
+                            <span>+</span> Register Student
+                        </a>
+                        <button type="button" class="btn-stu-glass" onclick="exportStudentsReport()" title="Export Students CSV Report">
+                            <span>📊</span> Export Report
+                        </button>
                     </div>
                 </div>
 
-                <!-- Reusable Table Card for Students -->
-                <div class="attendance-panel-card">
-                    <div class="controls-bar" style="margin-bottom: 16px;">
-                        <div class="search-box" style="flex: 1;">
-                            <span class="search-icon">🔍</span>
-                            <input type="text" id="studentSearchAlt" placeholder="Search enrolled students..." oninput="document.getElementById('searchInput').value = this.value; filterStudents();">
+                <!-- 2. KPI STATISTICS (5 CARDS) -->
+                <div class="stu-kpi-grid">
+                    <div class="stu-kpi-card kpi-blue">
+                        <div class="stu-kpi-header">
+                            <div class="stu-kpi-icon">👥</div>
+                            <span class="stu-kpi-tag">Total</span>
+                        </div>
+                        <div class="stu-kpi-body">
+                            <small>TOTAL STUDENTS</small>
+                            <h3 id="stuKpiTotal">0</h3>
+                            <span class="stu-kpi-sub">Registered student records</span>
                         </div>
                     </div>
-                    <div class="table-responsive">
-                        <table class="fee-table">
+
+                    <div class="stu-kpi-card kpi-green">
+                        <div class="stu-kpi-header">
+                            <div class="stu-kpi-icon">🎓</div>
+                            <span class="stu-kpi-tag">Active</span>
+                        </div>
+                        <div class="stu-kpi-body">
+                            <small>ACTIVE STUDENTS</small>
+                            <h3 id="stuKpiActive">0</h3>
+                            <span class="stu-kpi-sub">Enrolled &amp; Verified</span>
+                        </div>
+                    </div>
+
+                    <div class="stu-kpi-card kpi-indigo">
+                        <div class="stu-kpi-header">
+                            <div class="stu-kpi-icon">👨</div>
+                            <span class="stu-kpi-tag">Male</span>
+                        </div>
+                        <div class="stu-kpi-body">
+                            <small>MALE STUDENTS</small>
+                            <h3 id="stuKpiMale">0</h3>
+                            <span class="stu-kpi-sub">Male candidate roster</span>
+                        </div>
+                    </div>
+
+                    <div class="stu-kpi-card kpi-purple">
+                        <div class="stu-kpi-header">
+                            <div class="stu-kpi-icon">👩</div>
+                            <span class="stu-kpi-tag">Female</span>
+                        </div>
+                        <div class="stu-kpi-body">
+                            <small>FEMALE STUDENTS</small>
+                            <h3 id="stuKpiFemale">0</h3>
+                            <span class="stu-kpi-sub">Female candidate roster</span>
+                        </div>
+                    </div>
+
+                    <div class="stu-kpi-card kpi-amber">
+                        <div class="stu-kpi-header">
+                            <div class="stu-kpi-icon">✨</div>
+                            <span class="stu-kpi-tag">2026 Batch</span>
+                        </div>
+                        <div class="stu-kpi-body">
+                            <small>NEW ADMISSIONS</small>
+                            <h3 id="stuKpiNew">0</h3>
+                            <span class="stu-kpi-sub">Current academic year</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. SEARCH & FILTERS CARD -->
+                <div class="stu-section-card stu-filter-card">
+                    <div class="stu-card-header" style="margin-bottom: 14px;">
+                        <h4 class="stu-card-title">🔍 Search &amp; Filter Student Directory</h4>
+                    </div>
+
+                    <div class="stu-filter-grid">
+                        <div class="stu-filter-field filter-search">
+                            <label class="stu-filter-label">Search Student</label>
+                            <div class="stu-input-icon-wrap">
+                                <span class="stu-input-icon">🔍</span>
+                                <input type="text" id="stuSearchInput" class="stu-control" placeholder="Search by name, ID, ENR, email, mobile..." onkeyup="if(event.key==='Enter') applyStudentFilters()">
+                            </div>
+                        </div>
+
+                        <div class="stu-filter-field">
+                            <label class="stu-filter-label">Department</label>
+                            <select id="stuDeptFilter" class="stu-control stu-select">
+                                <option value="">All Departments</option>
+                                <option>Computer Engineering</option>
+                                <option>Information Technology</option>
+                                <option>Artificial Intelligence &amp; Data Science</option>
+                                <option>Electronics &amp; Telecommunication</option>
+                                <option>Mechanical Engineering</option>
+                                <option>Civil Engineering</option>
+                            </select>
+                        </div>
+
+                        <div class="stu-filter-field">
+                            <label class="stu-filter-label">Course</label>
+                            <select id="stuCourseFilter" class="stu-control stu-select">
+                                <option value="">All Courses</option>
+                                <option>B.Tech Computer Science</option>
+                                <option>B.Tech Information Technology</option>
+                                <option>B.Tech AI &amp; Data Science</option>
+                                <option>B.Tech Electronics &amp; Telecom</option>
+                                <option>B.Tech Mechanical</option>
+                                <option>B.Tech Civil</option>
+                            </select>
+                        </div>
+
+                        <div class="stu-filter-field">
+                            <label class="stu-filter-label">Academic Year</label>
+                            <select id="stuYearFilter" class="stu-control stu-select">
+                                <option value="">All Academic Years</option>
+                                <option value="2026-27" selected>2026–27</option>
+                                <option value="2025-26">2025–26</option>
+                            </select>
+                        </div>
+
+                        <div class="stu-filter-field">
+                            <label class="stu-filter-label">Gender</label>
+                            <select id="stuGenderFilter" class="stu-control stu-select">
+                                <option value="">All Genders</option>
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                            </select>
+                        </div>
+
+                        <div class="stu-filter-field">
+                            <label class="stu-filter-label">Status</label>
+                            <select id="stuStatusFilter" class="stu-control stu-select">
+                                <option value="">All Statuses</option>
+                                <option value="Enrolled">Enrolled</option>
+                                <option value="Approved">Approved</option>
+                                <option value="Pending Verification">Pending Verification</option>
+                                <option value="Under Review">Under Review</option>
+                                <option value="Rejected">Rejected</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="stu-filter-footer">
+                        <div style="font-size: 12px; color: #64748B; font-weight: 500;">
+                            💡 Press Enter or click Apply Filters to query real student database records
+                        </div>
+                        <div class="stu-filter-btns">
+                            <button type="button" class="btn-stu-action btn-apply" onclick="applyStudentFilters()">
+                                Apply Filters
+                            </button>
+                            <button type="button" class="btn-stu-action btn-reset" onclick="resetStudentFilters()">
+                                Reset
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. STUDENT DATA TABLE CARD -->
+                <div class="stu-section-card stu-table-card">
+                    <div class="stu-table-toolbar">
+                        <div class="stu-toolbar-left">
+                            <h4 class="stu-card-title">📜 Student Roster</h4>
+                            <span class="stu-toolbar-count" id="stuToolbarCount">Showing records</span>
+                        </div>
+                        <div class="stu-toolbar-right">
+                            <button type="button" class="btn-stu-tool" onclick="fetchStudentsModule(stuCurrentPage)" title="Refresh Table">
+                                🔄 Refresh
+                            </button>
+                            <button type="button" class="btn-stu-tool" onclick="exportStudentsReport()" title="Export CSV">
+                                📥 Export CSV
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- TABLE WRAPPER WITH ISOLATED HORIZONTAL SCROLL -->
+                    <div class="stu-table-container">
+                        <table class="stu-table">
                             <thead>
                                 <tr>
-                                    <th>Sr No</th>
-                                    <th>Student Name</th>
-                                    <th>Department</th>
-                                    <th>Contact</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
+                                    <th>STUDENT ID</th>
+                                    <th>STUDENT</th>
+                                    <th>EMAIL &amp; MOBILE</th>
+                                    <th>DEPARTMENT &amp; COURSE</th>
+                                    <th>ACADEMIC YEAR</th>
+                                    <th>GENDER</th>
+                                    <th>ADMISSION DATE</th>
+                                    <th>STATUS</th>
+                                    <th style="text-align: right;">ACTIONS</th>
                                 </tr>
                             </thead>
-                            <tbody id="studentTableBodyAlt">
-                                <!-- Mirrors studentTableBody -->
+                            <tbody id="studentTableBody">
+                                <!-- Real database records loaded dynamically -->
                             </tbody>
                         </table>
                     </div>
+
+                    <div class="stu-pagination-bar">
+                        <div class="stu-pagination-info" id="stuPaginationInfo">Showing 0–0 of 0 students</div>
+                        <div class="stu-pagination-controls" id="stuPaginationControls">
+                            <!-- Pagination controls -->
+                        </div>
+                    </div>
                 </div>
+
+            </div>
+
+            <!-- ============================================================ -->
+            <!-- PANE: DEPARTMENTS MANAGEMENT MODULE                          -->
+            <!-- ============================================================ -->
+            <div id="pane-departments" class="erp-section-pane dept-page">
+
+                <!-- 1. HERO HEADER CARD -->
+                <div class="dept-header dpt-hero-card">
+                    <div class="dpt-hero-content">
+                        <div class="dpt-hero-badge">
+                            <span class="dpt-pulse-dot"></span>
+                            🏢 Academic Branch Directory
+                        </div>
+                        <h2 class="dpt-hero-title">Academic Departments</h2>
+                        <p class="dpt-hero-subtitle">Manage academic branches, HOD information, seats and enrollment capacity.</p>
+                    </div>
+                    <div class="dept-actions dpt-hero-actions">
+                        <button type="button" class="btn-dpt-primary" onclick="openAddDepartmentModal()" title="Add New Academic Department">
+                            <span>+</span> Add Department
+                        </button>
+                        <button type="button" class="btn-dpt-glass" onclick="loadDepartments()" title="Refresh Departments">
+                            <span>🔄</span> Refresh Data
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 2. SUMMARY METRICS (4 CARDS) -->
+                <div class="dept-summary dpt-kpi-grid">
+                    <div class="dept-summary-card dpt-kpi-card kpi-blue">
+                        <div class="dpt-kpi-header">
+                            <div class="dpt-kpi-icon">🏢</div>
+                            <span class="dpt-kpi-tag">Branches</span>
+                        </div>
+                        <div class="dpt-kpi-body">
+                            <small>TOTAL DEPARTMENTS</small>
+                            <h3 id="dptKpiTotal">0</h3>
+                            <span class="dpt-kpi-sub">Configured academic units</span>
+                        </div>
+                    </div>
+
+                    <div class="dept-summary-card dpt-kpi-card kpi-green">
+                        <div class="dpt-kpi-header">
+                            <div class="dpt-kpi-icon">✓</div>
+                            <span class="dpt-kpi-tag">Active</span>
+                        </div>
+                        <div class="dpt-kpi-body">
+                            <small>ACTIVE DEPARTMENTS</small>
+                            <h3 id="dptKpiActive">0</h3>
+                            <span class="dpt-kpi-sub">Accepting admissions</span>
+                        </div>
+                    </div>
+
+                    <div class="dept-summary-card dpt-kpi-card kpi-indigo">
+                        <div class="dpt-kpi-header">
+                            <div class="dpt-kpi-icon">👥</div>
+                            <span class="dpt-kpi-tag">Students</span>
+                        </div>
+                        <div class="dpt-kpi-body">
+                            <small>TOTAL STUDENTS</small>
+                            <h3 id="dptKpiStudents">0</h3>
+                            <span class="dpt-kpi-sub">Across all departments</span>
+                        </div>
+                    </div>
+
+                    <div class="dept-summary-card dpt-kpi-card kpi-purple">
+                        <div class="dpt-kpi-header">
+                            <div class="dpt-kpi-icon">🎓</div>
+                            <span class="dpt-kpi-tag">Degree</span>
+                        </div>
+                        <div class="dpt-kpi-body">
+                            <small>TOTAL COURSES</small>
+                            <h3 id="dptKpiCourses">0</h3>
+                            <span class="dpt-kpi-sub">Offered engineering courses</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. SEARCH & FILTERS CARD -->
+                <div class="dept-toolbar dpt-section-card dpt-filter-card">
+                    <div class="dpt-filter-grid">
+                        <div class="dpt-filter-field filter-search">
+                            <label class="dpt-filter-label">Search Department</label>
+                            <div class="dpt-input-icon-wrap">
+                                <span class="dpt-input-icon">🔍</span>
+                                <input type="text" id="dptSearchInput" class="dpt-control" placeholder="Search department / code / HOD..." onkeyup="if(event.key==='Enter') loadDepartments()">
+                            </div>
+                        </div>
+
+                        <div class="dpt-filter-field">
+                            <label class="dpt-filter-label">Status Filter</label>
+                            <select id="dptStatusFilter" class="dpt-control dpt-select" onchange="loadDepartments()">
+                                <option value="">All Statuses</option>
+                                <option value="Active">Active</option>
+                                <option value="Inactive">Inactive</option>
+                            </select>
+                        </div>
+
+                        <div class="dpt-filter-btns">
+                            <button type="button" class="btn-dpt-action btn-apply" onclick="loadDepartments()">
+                                Apply Filters
+                            </button>
+                            <button type="button" class="btn-dpt-action btn-reset" onclick="resetDepartmentFilters()">
+                                Reset
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. DEPARTMENTS GRID CARDS CONTAINER -->
+                <div id="departmentsGridContainer" class="dept-grid dpt-departments-grid">
+                    <!-- Loaded dynamically from API -->
+                </div>
+
             </div>
 
             <!-- ============================================================ -->
@@ -1501,26 +1803,6 @@
             </div>
 
             <!-- ============================================================ -->
-            <!-- PANE 6: DEPARTMENTS OVERVIEW                                 -->
-            <!-- ============================================================ -->
-            <div id="pane-departments" class="erp-section-pane">
-                <div class="erp-placeholder-card">
-                    <div class="erp-placeholder-icon">🏢</div>
-                    <h3>Academic Departments Overview</h3>
-                    <p>Zeal College of Engineering & Research features 7 accredited engineering branches offering undergraduate and research programs.</p>
-                    <div class="erp-badge-grid">
-                        <span class="erp-badge-item">💻 Computer Engineering</span>
-                        <span class="erp-badge-item">🌐 Information Technology</span>
-                        <span class="erp-badge-item">🤖 AI & Data Science</span>
-                        <span class="erp-badge-item">📡 Electronics & Telecomm</span>
-                        <span class="erp-badge-item">⚙️ Mechanical Engineering</span>
-                        <span class="erp-badge-item">🏗️ Civil Engineering</span>
-                        <span class="erp-badge-item">⚡ Electrical Engineering</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ============================================================ -->
             <!-- PANE 7: COURSES & CURRICULUM                                 -->
             <!-- ============================================================ -->
             <div id="pane-courses" class="erp-section-pane">
@@ -1931,6 +2213,197 @@
                 <button type="button" class="btn-secondary" onclick="closeConvertModal()">Cancel</button>
                 <button type="button" class="btn-success" id="confirmConvertBtn" style="background:#059669; color:white; border:none; padding:8px 16px; border-radius:6px; font-weight:600; cursor:pointer;">Confirm Enrollment</button>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Student Record Modal -->
+<div id="stuEditModal" class="modal">
+    <div class="modal-content" style="max-width: 720px;">
+        <div class="modal-header">
+            <h3>✏️ Edit Student Record</h3>
+            <span class="close-btn" onclick="closeStudentEditModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="stuEditForm" onsubmit="saveStudentEdits(event)">
+                <input type="hidden" id="editStudentId">
+                <div class="form-grid-2" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px;">
+                    <div class="form-group">
+                        <label style="font-size:12px; font-weight:700; color:#475569;">Full Name *</label>
+                        <input type="text" id="editFullName" required class="form-input" style="width:100%; height:40px; padding:0 12px; border:1px solid #CBD5E1; border-radius:6px;">
+                    </div>
+                    <div class="form-group">
+                        <label style="font-size:12px; font-weight:700; color:#475569;">Email Address *</label>
+                        <input type="email" id="editEmail" required class="form-input" style="width:100%; height:40px; padding:0 12px; border:1px solid #CBD5E1; border-radius:6px;">
+                    </div>
+                    <div class="form-group">
+                        <label style="font-size:12px; font-weight:700; color:#475569;">Mobile Number *</label>
+                        <input type="text" id="editMobile" required class="form-input" style="width:100%; height:40px; padding:0 12px; border:1px solid #CBD5E1; border-radius:6px;">
+                    </div>
+                    <div class="form-group">
+                        <label style="font-size:12px; font-weight:700; color:#475569;">Gender</label>
+                        <select id="editGender" class="form-select" style="width:100%; height:40px; padding:0 12px; border:1px solid #CBD5E1; border-radius:6px;">
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label style="font-size:12px; font-weight:700; color:#475569;">Department *</label>
+                        <select id="editDepartment" required class="form-select" style="width:100%; height:40px; padding:0 12px; border:1px solid #CBD5E1; border-radius:6px;">
+                            <option>Computer Engineering</option>
+                            <option>Information Technology</option>
+                            <option>Artificial Intelligence &amp; Data Science</option>
+                            <option>Electronics &amp; Telecommunication</option>
+                            <option>Mechanical Engineering</option>
+                            <option>Civil Engineering</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label style="font-size:12px; font-weight:700; color:#475569;">Course *</label>
+                        <input type="text" id="editCourse" required class="form-input" style="width:100%; height:40px; padding:0 12px; border:1px solid #CBD5E1; border-radius:6px;">
+                    </div>
+                    <div class="form-group">
+                        <label style="font-size:12px; font-weight:700; color:#475569;">Academic Year</label>
+                        <input type="text" id="editAcademicYear" class="form-input" style="width:100%; height:40px; padding:0 12px; border:1px solid #CBD5E1; border-radius:6px;">
+                    </div>
+                    <div class="form-group">
+                        <label style="font-size:12px; font-weight:700; color:#475569;">Status</label>
+                        <select id="editStatus" class="form-select" style="width:100%; height:40px; padding:0 12px; border:1px solid #CBD5E1; border-radius:6px;">
+                            <option value="Enrolled">Enrolled</option>
+                            <option value="Approved">Approved</option>
+                            <option value="Verified">Verified</option>
+                            <option value="Pending Verification">Pending Verification</option>
+                            <option value="Under Review">Under Review</option>
+                            <option value="Rejected">Rejected</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div style="margin-top:20px; display:flex; justify-content:flex-end; gap:10px;">
+                    <button type="button" class="btn-secondary" onclick="closeStudentEditModal()">Cancel</button>
+                    <button type="submit" class="btn-primary" id="saveEditStudentBtn" style="background:#2563EB; color:white; border:none; padding:10px 20px; border-radius:6px; font-weight:700; cursor:pointer;">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Add Department Modal -->
+<div id="dptAddModal" class="modal">
+    <div class="modal-content" style="max-width: 680px;">
+        <div class="modal-header">
+            <h3>🏢 Add New Academic Department</h3>
+            <span class="close-btn" onclick="closeAddDepartmentModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="dptAddForm" onsubmit="submitNewDepartment(event)">
+                <div class="form-grid-2" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px;">
+                    <div class="form-group">
+                        <label style="font-size:12px; font-weight:700; color:#475569;">Department Name *</label>
+                        <input type="text" id="addDptName" required placeholder="e.g. Computer Engineering" class="form-input" style="width:100%; height:40px; padding:0 12px; border:1px solid #CBD5E1; border-radius:6px;">
+                    </div>
+                    <div class="form-group">
+                        <label style="font-size:12px; font-weight:700; color:#475569;">Short Code *</label>
+                        <input type="text" id="addDptCode" required placeholder="e.g. COMP" class="form-input" style="width:100%; height:40px; padding:0 12px; border:1px solid #CBD5E1; border-radius:6px;">
+                    </div>
+                    <div class="form-group">
+                        <label style="font-size:12px; font-weight:700; color:#475569;">Head of Department (HOD)</label>
+                        <input type="text" id="addDptHodName" placeholder="e.g. Dr. A. R. Sharma" class="form-input" style="width:100%; height:40px; padding:0 12px; border:1px solid #CBD5E1; border-radius:6px;">
+                    </div>
+                    <div class="form-group">
+                        <label style="font-size:12px; font-weight:700; color:#475569;">HOD Email Address</label>
+                        <input type="email" id="addDptHodEmail" placeholder="e.g. hod.comp@zeal.edu.in" class="form-input" style="width:100%; height:40px; padding:0 12px; border:1px solid #CBD5E1; border-radius:6px;">
+                    </div>
+                    <div class="form-group">
+                        <label style="font-size:12px; font-weight:700; color:#475569;">Total Intake Seats</label>
+                        <input type="number" id="addDptSeats" value="60" min="1" max="600" class="form-input" style="width:100%; height:40px; padding:0 12px; border:1px solid #CBD5E1; border-radius:6px;">
+                    </div>
+                    <div class="form-group">
+                        <label style="font-size:12px; font-weight:700; color:#475569;">Status</label>
+                        <select id="addDptStatus" class="form-select" style="width:100%; height:40px; padding:0 12px; border:1px solid #CBD5E1; border-radius:6px;">
+                            <option value="Active">Active</option>
+                            <option value="Inactive">Inactive</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-top:14px;">
+                    <label style="font-size:12px; font-weight:700; color:#475569;">Department Description &amp; Curriculum Overview</label>
+                    <textarea id="addDptDesc" rows="3" placeholder="Brief description of branch specialization, labs, and research focus..." style="width:100%; padding:10px; border:1px solid #CBD5E1; border-radius:6px; font-family:inherit;"></textarea>
+                </div>
+
+                <div style="margin-top:20px; display:flex; justify-content:flex-end; gap:10px;">
+                    <button type="button" class="btn-secondary" onclick="closeAddDepartmentModal()">Cancel</button>
+                    <button type="submit" class="btn-primary" id="saveNewDptBtn" style="background:#2563EB; color:white; border:none; padding:10px 20px; border-radius:6px; font-weight:700; cursor:pointer;">Create Department</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Department Modal -->
+<div id="dptEditModal" class="modal">
+    <div class="modal-content" style="max-width: 680px;">
+        <div class="modal-header">
+            <h3>✏️ Edit Department Details</h3>
+            <span class="close-btn" onclick="closeEditDepartmentModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="dptEditForm" onsubmit="submitEditDepartment(event)">
+                <input type="hidden" id="editDptId">
+                <div class="form-grid-2" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px;">
+                    <div class="form-group">
+                        <label style="font-size:12px; font-weight:700; color:#475569;">Department Name *</label>
+                        <input type="text" id="editDptName" required class="form-input" style="width:100%; height:40px; padding:0 12px; border:1px solid #CBD5E1; border-radius:6px;">
+                    </div>
+                    <div class="form-group">
+                        <label style="font-size:12px; font-weight:700; color:#475569;">Short Code *</label>
+                        <input type="text" id="editDptCode" required class="form-input" style="width:100%; height:40px; padding:0 12px; border:1px solid #CBD5E1; border-radius:6px;">
+                    </div>
+                    <div class="form-group">
+                        <label style="font-size:12px; font-weight:700; color:#475569;">Head of Department (HOD)</label>
+                        <input type="text" id="editDptHodName" class="form-input" style="width:100%; height:40px; padding:0 12px; border:1px solid #CBD5E1; border-radius:6px;">
+                    </div>
+                    <div class="form-group">
+                        <label style="font-size:12px; font-weight:700; color:#475569;">HOD Email Address</label>
+                        <input type="email" id="editDptHodEmail" class="form-input" style="width:100%; height:40px; padding:0 12px; border:1px solid #CBD5E1; border-radius:6px;">
+                    </div>
+                    <div class="form-group">
+                        <label style="font-size:12px; font-weight:700; color:#475569;">Total Intake Seats</label>
+                        <input type="number" id="editDptSeats" min="1" max="600" class="form-input" style="width:100%; height:40px; padding:0 12px; border:1px solid #CBD5E1; border-radius:6px;">
+                    </div>
+                    <div class="form-group">
+                        <label style="font-size:12px; font-weight:700; color:#475569;">Status</label>
+                        <select id="editDptStatus" class="form-select" style="width:100%; height:40px; padding:0 12px; border:1px solid #CBD5E1; border-radius:6px;">
+                            <option value="Active">Active</option>
+                            <option value="Inactive">Inactive</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-top:14px;">
+                    <label style="font-size:12px; font-weight:700; color:#475569;">Department Description</label>
+                    <textarea id="editDptDesc" rows="3" style="width:100%; padding:10px; border:1px solid #CBD5E1; border-radius:6px; font-family:inherit;"></textarea>
+                </div>
+
+                <div style="margin-top:20px; display:flex; justify-content:flex-end; gap:10px;">
+                    <button type="button" class="btn-secondary" onclick="closeEditDepartmentModal()">Cancel</button>
+                    <button type="submit" class="btn-primary" id="saveEditDptBtn" style="background:#2563EB; color:white; border:none; padding:10px 20px; border-radius:6px; font-weight:700; cursor:pointer;">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- View Department Details Modal -->
+<div id="dptViewModal" class="modal">
+    <div class="modal-content" style="max-width: 650px;">
+        <div class="modal-header">
+            <h3>🏢 Department Information &amp; Metrics</h3>
+            <span class="close-btn" onclick="closeViewDepartmentModal()">&times;</span>
+        </div>
+        <div class="modal-body" id="dptViewModalBody">
+            <!-- Dynamically populated -->
         </div>
     </div>
 </div>

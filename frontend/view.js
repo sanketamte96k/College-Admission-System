@@ -3581,12 +3581,17 @@ function switchAdminSection(paneId, btnEl, pageTitle = "Dashboard Overview") {
         }
     } else if (paneId === "pane-admissions") {
         loadAdmissionsPortal();
-    } else if (paneId === "pane-dashboard" || paneId === "pane-students") {
+    } else if (paneId === "pane-dashboard") {
         if (!students || students.length === 0) {
             fetchStudents();
         } else {
             renderStudents();
         }
+    } else if (paneId === "pane-students") {
+        fetchStudentsModule(1);
+        fetchStudentKpiStats();
+    } else if (paneId === "pane-departments") {
+        loadDepartments();
     }
 
     // Scroll to top of content
@@ -4343,4 +4348,706 @@ function exportAdmissionsReport() {
 
     const params = new URLSearchParams({ search: searchVal, dept: deptVal, course: courseVal, status: statusVal });
     window.location.href = `/api/admissions/export?${params.toString()}`;
+}
+
+// ============================================================
+// STUDENTS MODULE MANAGEMENT LOGIC
+// ============================================================
+
+let stuCurrentPage = 1;
+let stuLimit = 20;
+let stuTotalCount = 0;
+
+async function fetchStudentsModule(page = 1) {
+    stuCurrentPage = page;
+    const searchVal = document.getElementById("stuSearchInput") ? document.getElementById("stuSearchInput").value.trim() : "";
+    const deptVal = document.getElementById("stuDeptFilter") ? document.getElementById("stuDeptFilter").value.trim() : "";
+    const courseVal = document.getElementById("stuCourseFilter") ? document.getElementById("stuCourseFilter").value.trim() : "";
+    const yearVal = document.getElementById("stuYearFilter") ? document.getElementById("stuYearFilter").value.trim() : "";
+    const genderVal = document.getElementById("stuGenderFilter") ? document.getElementById("stuGenderFilter").value.trim() : "";
+    const statusVal = document.getElementById("stuStatusFilter") ? document.getElementById("stuStatusFilter").value.trim() : "";
+
+    const params = new URLSearchParams({
+        page: stuCurrentPage,
+        limit: stuLimit,
+        search: searchVal,
+        dept: deptVal,
+        course: courseVal,
+        academic_year: yearVal,
+        gender: genderVal,
+        status: statusVal
+    });
+
+    const tbodyEl = document.getElementById("studentTableBody");
+    if (tbodyEl) {
+        tbodyEl.innerHTML = `
+            <tr>
+                <td colspan="9" style="text-align: center; padding: 40px; color: #64748B;">
+                    <div style="font-size: 24px; margin-bottom: 8px;">⌛</div>
+                    <div>Loading student directory from database...</div>
+                </td>
+            </tr>
+        `;
+    }
+
+    try {
+        const response = await fetch(`/api/students?${params.toString()}`);
+        if (!response.ok) throw new Error("Failed to fetch students data");
+        const data = await response.json();
+
+        let studentsList = [];
+        if (Array.isArray(data)) {
+            studentsList = data;
+            stuTotalCount = data.length;
+        } else if (data && Array.isArray(data.students)) {
+            studentsList = data.students;
+            stuTotalCount = data.total || data.students.length;
+        }
+
+        renderStudentsTableFromData(studentsList);
+        renderStudentsPagination();
+
+    } catch (err) {
+        console.error("fetchStudentsModule error:", err);
+        if (tbodyEl) {
+            tbodyEl.innerHTML = `
+                <tr>
+                    <td colspan="9" style="text-align: center; padding: 30px; color: #EF4444;">
+                        ⚠️ Unable to load student records. Please ensure backend server is running.
+                    </td>
+                </tr>
+            `;
+        }
+    }
+}
+
+async function fetchStudentKpiStats() {
+    try {
+        const response = await fetch("/api/students/stats");
+        if (!response.ok) return;
+        const stats = await response.json();
+
+        const totalEl = document.getElementById("stuKpiTotal");
+        const activeEl = document.getElementById("stuKpiActive");
+        const maleEl = document.getElementById("stuKpiMale");
+        const femaleEl = document.getElementById("stuKpiFemale");
+        const newEl = document.getElementById("stuKpiNew");
+
+        if (totalEl) totalEl.textContent = stats.total_students || 0;
+        if (activeEl) activeEl.textContent = stats.active_students || 0;
+        if (maleEl) maleEl.textContent = stats.male_students || 0;
+        if (femaleEl) femaleEl.textContent = stats.female_students || 0;
+        if (newEl) newEl.textContent = stats.new_students || 0;
+
+    } catch (err) {
+        console.error("fetchStudentKpiStats error:", err);
+    }
+}
+
+function renderStudentsTableFromData(list) {
+    const tbodyEl = document.getElementById("studentTableBody");
+    const countEl = document.getElementById("stuToolbarCount");
+    if (!tbodyEl) return;
+
+    if (countEl) {
+        countEl.textContent = `Showing ${list.length} of ${stuTotalCount} records`;
+    }
+
+    if (!list || list.length === 0) {
+        tbodyEl.innerHTML = `
+            <tr>
+                <td colspan="9" style="text-align: center; padding: 40px; color: #64748B;">
+                    <div style="font-size: 28px; margin-bottom: 8px;">📂</div>
+                    <div style="font-weight: 600; color: #1E293B;">No matching student records found</div>
+                    <small>Try clearing search filters or selecting a different department/academic year.</small>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    tbodyEl.innerHTML = list.map((s, idx) => {
+        const fullName = escapeHtml(s.fullName || 'Unknown Student');
+        const email = escapeHtml(s.email || 'N/A');
+        const mobile = escapeHtml(s.mobile || 'N/A');
+        const dept = escapeHtml(s.department || 'General');
+        const course = escapeHtml(s.course || `B.Tech in ${dept}`);
+        const year = escapeHtml(s.academic_year || '2026-27');
+        const gender = escapeHtml(s.gender || 'Not Specified');
+        const status = s.status || 'Pending Verification';
+        const dateStr = s.created_at ? s.created_at.split(' ')[0] : 'N/A';
+
+        const displayId = s.enrollment_number ? s.enrollment_number : `ADM-2026-${String(s.id).padStart(4, '0')}`;
+
+        const nameParts = fullName.split(' ').filter(Boolean);
+        const initials = nameParts.length >= 2
+            ? (nameParts[0][0] + nameParts[1][0]).toUpperCase()
+            : fullName.substring(0, 2).toUpperCase();
+
+        const avatarHtml = s.photo
+            ? `<img src="/uploads/${escapeHtml(s.photo)}" class="stu-avatar-img" alt="${fullName}">`
+            : `<div class="stu-avatar-initials">${initials}</div>`;
+
+        let statusClass = 'badge-pending';
+        let statusIcon = '⌛';
+        if (status === 'Enrolled') {
+            statusClass = 'badge-enrolled';
+            statusIcon = '🎓';
+        } else if (status === 'Approved' || status === 'Verified' || status === 'Documents Verified') {
+            statusClass = 'badge-approved';
+            statusIcon = '✅';
+        } else if (status === 'Under Review') {
+            statusClass = 'badge-review';
+            statusIcon = '🔍';
+        } else if (status === 'Rejected') {
+            statusClass = 'badge-rejected';
+            statusIcon = '❌';
+        }
+
+        const genderClass = gender === 'Male' ? 'stu-gender-male' : (gender === 'Female' ? 'stu-gender-female' : 'stu-gender-other');
+
+        return `
+            <tr>
+                <td><span class="stu-id-badge">${displayId}</span></td>
+                <td>
+                    <div class="stu-user-cell">
+                        ${avatarHtml}
+                        <div>
+                            <strong class="stu-user-name">${fullName}</strong>
+                            ${s.enrollment_number ? `<small class="stu-enr-tag">ENR: ${escapeHtml(s.enrollment_number)}</small>` : ''}
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    <div><a href="mailto:${email}" class="stu-link">${email}</a></div>
+                    <small class="stu-subtext">📞 ${mobile}</small>
+                </td>
+                <td>
+                    <strong class="stu-dept-title">${dept}</strong>
+                    <div class="stu-subtext">${course}</div>
+                </td>
+                <td><span class="stu-year-badge">${year}</span></td>
+                <td><span class="stu-gender-badge ${genderClass}">${gender}</span></td>
+                <td><span class="stu-date-badge">📅 ${dateStr}</span></td>
+                <td>
+                    <span class="adm-status-badge ${statusClass}">
+                        <span>${statusIcon}</span> ${escapeHtml(status)}
+                    </span>
+                </td>
+                <td style="text-align: right;">
+                    <div class="stu-action-group">
+                        <button type="button" class="btn-stu-tbl btn-tbl-view" onclick="openViewModal(${s.id})" title="View Complete Profile">👁 View</button>
+                        <button type="button" class="btn-stu-tbl btn-tbl-edit" onclick="openStudentEditModal(${s.id})" title="Edit Student Record">✏️ Edit</button>
+                        <button type="button" class="btn-stu-tbl btn-tbl-delete" onclick="deleteStudent(${s.id})" title="Delete Record">🗑 Delete</button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+function renderStudentsPagination() {
+    const infoEl = document.getElementById("stuPaginationInfo");
+    const controlsEl = document.getElementById("stuPaginationControls");
+    if (!infoEl || !controlsEl) return;
+
+    const start = stuTotalCount === 0 ? 0 : (stuCurrentPage - 1) * stuLimit + 1;
+    const end = Math.min(stuCurrentPage * stuLimit, stuTotalCount);
+    const totalPages = Math.ceil(stuTotalCount / stuLimit) || 1;
+
+    infoEl.textContent = `Showing ${start}–${end} of ${stuTotalCount} students`;
+
+    controlsEl.innerHTML = `
+        <button type="button" class="stu-page-btn" ${stuCurrentPage <= 1 ? 'disabled' : ''} onclick="fetchStudentsModule(${stuCurrentPage - 1})">
+            ◀ Prev
+        </button>
+        <span class="stu-page-active">Page ${stuCurrentPage} of ${totalPages}</span>
+        <button type="button" class="stu-page-btn" ${stuCurrentPage >= totalPages ? 'disabled' : ''} onclick="fetchStudentsModule(${stuCurrentPage + 1})">
+            Next ▶
+        </button>
+    `;
+}
+
+function applyStudentFilters() {
+    fetchStudentsModule(1);
+    fetchStudentKpiStats();
+}
+
+function resetStudentFilters() {
+    if (document.getElementById("stuSearchInput")) document.getElementById("stuSearchInput").value = "";
+    if (document.getElementById("stuDeptFilter")) document.getElementById("stuDeptFilter").value = "";
+    if (document.getElementById("stuCourseFilter")) document.getElementById("stuCourseFilter").value = "";
+    if (document.getElementById("stuYearFilter")) document.getElementById("stuYearFilter").value = "";
+    if (document.getElementById("stuGenderFilter")) document.getElementById("stuGenderFilter").value = "";
+    if (document.getElementById("stuStatusFilter")) document.getElementById("stuStatusFilter").value = "";
+
+    fetchStudentsModule(1);
+    fetchStudentKpiStats();
+}
+
+function openStudentEditModal(studentId) {
+    fetch(`/api/students/${studentId}`)
+        .then(res => {
+            if (!res.ok) throw new Error("Student not found");
+            return res.json();
+        })
+        .then(s => {
+            document.getElementById("editStudentId").value = s.id;
+            document.getElementById("editFullName").value = s.fullName || "";
+            document.getElementById("editEmail").value = s.email || "";
+            document.getElementById("editMobile").value = s.mobile || "";
+            document.getElementById("editGender").value = s.gender || "Male";
+            document.getElementById("editDepartment").value = s.department || "Computer Engineering";
+            document.getElementById("editCourse").value = s.course || `B.Tech in ${s.department || 'Computer Engineering'}`;
+            document.getElementById("editAcademicYear").value = s.academic_year || "2026-27";
+            document.getElementById("editStatus").value = s.status || "Enrolled";
+
+            document.getElementById("stuEditModal").style.display = "flex";
+        })
+        .catch(err => {
+            console.error("openStudentEditModal error:", err);
+            showToast("Failed to load student details for editing", "error");
+        });
+}
+
+function closeStudentEditModal() {
+    document.getElementById("stuEditModal").style.display = "none";
+}
+
+async function saveStudentEdits(event) {
+    event.preventDefault();
+    const studentId = document.getElementById("editStudentId").value;
+    const saveBtn = document.getElementById("saveEditStudentBtn");
+
+    const payload = {
+        fullName: document.getElementById("editFullName").value.trim(),
+        email: document.getElementById("editEmail").value.trim(),
+        mobile: document.getElementById("editMobile").value.trim(),
+        gender: document.getElementById("editGender").value.trim(),
+        department: document.getElementById("editDepartment").value.trim(),
+        course: document.getElementById("editCourse").value.trim(),
+        academic_year: document.getElementById("editAcademicYear").value.trim(),
+        status: document.getElementById("editStatus").value.trim()
+    };
+
+    try {
+        if (saveBtn) {
+            saveBtn.disabled = true;
+            saveBtn.textContent = "Saving...";
+        }
+
+        const res = await fetch(`/api/students/${studentId}`, {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Failed to update student");
+
+        showToast("Student record updated successfully!", "success");
+        closeStudentEditModal();
+        fetchStudentsModule(stuCurrentPage);
+        fetchStudentKpiStats();
+
+    } catch (err) {
+        console.error("saveStudentEdits error:", err);
+        showToast(err.message, "error");
+    } finally {
+        if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.textContent = "Save Changes";
+        }
+    }
+}
+
+function exportStudentsReport() {
+    exportAdmissionsReport();
+}
+
+// ============================================================
+// DEPARTMENT MANAGEMENT MODULE LOGIC
+// ============================================================
+
+let cachedDepartments = [];
+
+async function loadDepartments() {
+    const searchVal = document.getElementById("dptSearchInput") ? document.getElementById("dptSearchInput").value.trim() : "";
+    const statusVal = document.getElementById("dptStatusFilter") ? document.getElementById("dptStatusFilter").value.trim() : "";
+
+    const params = new URLSearchParams({ search: searchVal, status: statusVal });
+    const gridContainer = document.getElementById("departmentsGridContainer");
+
+    if (gridContainer) {
+        gridContainer.innerHTML = `
+            <div style="grid-column: 1 / -1; text-align: center; padding: 50px; color: #64748B;">
+                <div style="font-size: 28px; margin-bottom: 8px;">⌛</div>
+                <div>Loading department directory from database...</div>
+            </div>
+        `;
+    }
+
+    try {
+        const response = await fetch(`/api/departments?${params.toString()}`);
+        if (!response.ok) throw new Error("Failed to fetch department data");
+        const data = await response.json();
+
+        cachedDepartments = data.departments || [];
+
+        // Update KPI metrics
+        if (data.summary) {
+            if (document.getElementById("dptKpiTotal")) document.getElementById("dptKpiTotal").textContent = data.summary.total_departments || 0;
+            if (document.getElementById("dptKpiActive")) document.getElementById("dptKpiActive").textContent = data.summary.active_departments || 0;
+            if (document.getElementById("dptKpiStudents")) document.getElementById("dptKpiStudents").textContent = data.summary.total_students || 0;
+            if (document.getElementById("dptKpiCourses")) document.getElementById("dptKpiCourses").textContent = data.summary.total_courses || 0;
+        }
+
+        renderDepartmentsGrid(cachedDepartments);
+
+    } catch (err) {
+        console.error("loadDepartments error:", err);
+        if (gridContainer) {
+            gridContainer.innerHTML = `
+                <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: #EF4444;">
+                    ⚠️ Unable to load departments. Please ensure backend server is running.
+                </div>
+            `;
+        }
+    }
+}
+
+// Backwards-compatible alias
+function fetchDepartmentsModule() {
+    return loadDepartments();
+}
+
+function renderDepartmentsGrid(list) {
+    const container = document.getElementById("departmentsGridContainer");
+    if (!container) return;
+
+    if (!list || list.length === 0) {
+        container.innerHTML = `
+            <div style="grid-column: 1 / -1; text-align: center; padding: 50px; background: #FFFFFF; border-radius: 12px; border: 1px solid #E2E8F0;">
+                <div style="font-size: 32px; margin-bottom: 8px;">🏢</div>
+                <h4 style="margin: 0 0 4px 0; color: #0F172A;">No matching departments found</h4>
+                <p style="margin: 0; font-size: 13px; color: #64748B;">Try clearing search filters or adding a new academic department.</p>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = list.map(d => {
+        const id = d.id;
+        const name = escapeHtml(d.name);
+        const code = escapeHtml(d.code);
+        const hod = escapeHtml(d.hod_name || 'To Be Appointed');
+        const hodEmail = escapeHtml(d.hod_email || '');
+        const desc = escapeHtml(d.description || 'Standard Engineering Degree Program');
+        const totalSeats = d.total_seats || 60;
+        const studentCount = d.student_count || 0;
+        const courseCount = d.course_count || 1;
+        const occupancy = d.occupancy_rate || 0;
+        const status = d.status || 'Active';
+        const isInactive = status === 'Inactive';
+
+        const barColor = isInactive ? '#94A3B8' : (occupancy >= 90 ? '#DC2626' : (occupancy >= 70 ? '#D97706' : '#2563EB'));
+
+        return `
+            <div class="dept-card dpt-card ${isInactive ? 'dpt-card-inactive' : ''}">
+                <div class="dept-card-header dpt-card-top">
+                    <div class="dpt-code-badge">${code}</div>
+                    <span class="dpt-status-badge ${isInactive ? 'status-inactive' : 'status-active'}">
+                        <span>${isInactive ? '⏸' : '✓'}</span> ${status}
+                    </span>
+                </div>
+
+                <h3 class="dpt-card-title">${name}</h3>
+                <p class="dpt-card-desc">${desc}</p>
+
+                <div class="dpt-hod-box">
+                    <div class="dpt-hod-avatar">👤</div>
+                    <div class="dpt-hod-info">
+                        <small>HEAD OF DEPARTMENT (HOD)</small>
+                        <strong>${hod}</strong>
+                        ${hodEmail ? `<a href="mailto:${hodEmail}" class="dpt-hod-email">${hodEmail}</a>` : ''}
+                    </div>
+                </div>
+
+                <div class="dpt-stats-row">
+                    <div class="dpt-stat-item">
+                        <small>ENROLLED STUDENTS</small>
+                        <strong>👥 ${studentCount}</strong>
+                    </div>
+                    <div class="dpt-stat-item">
+                        <small>COURSES</small>
+                        <strong>🎓 ${courseCount} B.Tech</strong>
+                    </div>
+                    <div class="dpt-stat-item">
+                        <small>INTAKE SEATS</small>
+                        <strong>🪑 ${totalSeats}</strong>
+                    </div>
+                </div>
+
+                <div class="dpt-occupancy-wrap">
+                    <div class="dpt-occupancy-header">
+                        <span>Seat Capacity Utilization</span>
+                        <strong>${occupancy}% (${studentCount}/${totalSeats})</strong>
+                    </div>
+                    <div class="dpt-occupancy-bar">
+                        <div class="dpt-occupancy-fill" style="width: ${Math.min(occupancy, 100)}%; background: ${barColor};"></div>
+                    </div>
+                </div>
+
+                <div class="dept-actions dpt-card-actions">
+                    <button type="button" class="btn-dpt-card btn-card-view" onclick="openViewDepartmentModal(${id})" title="View Department Details">👁 View</button>
+                    <button type="button" class="btn-dpt-card btn-card-edit" onclick="openEditDepartmentModal(${id})" title="Edit Department Info">✏️ Edit</button>
+                    <button type="button" class="btn-dpt-card btn-card-delete" onclick="confirmDeleteDepartment(${id})" title="Delete Department">🗑 Delete</button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function resetDepartmentFilters() {
+    if (document.getElementById("dptSearchInput")) document.getElementById("dptSearchInput").value = "";
+    if (document.getElementById("dptStatusFilter")) document.getElementById("dptStatusFilter").value = "";
+    fetchDepartmentsModule();
+}
+
+function openAddDepartmentModal() {
+    if (document.getElementById("dptAddForm")) document.getElementById("dptAddForm").reset();
+    document.getElementById("dptAddModal").style.display = "flex";
+}
+
+function closeAddDepartmentModal() {
+    document.getElementById("dptAddModal").style.display = "none";
+}
+
+async function submitNewDepartment(event) {
+    event.preventDefault();
+    const saveBtn = document.getElementById("saveNewDptBtn");
+
+    const payload = {
+        name: document.getElementById("addDptName").value.trim(),
+        code: document.getElementById("addDptCode").value.trim().toUpperCase(),
+        hod_name: document.getElementById("addDptHodName").value.trim(),
+        hod_email: document.getElementById("addDptHodEmail").value.trim(),
+        total_seats: parseInt(document.getElementById("addDptSeats").value) || 60,
+        status: document.getElementById("addDptStatus").value,
+        description: document.getElementById("addDptDesc").value.trim()
+    };
+
+    try {
+        if (saveBtn) {
+            saveBtn.disabled = true;
+            saveBtn.textContent = "Creating...";
+        }
+
+        const res = await fetch("/api/departments", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Failed to create department");
+
+        showToast(data.message || "Department created successfully!", "success");
+        closeAddDepartmentModal();
+        fetchDepartmentsModule();
+
+    } catch (err) {
+        console.error("submitNewDepartment error:", err);
+        showToast(err.message, "error");
+    } finally {
+        if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.textContent = "Create Department";
+        }
+    }
+}
+
+function openEditDepartmentModal(deptId) {
+    fetch(`/api/departments/${deptId}`)
+        .then(res => {
+            if (!res.ok) throw new Error("Department not found");
+            return res.json();
+        })
+        .then(d => {
+            document.getElementById("editDptId").value = d.id;
+            document.getElementById("editDptName").value = d.name || "";
+            document.getElementById("editDptCode").value = d.code || "";
+            document.getElementById("editDptHodName").value = d.hod_name || "";
+            document.getElementById("editDptHodEmail").value = d.hod_email || "";
+            document.getElementById("editDptSeats").value = d.total_seats || 60;
+            document.getElementById("editDptStatus").value = d.status || "Active";
+            document.getElementById("editDptDesc").value = d.description || "";
+
+            document.getElementById("dptEditModal").style.display = "flex";
+        })
+        .catch(err => {
+            console.error("openEditDepartmentModal error:", err);
+            showToast("Failed to load department details for editing", "error");
+        });
+}
+
+function closeEditDepartmentModal() {
+    document.getElementById("dptEditModal").style.display = "none";
+}
+
+async function submitEditDepartment(event) {
+    event.preventDefault();
+    const deptId = document.getElementById("editDptId").value;
+    const saveBtn = document.getElementById("saveEditDptBtn");
+
+    const payload = {
+        name: document.getElementById("editDptName").value.trim(),
+        code: document.getElementById("editDptCode").value.trim().toUpperCase(),
+        hod_name: document.getElementById("editDptHodName").value.trim(),
+        hod_email: document.getElementById("editDptHodEmail").value.trim(),
+        total_seats: parseInt(document.getElementById("editDptSeats").value) || 60,
+        status: document.getElementById("editDptStatus").value,
+        description: document.getElementById("editDptDesc").value.trim()
+    };
+
+    try {
+        if (saveBtn) {
+            saveBtn.disabled = true;
+            saveBtn.textContent = "Saving...";
+        }
+
+        const res = await fetch(`/api/departments/${deptId}`, {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Failed to update department");
+
+        showToast(data.message || "Department updated successfully!", "success");
+        closeEditDepartmentModal();
+        fetchDepartmentsModule();
+
+    } catch (err) {
+        console.error("submitEditDepartment error:", err);
+        showToast(err.message, "error");
+    } finally {
+        if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.textContent = "Save Changes";
+        }
+    }
+}
+
+function openViewDepartmentModal(deptId) {
+    const modalBody = document.getElementById("dptViewModalBody");
+    if (!modalBody) return;
+
+    modalBody.innerHTML = `
+        <div style="text-align: center; padding: 40px; color: #64748B;">
+            <div style="font-size: 24px; margin-bottom: 8px;">⌛</div>
+            <div>Loading department metrics...</div>
+        </div>
+    `;
+
+    document.getElementById("dptViewModal").style.display = "flex";
+
+    fetch(`/api/departments/${deptId}`)
+        .then(res => {
+            if (!res.ok) throw new Error("Department details not available");
+            return res.json();
+        })
+        .then(d => {
+            const isInactive = d.status === 'Inactive';
+            modalBody.innerHTML = `
+                <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 10px; padding: 20px; margin-bottom: 16px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <span style="font-family: monospace; font-size: 13px; font-weight: 800; background: #2563EB; color: white; padding: 3px 10px; border-radius: 4px;">${escapeHtml(d.code)}</span>
+                        <span style="font-size: 12px; font-weight: 700; color: ${isInactive ? '#64748B' : '#059669'}; background: ${isInactive ? '#F1F5F9' : '#ECFDF5'}; padding: 3px 10px; border-radius: 12px; border: 1px solid ${isInactive ? '#CBD5E1' : '#A7F3D0'};">
+                            ${isInactive ? '⏸ Inactive' : '✓ Active Branch'}
+                        </span>
+                    </div>
+                    <h3 style="margin: 0 0 6px 0; color: #0F172A; font-size: 20px;">${escapeHtml(d.name)}</h3>
+                    <p style="margin: 0; color: #475569; font-size: 13.5px; line-height: 1.5;">${escapeHtml(d.description || 'Standard Engineering Degree Program')}</p>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+                    <div style="border: 1px solid #E2E8F0; border-radius: 8px; padding: 14px; background: white;">
+                        <small style="font-size: 10.5px; font-weight: 700; color: #64748B; display: block; margin-bottom: 4px;">HEAD OF DEPARTMENT (HOD)</small>
+                        <strong style="font-size: 14px; color: #0F172A; display: block;">👤 ${escapeHtml(d.hod_name)}</strong>
+                        ${d.hod_email ? `<small style="color: #2563EB; font-weight: 600;">📧 ${escapeHtml(d.hod_email)}</small>` : ''}
+                    </div>
+
+                    <div style="border: 1px solid #E2E8F0; border-radius: 8px; padding: 14px; background: white;">
+                        <small style="font-size: 10.5px; font-weight: 700; color: #64748B; display: block; margin-bottom: 4px;">SEATING CAPACITY & ENROLLMENT</small>
+                        <strong style="font-size: 14px; color: #0F172A; display: block;">👥 ${d.student_count || 0} Enrolled / ${d.total_seats || 60} Seats</strong>
+                        <small style="color: #059669; font-weight: 600;">📊 ${d.occupancy_rate || 0}% Capacity Utilization</small>
+                    </div>
+                </div>
+
+                <div style="border: 1px solid #E2E8F0; border-radius: 8px; padding: 14px; background: white;">
+                    <small style="font-size: 10.5px; font-weight: 700; color: #64748B; display: block; margin-bottom: 8px;">DEGREE PROGRAMS OFFERED</small>
+                    <div style="display: flex; align-items: center; gap: 10px; background: #F1F5F9; padding: 10px 14px; border-radius: 6px;">
+                        <span style="font-size: 20px;">🎓</span>
+                        <div>
+                            <strong style="font-size: 13px; color: #1E293B; display: block;">Bachelor of Technology (B.Tech in ${escapeHtml(d.name)})</strong>
+                            <small style="color: #64748B;">4 Years Full-Time Undergraduate Degree Program</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 20px; display: flex; justify-content: flex-end;">
+                    <button type="button" class="btn-secondary" onclick="closeViewDepartmentModal()">Close</button>
+                </div>
+            `;
+        })
+        .catch(err => {
+            console.error("openViewDepartmentModal error:", err);
+            modalBody.innerHTML = `<div style="color: #DC2626; padding: 20px;">⚠️ Failed to load department details.</div>`;
+        });
+}
+
+function closeViewDepartmentModal() {
+    document.getElementById("dptViewModal").style.display = "none";
+}
+
+async function confirmDeleteDepartment(deptId) {
+    const dept = cachedDepartments.find(d => Number(d.id) === Number(deptId));
+    const deptName = dept ? dept.name : "this department";
+
+    if (!confirm(`Are you sure you want to delete the department "${deptName}"?\n\nNote: Safe deletion checks will prevent deleting departments that currently have active student records.`)) {
+        return;
+    }
+
+    try {
+        const res = await fetch(`/api/departments/${deptId}`, {
+            method: "DELETE",
+            headers: {
+                "Accept": "application/json"
+            }
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+            showToast(data.error || "Failed to delete department", "error");
+            return;
+        }
+
+        showToast(data.message || "Department deleted successfully!", "success");
+        fetchDepartmentsModule();
+
+    } catch (err) {
+        console.error("confirmDeleteDepartment error:", err);
+        showToast("Error deleting department: " + err.message, "error");
+    }
 }

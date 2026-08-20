@@ -5,5 +5,6 @@ from .payment import Payment
 from .ticket import Ticket
 from .seat_matrix import SeatMatrix
 from .attendance import Attendance
+from .department import Department
 
-__all__ = ["db", "Admin", "Student", "Payment", "Ticket", "SeatMatrix", "Attendance"]
+__all__ = ["db", "Admin", "Student", "Payment", "Ticket", "SeatMatrix", "Attendance", "Department"]

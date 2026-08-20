@@ -61,6 +61,19 @@ def get_students():
 
 
 # ============================================================
+# GET STUDENTS MODULE KPI STATS
+# ============================================================
+@student_bp.route("/api/students/stats", methods=["GET"])
+def get_students_stats():
+    try:
+        stats = StudentService.get_students_kpi_stats()
+        return jsonify(stats), 200
+    except Exception as e:
+        current_app.logger.exception("Error fetching student KPI stats")
+        return jsonify({"error": str(e)}), 500
+
+
+# ============================================================
 # GET SINGLE STUDENT
 # ============================================================
 @student_bp.route(

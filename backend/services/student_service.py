@@ -985,3 +985,33 @@ class StudentService:
                 "approved_awaiting_enrollment": approved_unconverted_count
             }
         }
+
+    # =========================================================
+    # STUDENTS MODULE KPI STATS
+    # =========================================================
+    @staticmethod
+    def get_students_kpi_stats():
+        total_students = Student.query.count()
+        active_students = Student.query.filter(
+            db.or_(
+                Student.status == "Enrolled",
+                Student.status.in_(["Approved", "Verified", "Documents Verified"]),
+                Student.is_enrolled == True
+            )
+        ).count()
+        male_students = Student.query.filter(Student.gender.ilike("male")).count()
+        female_students = Student.query.filter(Student.gender.ilike("female")).count()
+        new_students = Student.query.filter(
+            db.or_(
+                Student.academic_year == "2026-27",
+                Student.created_at >= datetime(2026, 1, 1)
+            )
+        ).count()
+
+        return {
+            "total_students": total_students,
+            "active_students": active_students,
+            "male_students": male_students,
+            "female_students": female_students,
+            "new_students": new_students
+        }
