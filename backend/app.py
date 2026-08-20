@@ -169,7 +169,17 @@ def create_app(config_name=None):
                 for col_name, col_type in [
                     ("verification_remarks", "TEXT NULL"),
                     ("verified_at", "DATETIME NULL"),
-                    ("verified_by", "VARCHAR(100) NULL")
+                    ("verified_by", "VARCHAR(100) NULL"),
+                    ("course", "VARCHAR(100) NULL"),
+                    ("academic_year", "VARCHAR(20) DEFAULT '2026-27'"),
+                    ("rejection_reason", "TEXT NULL"),
+                    ("doc_status_photo", "VARCHAR(20) DEFAULT 'Pending'"),
+                    ("doc_status_10th", "VARCHAR(20) DEFAULT 'Pending'"),
+                    ("doc_status_12th", "VARCHAR(20) DEFAULT 'Pending'"),
+                    ("doc_status_lc", "VARCHAR(20) DEFAULT 'Pending'"),
+                    ("enrollment_number", "VARCHAR(50) NULL"),
+                    ("is_enrolled", "BOOLEAN DEFAULT 0"),
+                    ("enrolled_at", "DATETIME NULL")
                 ]:
                     try:
                         conn.execute(db.text(f"ALTER TABLE students ADD COLUMN {col_name} {col_type}"))

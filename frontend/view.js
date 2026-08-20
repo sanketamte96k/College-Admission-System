@@ -3579,7 +3579,9 @@ function switchAdminSection(paneId, btnEl, pageTitle = "Dashboard Overview") {
         } else {
             resetAttendanceDepartmentSelection();
         }
-    } else if (paneId === "pane-dashboard" || paneId === "pane-admissions" || paneId === "pane-students") {
+    } else if (paneId === "pane-admissions") {
+        loadAdmissionsPortal();
+    } else if (paneId === "pane-dashboard" || paneId === "pane-students") {
         if (!students || students.length === 0) {
             fetchStudents();
         } else {
@@ -3795,4 +3797,550 @@ function filterFeeLedgerTable() {
             row.style.display = "none";
         }
     });
+}
+
+// ============================================================
+// ADMISSIONS MODULE CONTROLLERS & LOGIC
+// ============================================================
+let admCurrentPage = 1;
+let admTotalPages = 1;
+let admTotalCount = 0;
+let admLimit = 20;
+let admActivePipelineStage = "";
+let admChartDeptInstance = null;
+let admChartStatusInstance = null;
+
+function loadAdmissionsPortal(page = 1) {
+    admCurrentPage = page;
+    fetchAdmissions(page);
+    fetchAdmissionsAnalytics();
+}
+
+function fetchAdmissions(page = 1) {
+    admCurrentPage = page;
+    const searchVal = document.getElementById("admSearchInput") ? document.getElementById("admSearchInput").value.trim() : "";
+    const deptVal = document.getElementById("admDeptFilter") ? document.getElementById("admDeptFilter").value.trim() : "";
+    const courseVal = document.getElementById("admCourseFilter") ? document.getElementById("admCourseFilter").value.trim() : "";
+    const statusVal = admActivePipelineStage || (document.getElementById("admStatusFilter") ? document.getElementById("admStatusFilter").value.trim() : "");
+    const yearVal = document.getElementById("admYearFilter") ? document.getElementById("admYearFilter").value.trim() : "";
+    const fromDate = document.getElementById("admFromDate") ? document.getElementById("admFromDate").value : "";
+    const toDate = document.getElementById("admToDate") ? document.getElementById("admToDate").value : "";
+
+    const params = new URLSearchParams({
+        page: admCurrentPage,
+        limit: admLimit,
+        search: searchVal,
+        dept: deptVal,
+        course: courseVal,
+        status: statusVal,
+        academic_year: yearVal,
+        from_date: fromDate,
+        to_date: toDate
+    });
+
+    const tbody = document.getElementById("studentTableBody");
+    if (tbody) {
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:30px; color:#64748B;">⌛ Loading admissions records...</td></tr>`;
+    }
+
+    fetch(`/api/students?${params.toString()}`)
+        .then(res => {
+            if (!res.ok) throw new Error("Failed to load admissions from server");
+            return res.json();
+        })
+        .then(data => {
+            if (Array.isArray(data)) {
+                students = data;
+                admTotalCount = data.length;
+                admTotalPages = 1;
+            } else if (data && Array.isArray(data.students)) {
+                students = data.students;
+                admTotalCount = data.total || data.students.length;
+                admTotalPages = data.pages || 1;
+            } else {
+                students = [];
+                admTotalCount = 0;
+                admTotalPages = 1;
+            }
+            renderAdmissionsTable();
+            renderAdmissionsPagination();
+        })
+        .catch(err => {
+            console.error("Fetch admissions error:", err);
+            if (tbody) {
+                tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:24px; color:#EF4444;">⚠️ Unable to load applications. <button class="btn-sm btn-primary" onclick="fetchAdmissions(1)" style="margin-left:8px;">Retry</button></td></tr>`;
+            }
+        });
+}
+
+function renderAdmissionsTable() {
+    const tbody = document.getElementById("studentTableBody");
+    if (!tbody) return;
+
+    if (!students || students.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="8" style="text-align: center; padding: 48px 20px; color: #64748B;">
+                    <div style="font-size: 40px; margin-bottom: 8px;">📂</div>
+                    <strong style="font-size: 16px; color: #1E293B; display:block;">No applications found.</strong>
+                    <p style="margin: 4px 0 16px 0; font-size: 13px;">Try changing your filter settings or submit a new candidate application.</p>
+                    <button class="btn-adm-primary" onclick="openNewAdmissionModal()">+ New Application</button>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    tbody.innerHTML = students.map(s => {
+        const appId = s.application_id || `ADM-2026-${String(s.id).padStart(4, '0')}`;
+        const fullName = escapeHtml(s.fullName || 'N/A');
+        const email = escapeHtml(s.email || 'N/A');
+        const mobile = escapeHtml(s.mobile || 'N/A');
+        const dept = escapeHtml(s.department || 'N/A');
+        const course = escapeHtml(s.course || `B.Tech in ${dept}`);
+        const dateStr = escapeHtml(s.created_at ? s.created_at.split(' ')[0] : 'N/A');
+        const status = s.status || 'Pending Verification';
+
+        let statusClass = 'badge-pending';
+        let statusIcon = '⌛';
+        if (status === 'Approved' || status === 'Verified') {
+            statusClass = 'badge-approved';
+            statusIcon = '✅';
+        } else if (status === 'Under Review') {
+            statusClass = 'badge-review';
+            statusIcon = '🔍';
+        } else if (status === 'Rejected') {
+            statusClass = 'badge-rejected';
+            statusIcon = '❌';
+        } else if (status === 'Enrolled') {
+            statusClass = 'badge-enrolled';
+            statusIcon = '🎓';
+        } else if (status === 'Documents Verified') {
+            statusClass = 'badge-doc';
+            statusIcon = '📄';
+        }
+
+        const photoChip = s.doc_status_photo === 'Verified'
+            ? '<span class="doc-chip doc-chip-verified">✓ Photo</span>'
+            : (s.doc_status_photo === 'Rejected' ? '<span class="doc-chip doc-chip-rejected">❌ Photo</span>' : '<span class="doc-chip doc-chip-pending">⌛ Photo</span>');
+
+        const doc10Chip = s.doc_status_10th === 'Verified'
+            ? '<span class="doc-chip doc-chip-verified">✓ 10th</span>'
+            : (s.doc_status_10th === 'Rejected' ? '<span class="doc-chip doc-chip-rejected">❌ 10th</span>' : '<span class="doc-chip doc-chip-pending">⌛ 10th</span>');
+
+        const doc12Chip = s.doc_status_12th === 'Verified'
+            ? '<span class="doc-chip doc-chip-verified">✓ 12th</span>'
+            : (s.doc_status_12th === 'Rejected' ? '<span class="doc-chip doc-chip-rejected">❌ 12th</span>' : '<span class="doc-chip doc-chip-pending">⌛ 12th</span>');
+
+        const isApproved = (status === 'Approved' || status === 'Verified' || status === 'Documents Verified');
+        const isEnrolled = s.is_enrolled || status === 'Enrolled';
+
+        return `
+            <tr>
+                <td><span class="adm-id-badge">${appId}</span></td>
+                <td>
+                    <div class="adm-user-cell">
+                        <div class="adm-avatar">${fullName.charAt(0).toUpperCase()}</div>
+                        <div>
+                            <strong class="adm-user-name">${fullName}</strong>
+                            ${s.enrollment_number ? `<small style="color:#059669; font-weight:700; display:block;">ENR: ${escapeHtml(s.enrollment_number)}</small>` : ''}
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    <div><a href="mailto:${email}" class="adm-link">${email}</a></div>
+                    <small class="adm-subtext">📞 ${mobile}</small>
+                </td>
+                <td>
+                    <strong class="adm-dept-title">${dept}</strong>
+                    <div class="adm-subtext">${course}</div>
+                </td>
+                <td><span class="adm-date-badge">📅 ${dateStr}</span></td>
+                <td>
+                    <div class="adm-doc-chips">
+                        ${photoChip}
+                        ${doc10Chip}
+                        ${doc12Chip}
+                    </div>
+                </td>
+                <td>
+                    <span class="adm-status-badge ${statusClass}">
+                        <span>${statusIcon}</span> ${escapeHtml(status)}
+                    </span>
+                </td>
+                <td style="text-align: right;">
+                    <div class="adm-action-group">
+                        <button class="btn-adm-table btn-table-view" onclick="openViewModal(${s.id})" title="View Complete Details">👁 View</button>
+                        ${!isEnrolled && (status === 'Pending Verification' || status === 'Under Review') ? `
+                            <button class="btn-adm-table btn-table-approve" onclick="quickApproveApplication(${s.id})" title="Verify &amp; Approve Candidate">✓ Verify</button>
+                        ` : ''}
+                        ${!isEnrolled && isApproved ? `
+                            <button class="btn-adm-table btn-table-convert" onclick="openConvertModal(${s.id})" title="Convert to Enrolled Student">🎓 Convert</button>
+                        ` : ''}
+                        ${!isEnrolled && status !== 'Rejected' ? `
+                            <button class="btn-adm-table btn-table-reject" onclick="openRejectionModal(${s.id})" title="Reject Candidate Application">❌ Reject</button>
+                        ` : ''}
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+function renderAdmissionsPagination() {
+    const infoEl = document.getElementById("admPaginationInfo");
+    const controlsEl = document.getElementById("admPaginationControls");
+    const toolbarCountEl = document.getElementById("admToolbarCount");
+    if (!infoEl || !controlsEl) return;
+
+    const start = admTotalCount === 0 ? 0 : (admCurrentPage - 1) * admLimit + 1;
+    const end = Math.min(admCurrentPage * admLimit, admTotalCount);
+
+    const infoText = `Showing ${start}–${end} of ${admTotalCount} applications`;
+    infoEl.textContent = infoText;
+    if (toolbarCountEl) toolbarCountEl.textContent = infoText;
+
+    let btnsHtml = `
+        <button class="page-btn" ${admCurrentPage <= 1 ? 'disabled' : ''} onclick="fetchAdmissions(${admCurrentPage - 1})">◀ Previous</button>
+    `;
+
+    for (let p = 1; p <= admTotalPages; p++) {
+        if (p === 1 || p === admTotalPages || (p >= admCurrentPage - 1 && p <= admCurrentPage + 1)) {
+            btnsHtml += `<button class="page-btn ${p === admCurrentPage ? 'active' : ''}" onclick="fetchAdmissions(${p})">${p}</button>`;
+        } else if (p === admCurrentPage - 2 || p === admCurrentPage + 2) {
+            btnsHtml += `<span style="padding:4px 8px; color:#64748B;">...</span>`;
+        }
+    }
+
+    btnsHtml += `
+        <button class="page-btn" ${admCurrentPage >= admTotalPages ? 'disabled' : ''} onclick="fetchAdmissions(${admCurrentPage + 1})">Next ▶</button>
+    `;
+
+    controlsEl.innerHTML = btnsHtml;
+}
+
+function fetchAdmissionsAnalytics() {
+    fetch('/api/admissions/analytics')
+        .then(res => {
+            if (!res.ok) throw new Error("Analytics API error");
+            return res.json();
+        })
+        .then(data => {
+            if (document.getElementById("admKpiTotal")) document.getElementById("admKpiTotal").textContent = data.total_applications || 0;
+            if (document.getElementById("admKpiPending")) document.getElementById("admKpiPending").textContent = data.pending_review || 0;
+            if (document.getElementById("admKpiReview")) document.getElementById("admKpiReview").textContent = data.under_review || 0;
+            if (document.getElementById("admKpiApproved")) document.getElementById("admKpiApproved").textContent = data.approved || 0;
+            if (document.getElementById("admKpiRejected")) document.getElementById("admKpiRejected").textContent = data.rejected || 0;
+            if (document.getElementById("admKpiRate")) document.getElementById("admKpiRate").textContent = `${data.admission_rate || 0}%`;
+
+            if (data.pipeline) {
+                const p = data.pipeline;
+                if (document.getElementById("pipeCountAll")) document.getElementById("pipeCountAll").textContent = data.total_applications || 0;
+                if (document.getElementById("pipeCountNew")) document.getElementById("pipeCountNew").textContent = p.new || 0;
+                if (document.getElementById("pipeCountReview")) document.getElementById("pipeCountReview").textContent = p.under_review || 0;
+                if (document.getElementById("pipeCountDoc")) document.getElementById("pipeCountDoc").textContent = p.documents_verification || 0;
+                if (document.getElementById("pipeCountApproved")) document.getElementById("pipeCountApproved").textContent = p.approved || 0;
+                if (document.getElementById("pipeCountEnrolled")) document.getElementById("pipeCountEnrolled").textContent = p.enrolled || 0;
+            }
+
+            const attContent = document.getElementById("admAttentionContent");
+            if (attContent && data.attention_required) {
+                const att = data.attention_required;
+                let attHtml = '';
+                if (att.pending_documents > 0) {
+                    attHtml += `<div class="att-chip att-chip-amber"><span class="att-chip-icon">📁</span> <span><strong>${att.pending_documents}</strong> candidate document verifications pending</span></div>`;
+                }
+                if (att.awaiting_review > 0) {
+                    attHtml += `<div class="att-chip att-chip-amber"><span class="att-chip-icon">⌛</span> <span><strong>${att.awaiting_review}</strong> applications awaiting review</span></div>`;
+                }
+                if (att.approved_awaiting_enrollment > 0) {
+                    attHtml += `<div class="att-chip att-chip-purple"><span class="att-chip-icon">🎓</span> <span><strong>${att.approved_awaiting_enrollment}</strong> approved candidates awaiting enrollment conversion</span></div>`;
+                }
+                if (!attHtml) {
+                    attHtml = `<div class="att-chip" style="color:#059669; border-color:#A7F3D0; background:#ECFDF5;"><span class="att-chip-icon">✅</span> <span>No admission issues require attention. System running clean.</span></div>`;
+                }
+                attContent.innerHTML = attHtml;
+            }
+
+            renderAdmissionsCharts(data);
+        })
+        .catch(err => {
+            console.error("Fetch analytics error:", err);
+        });
+}
+
+function renderAdmissionsCharts(data) {
+    if (typeof Chart === 'undefined') return;
+
+    const deptCtx = document.getElementById("admDeptChart");
+    if (deptCtx && data.by_department) {
+        const labels = Object.keys(data.by_department);
+        const totals = labels.map(k => data.by_department[k].total);
+        const approveds = labels.map(k => data.by_department[k].approved);
+
+        if (admChartDeptInstance) admChartDeptInstance.destroy();
+        admChartDeptInstance = new Chart(deptCtx, {
+            type: 'bar',
+            data: {
+                labels: labels.map(l => l.replace(' Engineering', '')),
+                datasets: [
+                    { label: 'Total Applications', data: totals, backgroundColor: '#2563EB', borderRadius: 4 },
+                    { label: 'Approved', data: approveds, backgroundColor: '#059669', borderRadius: 4 }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom' } },
+                scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+            }
+        });
+    }
+
+    const statusCtx = document.getElementById("admStatusChart");
+    if (statusCtx && data.pipeline) {
+        const p = data.pipeline;
+        if (admChartStatusInstance) admChartStatusInstance.destroy();
+        admChartStatusInstance = new Chart(statusCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['New', 'Under Review', 'Doc Verified', 'Approved', 'Rejected', 'Enrolled'],
+                datasets: [{
+                    data: [p.new, p.under_review, p.documents_verification, p.approved, p.rejected, p.enrolled],
+                    backgroundColor: ['#F59E0B', '#3B82F6', '#8B5CF6', '#10B981', '#EF4444', '#14B8A6']
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'right' } }
+            }
+        });
+    }
+}
+
+function filterPipelineStage(stage) {
+    admActivePipelineStage = stage;
+
+    document.querySelectorAll(".adm-pipe-card").forEach(el => el.classList.remove("active"));
+    if (stage === "") {
+        if (document.getElementById("pipeStageAll")) document.getElementById("pipeStageAll").classList.add("active");
+    } else if (stage === "Pending Verification") {
+        if (document.getElementById("pipeStageNew")) document.getElementById("pipeStageNew").classList.add("active");
+    } else if (stage === "Under Review") {
+        if (document.getElementById("pipeStageReview")) document.getElementById("pipeStageReview").classList.add("active");
+    } else if (stage === "Documents Verified") {
+        if (document.getElementById("pipeStageDoc")) document.getElementById("pipeStageDoc").classList.add("active");
+    } else if (stage === "Approved") {
+        if (document.getElementById("pipeStageApproved")) document.getElementById("pipeStageApproved").classList.add("active");
+    } else if (stage === "Enrolled") {
+        if (document.getElementById("pipeStageEnrolled")) document.getElementById("pipeStageEnrolled").classList.add("active");
+    }
+
+    const statusFilter = document.getElementById("admStatusFilter");
+    if (statusFilter) statusFilter.value = stage;
+
+    fetchAdmissions(1);
+}
+
+function applyAdmissionsFilters() {
+    fetchAdmissions(1);
+}
+
+function resetAdmissionsFilters() {
+    if (document.getElementById("admSearchInput")) document.getElementById("admSearchInput").value = "";
+    if (document.getElementById("admDeptFilter")) document.getElementById("admDeptFilter").value = "";
+    if (document.getElementById("admCourseFilter")) document.getElementById("admCourseFilter").value = "";
+    if (document.getElementById("admStatusFilter")) document.getElementById("admStatusFilter").value = "";
+    if (document.getElementById("admYearFilter")) document.getElementById("admYearFilter").value = "2026-27";
+    if (document.getElementById("admFromDate")) document.getElementById("admFromDate").value = "";
+    if (document.getElementById("admToDate")) document.getElementById("admToDate").value = "";
+    admActivePipelineStage = "";
+    document.querySelectorAll(".pipeline-stage").forEach(el => el.classList.remove("active"));
+    document.getElementById("pipeStageAll").classList.add("active");
+    fetchAdmissions(1);
+}
+
+function openNewAdmissionModal() {
+    const modal = document.getElementById("newAdmissionModal");
+    if (modal) modal.style.display = "flex";
+}
+
+function closeNewAdmissionModal() {
+    const modal = document.getElementById("newAdmissionModal");
+    if (modal) modal.style.display = "none";
+}
+
+function autoFillCourseOptions(dept) {
+    const courseInput = document.getElementById("newCourse");
+    if (courseInput && dept) {
+        courseInput.value = `B.Tech in ${dept}`;
+    }
+}
+
+function handleNewAdmissionSubmit(e) {
+    e.preventDefault();
+
+    const formData = new FormData();
+    formData.append("fullName", document.getElementById("newFullName").value.trim());
+    formData.append("fatherName", document.getElementById("newFatherName").value.trim());
+    formData.append("motherName", document.getElementById("newMotherName").value.trim());
+    formData.append("dob", document.getElementById("newDob").value);
+    formData.append("gender", document.getElementById("newGender").value);
+    formData.append("bloodGroup", document.getElementById("newBloodGroup").value);
+    formData.append("email", document.getElementById("newEmail").value.trim());
+    formData.append("mobile", document.getElementById("newMobile").value.trim());
+    formData.append("altMobile", document.getElementById("newAltMobile").value.trim());
+    formData.append("aadhaar", document.getElementById("newAadhaar").value.trim());
+    formData.append("nationality", document.getElementById("newNationality").value.trim());
+    formData.append("address", document.getElementById("newAddress").value.trim());
+    formData.append("city", document.getElementById("newCity").value.trim());
+    formData.append("state", document.getElementById("newState").value.trim());
+    formData.append("pincode", document.getElementById("newPincode").value.trim());
+
+    formData.append("board10", document.getElementById("newBoard10").value.trim());
+    formData.append("percentage10", document.getElementById("newPercentage10").value);
+    formData.append("board12", document.getElementById("newBoard12").value.trim());
+    formData.append("percentage12", document.getElementById("newPercentage12").value);
+    formData.append("entranceExam", document.getElementById("newEntranceExam").value);
+    formData.append("entranceScore", document.getElementById("newEntranceScore").value);
+
+    formData.append("department", document.getElementById("newDepartment").value);
+    formData.append("course", document.getElementById("newCourse").value.trim());
+    formData.append("admissionType", document.getElementById("newAdmissionType").value);
+    formData.append("academic_year", document.getElementById("newAcademicYear").value);
+
+    const photoFile = document.getElementById("newPhoto").files[0];
+    const doc10File = document.getElementById("newMarksheet10").files[0];
+    const doc12File = document.getElementById("newMarksheet12").files[0];
+    const lcFile = document.getElementById("newLeavingCert").files[0];
+
+    if (photoFile) formData.append("photo", photoFile);
+    if (doc10File) formData.append("marksheet10", doc10File);
+    if (doc12File) formData.append("marksheet12", doc12File);
+    if (lcFile) formData.append("leavingCertificate", lcFile);
+
+    fetch('/api/students', {
+        method: 'POST',
+        body: formData
+    })
+    .then(res => res.json().then(data => ({ ok: res.ok, status: res.status, data })))
+    .then(({ ok, data }) => {
+        if (!ok) throw new Error(data.error || "Failed to submit application");
+        showToast("New admission application submitted successfully! Application ID: #" + (data.student ? data.student.id : ""), "success");
+        closeNewAdmissionModal();
+        document.getElementById("newAdmissionForm").reset();
+        loadAdmissionsPortal();
+    })
+    .catch(err => {
+        console.error("New admission submit error:", err);
+        showToast(err.message, "error");
+    });
+}
+
+function quickApproveApplication(id) {
+    if (!confirm("Are you sure you want to approve this candidate application?")) return;
+
+    fetch(`/api/admissions/${id}/approve`, { method: 'POST' })
+        .then(res => res.json())
+        .then(data => {
+            if (!data.success) throw new Error(data.error || "Approval failed");
+            showToast(data.message || "Application approved successfully!", "success");
+            loadAdmissionsPortal(admCurrentPage);
+        })
+        .catch(err => {
+            console.error("Approval error:", err);
+            showToast(err.message, "error");
+        });
+}
+
+let activeRejectionId = null;
+function openRejectionModal(id) {
+    activeRejectionId = id;
+    document.getElementById("rejectionReasonInput").value = "";
+    document.getElementById("rejectionModal").style.display = "flex";
+}
+
+function closeRejectionModal() {
+    activeRejectionId = null;
+    document.getElementById("rejectionModal").style.display = "none";
+}
+
+function submitApplicationRejection() {
+    if (!activeRejectionId) return;
+    const reason = document.getElementById("rejectionReasonInput").value.trim();
+    if (!reason) {
+        alert("Please provide a reason for rejecting the application.");
+        return;
+    }
+
+    fetch(`/api/admissions/${activeRejectionId}/reject`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (!data.success) throw new Error(data.error || "Rejection failed");
+        showToast("Application rejected successfully.", "success");
+        closeRejectionModal();
+        loadAdmissionsPortal(admCurrentPage);
+    })
+    .catch(err => {
+        console.error("Rejection error:", err);
+        showToast(err.message, "error");
+    });
+}
+
+let activeConvertId = null;
+function openConvertModal(id) {
+    activeConvertId = id;
+    const student = students.find(s => Number(s.id) === Number(id));
+    const bodyEl = document.getElementById("convertModalBody");
+    if (student && bodyEl) {
+        bodyEl.innerHTML = `
+            <div style="background:#F8FAFC; border-radius:8px; padding:12px; margin-bottom:16px;">
+                <strong style="color:#0F172A; font-size:16px;">${escapeHtml(student.fullName)}</strong>
+                <div style="font-size:13px; color:#64748B; margin-top:4px;">
+                    Department: <strong>${escapeHtml(student.department)}</strong> | App ID: <strong>${student.application_id || '#'+student.id}</strong>
+                </div>
+            </div>
+            <p style="font-size:13.5px; color:#334155;">This action will convert this approved candidate into an officially enrolled student, generate their unique Enrollment Number, and update the department seat matrix.</p>
+            <div style="margin-top:16px; display:flex; justify-content:flex-end; gap:10px;">
+                <button type="button" class="btn-secondary" onclick="closeConvertModal()">Cancel</button>
+                <button type="button" class="btn-success" onclick="confirmConvertToStudent(${student.id})" style="background:#059669; color:white; border:none; padding:8px 16px; border-radius:6px; font-weight:600; cursor:pointer;">Confirm Enrollment</button>
+            </div>
+        `;
+    }
+    document.getElementById("convertModal").style.display = "flex";
+}
+
+function closeConvertModal() {
+    activeConvertId = null;
+    document.getElementById("convertModal").style.display = "none";
+}
+
+function confirmConvertToStudent(id) {
+    fetch(`/api/admissions/${id}/convert-to-student`, { method: 'POST' })
+        .then(res => res.json())
+        .then(data => {
+            if (!data.success) throw new Error(data.error || "Conversion failed");
+            showToast(`Candidate converted to enrolled student! Enrollment No: ${data.enrollment_number}`, "success");
+            closeConvertModal();
+            loadAdmissionsPortal(admCurrentPage);
+        })
+        .catch(err => {
+            console.error("Convert error:", err);
+            showToast(err.message, "error");
+        });
+}
+
+function exportAdmissionsReport() {
+    const searchVal = document.getElementById("admSearchInput") ? document.getElementById("admSearchInput").value.trim() : "";
+    const deptVal = document.getElementById("admDeptFilter") ? document.getElementById("admDeptFilter").value.trim() : "";
+    const courseVal = document.getElementById("admCourseFilter") ? document.getElementById("admCourseFilter").value.trim() : "";
+    const statusVal = document.getElementById("admStatusFilter") ? document.getElementById("admStatusFilter").value.trim() : "";
+
+    const params = new URLSearchParams({ search: searchVal, dept: deptVal, course: courseVal, status: statusVal });
+    window.location.href = `/api/admissions/export?${params.toString()}`;
 }

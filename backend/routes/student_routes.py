@@ -20,25 +20,15 @@ def get_students():
     page = request.args.get("page", 1, type=int)
     limit = request.args.get("limit", 50, type=int)
 
-    search_query = request.args.get(
-        "search", "", type=str
-    ).strip()
-
-    department = request.args.get(
-        "dept", "", type=str
-    ).strip()
-
-    admission_type = request.args.get(
-        "admission_type", "", type=str
-    ).strip()
-
-    gender = request.args.get(
-        "gender", "", type=str
-    ).strip()
-
-    status = request.args.get(
-        "status", "", type=str
-    ).strip()
+    search_query = request.args.get("search", "", type=str).strip()
+    department = request.args.get("dept", "", type=str).strip() or request.args.get("department", "", type=str).strip()
+    course = request.args.get("course", "", type=str).strip()
+    academic_year = request.args.get("academic_year", "", type=str).strip()
+    admission_type = request.args.get("admission_type", "", type=str).strip()
+    gender = request.args.get("gender", "", type=str).strip()
+    status = request.args.get("status", "", type=str).strip()
+    from_date = request.args.get("from_date", "", type=str).strip()
+    to_date = request.args.get("to_date", "", type=str).strip()
 
     try:
         result = StudentService.get_all_students(
@@ -46,14 +36,15 @@ def get_students():
             limit=limit,
             search_query=search_query,
             department=department,
+            course=course,
+            academic_year=academic_year,
             admission_type=admission_type,
             gender=gender,
-            status=status
+            status=status,
+            from_date=from_date,
+            to_date=to_date
         )
 
-        # Backward compatibility:
-        # If page parameter was not explicitly provided,
-        # return only the students array.
         if "page" not in request.args:
             return jsonify(result["students"]), 200
 
@@ -515,3 +506,218 @@ def update_student_profile():
         return jsonify({
             "error": str(e)
         }), 400
+
+
+# ============================================================
+# ADMISSIONS ANALYTICS & STATS
+# ============================================================
+@student_bp.route("/api/admissions/analytics", methods=["GET"])
+@admin_required
+def get_admissions_analytics():
+    try:
+        analytics = StudentService.get_admissions_analytics()
+        return jsonify(analytics), 200
+    except Exception as e:
+        current_app.logger.exception("Error getting admissions analytics")
+        return jsonify({"error": str(e)}), 500
+
+
+# ============================================================
+# VERIFY SINGLE APPLICATION DOCUMENT
+# ============================================================
+@student_bp.route("/api/admissions/<int:student_id>/verify-document", methods=["POST"])
+@admin_required
+def verify_admission_document(student_id):
+    data = request.get_json(silent=True) or request.form.to_dict()
+    doc_type = data.get("doc_type") or data.get("documentType") or ""
+    status = data.get("status") or "Verified"
+    reason = data.get("reason") or data.get("remarks") or ""
+    admin_username = session.get("admin_username") or "admin"
+
+    try:
+        student, msg = StudentService.verify_document(
+            student_id=student_id,
+            doc_type=doc_type,
+            status=status,
+            reason=reason,
+            admin_username=admin_username
+        )
+        if not student:
+            return jsonify({"success": False, "error": msg}), 400
+
+        return jsonify({
+            "success": True,
+            "message": msg,
+            "student": student.to_dict()
+        }), 200
+    except Exception as e:
+        current_app.logger.exception("Error verifying document")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+# ============================================================
+# APPROVE ADMISSION APPLICATION
+# ============================================================
+@student_bp.route("/api/admissions/<int:student_id>/approve", methods=["POST"])
+@admin_required
+def approve_admission_application(student_id):
+    admin_username = session.get("admin_username") or "admin"
+    try:
+        student, msg = StudentService.approve_application(
+            student_id=student_id,
+            admin_username=admin_username
+        )
+        if not student:
+            return jsonify({"success": False, "error": msg}), 400
+
+        # Attempt to send verification status email
+        mail_ext = current_app.extensions.get("mail")
+        if mail_ext:
+            try:
+                send_verification_status_email(mail_ext, student.to_dict(), "Approved", "Congratulations! Your admission application has been approved.")
+            except Exception as mail_err:
+                current_app.logger.warning(f"Approval email failed: {mail_err}")
+
+        return jsonify({
+            "success": True,
+            "message": msg,
+            "student": student.to_dict()
+        }), 200
+    except Exception as e:
+        current_app.logger.exception("Error approving application")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+# ============================================================
+# REJECT ADMISSION APPLICATION
+# ============================================================
+@student_bp.route("/api/admissions/<int:student_id>/reject", methods=["POST"])
+@admin_required
+def reject_admission_application(student_id):
+    data = request.get_json(silent=True) or request.form.to_dict()
+    reason = data.get("reason") or data.get("remarks") or data.get("rejection_reason") or ""
+    admin_username = session.get("admin_username") or "admin"
+
+    try:
+        student, msg = StudentService.reject_application(
+            student_id=student_id,
+            reason=reason,
+            admin_username=admin_username
+        )
+        if not student:
+            return jsonify({"success": False, "error": msg}), 400
+
+        # Attempt to send verification status email
+        mail_ext = current_app.extensions.get("mail")
+        if mail_ext:
+            try:
+                send_verification_status_email(mail_ext, student.to_dict(), "Rejected", reason)
+            except Exception as mail_err:
+                current_app.logger.warning(f"Rejection email failed: {mail_err}")
+
+        return jsonify({
+            "success": True,
+            "message": msg,
+            "student": student.to_dict()
+        }), 200
+    except Exception as e:
+        current_app.logger.exception("Error rejecting application")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+# ============================================================
+# CONVERT APPROVED APPLICANT TO ENROLLED STUDENT
+# ============================================================
+@student_bp.route("/api/admissions/<int:student_id>/convert-to-student", methods=["POST"])
+@admin_required
+def convert_applicant_to_student(student_id):
+    admin_username = session.get("admin_username") or "admin"
+    try:
+        student, msg = StudentService.convert_to_student(
+            student_id=student_id,
+            admin_username=admin_username
+        )
+        if not student:
+            return jsonify({"success": False, "error": msg}), 400
+
+        return jsonify({
+            "success": True,
+            "message": msg,
+            "enrollment_number": student.enrollment_number,
+            "student": student.to_dict()
+        }), 200
+    except Exception as e:
+        current_app.logger.exception("Error converting application to student")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+# ============================================================
+# EXPORT ADMISSIONS CSV REPORT
+# ============================================================
+@student_bp.route("/api/admissions/export", methods=["GET"])
+@admin_required
+def export_admissions_csv():
+    import csv
+    import io
+    from flask import Response
+
+    search_query = request.args.get("search", "", type=str).strip()
+    department = request.args.get("dept", "", type=str).strip() or request.args.get("department", "", type=str).strip()
+    course = request.args.get("course", "", type=str).strip()
+    academic_year = request.args.get("academic_year", "", type=str).strip()
+    status = request.args.get("status", "", type=str).strip()
+
+    try:
+        result = StudentService.get_all_students(
+            page=1,
+            limit=5000,
+            search_query=search_query,
+            department=department,
+            course=course,
+            academic_year=academic_year,
+            status=status
+        )
+
+        students_data = result["students"]
+        output = io.StringIO()
+        writer = csv.writer(output)
+
+        # Write Header
+        writer.writerow([
+            "Application ID", "Enrollment Number", "Full Name", "Father Name", "Mother Name",
+            "DOB", "Gender", "Email", "Mobile", "Aadhaar", "Department", "Course",
+            "Academic Year", "Admission Type", "10th %", "12th %", "Entrance Score",
+            "Status", "Is Enrolled", "Created At"
+        ])
+
+        for s in students_data:
+            writer.writerow([
+                s.get("application_id", ""),
+                s.get("enrollment_number", ""),
+                s.get("fullName", ""),
+                s.get("fatherName", ""),
+                s.get("motherName", ""),
+                s.get("dob", ""),
+                s.get("gender", ""),
+                s.get("email", ""),
+                s.get("mobile", ""),
+                s.get("aadhaar", ""),
+                s.get("department", ""),
+                s.get("course", ""),
+                s.get("academic_year", ""),
+                s.get("admissionType", ""),
+                s.get("percentage10", ""),
+                s.get("percentage12", ""),
+                s.get("entranceScore", ""),
+                s.get("status", ""),
+                "Yes" if s.get("is_enrolled") else "No",
+                s.get("created_at", "")
+            ])
+
+        response = Response(output.getvalue(), mimetype="text/csv")
+        response.headers["Content-Disposition"] = "attachment; filename=Zeal_Admissions_Report.csv"
+        return response
+
+    except Exception as e:
+        current_app.logger.exception("Error exporting admissions CSV")
+        return jsonify({"error": str(e)}), 500

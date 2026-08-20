@@ -1,7 +1,7 @@
 import os
 from datetime import datetime
 
-from models import db, Student
+from models import db, Student, SeatMatrix
 from utils import sanitize_input
 
 
@@ -10,12 +10,15 @@ class StudentService:
     ALLOWED_STATUSES = [
         "Pending Verification",
         "Under Review",
+        "Documents Verified",
         "Verified",
-        "Rejected"
+        "Approved",
+        "Rejected",
+        "Enrolled"
     ]
 
     # =========================================================
-    # GET ALL STUDENTS
+    # GET ALL STUDENTS / ADMISSIONS
     # =========================================================
 
     @staticmethod
@@ -24,42 +27,85 @@ class StudentService:
         limit=50,
         search_query="",
         department="",
+        course="",
+        academic_year="",
         admission_type="",
         gender="",
-        status=""
+        status="",
+        from_date="",
+        to_date=""
     ):
         query = Student.query
 
         if search_query:
-            query = query.filter(
-                Student.fullName.ilike(
-                    f"%{search_query}%"
+            sq = search_query.strip()
+            # Support formatted Application ID search e.g. ADM-2026-0001 or raw ID digits
+            id_match = None
+            if sq.upper().startswith("ADM-"):
+                try:
+                    parts = sq.split("-")
+                    id_match = int(parts[-1])
+                except ValueError:
+                    pass
+            elif sq.isdigit():
+                id_match = int(sq)
+
+            if id_match:
+                query = query.filter(
+                    db.or_(
+                        Student.id == id_match,
+                        Student.fullName.ilike(f"%{sq}%"),
+                        Student.email.ilike(f"%{sq}%"),
+                        Student.mobile.ilike(f"%{sq}%")
+                    )
                 )
-            )
+            else:
+                query = query.filter(
+                    db.or_(
+                        Student.fullName.ilike(f"%{sq}%"),
+                        Student.email.ilike(f"%{sq}%"),
+                        Student.mobile.ilike(f"%{sq}%")
+                    )
+                )
 
         if department:
-            query = query.filter(
-                Student.department == department
-            )
+            query = query.filter(Student.department == department)
+
+        if course:
+            query = query.filter(Student.course == course)
+
+        if academic_year:
+            query = query.filter(Student.academic_year == academic_year)
 
         if admission_type:
-            query = query.filter(
-                Student.admissionType == admission_type
-            )
+            query = query.filter(Student.admissionType == admission_type)
 
         if gender:
-            query = query.filter(
-                Student.gender == gender
-            )
+            query = query.filter(Student.gender == gender)
 
         if status:
-            query = query.filter(
-                Student.status == status
-            )
+            if status == "Approved":
+                query = query.filter(Student.status.in_(["Approved", "Verified"]))
+            elif status == "Pending Review":
+                query = query.filter(Student.status.in_(["Pending Verification", "Under Review"]))
+            else:
+                query = query.filter(Student.status == status)
 
-        query = query.order_by(
-            Student.id.desc()
-        )
+        if from_date:
+            try:
+                dt_from = datetime.strptime(from_date, "%Y-%m-%d")
+                query = query.filter(Student.created_at >= dt_from)
+            except ValueError:
+                pass
+
+        if to_date:
+            try:
+                dt_to = datetime.strptime(to_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
+                query = query.filter(Student.created_at <= dt_to)
+            except ValueError:
+                pass
+
+        query = query.order_by(Student.id.desc())
 
         total = query.count()
 
@@ -319,6 +365,8 @@ class StudentService:
             entranceScore=entrance_score,
 
             department=department,
+            course=sanitize_input(data.get("course", "")) or f"B.Tech in {department}",
+            academic_year=sanitize_input(data.get("academic_year", "")) or "2026-27",
             admissionType=admission_type,
 
             status=status
@@ -739,3 +787,201 @@ class StudentService:
         except Exception:
             db.session.rollback()
             raise
+
+    # =========================================================
+    # VERIFY INDIVIDUAL DOCUMENT
+    # =========================================================
+    @staticmethod
+    def verify_document(student_id, doc_type, status, reason="", admin_username="admin"):
+        student = Student.query.get(student_id)
+        if not student:
+            return None, "Student application not found"
+
+        clean_doc = (doc_type or "").lower().strip()
+        clean_status = "Verified" if "verif" in status.lower() else ("Rejected" if "reject" in status.lower() else "Pending")
+        clean_reason = sanitize_input(reason or "")
+
+        if clean_status == "Rejected" and not clean_reason:
+            return None, "Rejection reason is required when rejecting a document."
+
+        if clean_doc in ["photo"]:
+            student.doc_status_photo = clean_status
+        elif clean_doc in ["10th", "marksheet10"]:
+            student.doc_status_10th = clean_status
+        elif clean_doc in ["12th", "marksheet12"]:
+            student.doc_status_12th = clean_status
+        elif clean_doc in ["lc", "leavingcertificate"]:
+            student.doc_status_lc = clean_status
+        else:
+            return None, f"Unknown document type '{doc_type}'"
+
+        if clean_reason:
+            student.verification_remarks = f"Document ({clean_doc.upper()}) {clean_status}: {clean_reason}"
+
+        doc_statuses = [student.doc_status_photo, student.doc_status_10th, student.doc_status_12th, student.doc_status_lc]
+        if "Rejected" in doc_statuses:
+            student.status = "Under Review"
+        elif all(s == "Verified" for s in doc_statuses):
+            student.status = "Documents Verified"
+
+        student.verified_at = datetime.utcnow()
+        student.verified_by = admin_username or "admin"
+
+        try:
+            db.session.commit()
+            return student, "Document verification status updated successfully"
+        except Exception as e:
+            db.session.rollback()
+            raise e
+
+    # =========================================================
+    # APPROVE APPLICATION WORKFLOW
+    # =========================================================
+    @staticmethod
+    def approve_application(student_id, admin_username="admin"):
+        student = Student.query.get(student_id)
+        if not student:
+            return None, "Application not found"
+
+        if student.status == "Enrolled":
+            return student, "Application is already enrolled"
+
+        student.status = "Approved"
+        student.verified_at = datetime.utcnow()
+        student.verified_by = admin_username or "admin"
+
+        try:
+            db.session.commit()
+            return student, "Application approved successfully"
+        except Exception as e:
+            db.session.rollback()
+            raise e
+
+    # =========================================================
+    # REJECT APPLICATION WORKFLOW
+    # =========================================================
+    @staticmethod
+    def reject_application(student_id, reason, admin_username="admin"):
+        student = Student.query.get(student_id)
+        if not student:
+            return None, "Application not found"
+
+        clean_reason = sanitize_input(reason or "").strip()
+        if not clean_reason:
+            return None, "Rejection reason is required"
+
+        student.status = "Rejected"
+        student.rejection_reason = clean_reason
+        student.verification_remarks = f"Application Rejected: {clean_reason}"
+        student.verified_at = datetime.utcnow()
+        student.verified_by = admin_username or "admin"
+
+        try:
+            db.session.commit()
+            return student, "Application rejected successfully"
+        except Exception as e:
+            db.session.rollback()
+            raise e
+
+    # =========================================================
+    # CONVERT TO ENROLLED STUDENT WORKFLOW
+    # =========================================================
+    @staticmethod
+    def convert_to_student(student_id, admin_username="admin"):
+        student = Student.query.get(student_id)
+        if not student:
+            return None, "Application record not found"
+
+        if student.is_enrolled or student.status == "Enrolled":
+            return None, f"Applicant is already converted to enrolled student ({student.enrollment_number or 'Enrolled'})."
+
+        if student.status not in ["Approved", "Verified", "Documents Verified"]:
+            return None, f"Only approved or verified applications can be converted to enrolled students. Current status: '{student.status}'"
+
+        dept_code = "".join([w[0] for w in (student.department or "CE").split() if w]).upper()[:3] or "GEN"
+        enrollment_no = f"ZEAL-2026-{dept_code}-{student.id:04d}"
+
+        student.enrollment_number = enrollment_no
+        student.is_enrolled = True
+        student.enrolled_at = datetime.utcnow()
+        student.status = "Enrolled"
+
+        try:
+            seat_record = SeatMatrix.query.filter_by(department=student.department).first()
+            if seat_record:
+                seat_record.filled_seats = (seat_record.filled_seats or 0) + 1
+        except Exception:
+            pass
+
+        try:
+            db.session.commit()
+            return student, f"Applicant converted to enrolled student successfully! Enrollment Number: {enrollment_no}"
+        except Exception as e:
+            db.session.rollback()
+            raise e
+
+    # =========================================================
+    # ADMISSIONS REAL ANALYTICS
+    # =========================================================
+    @staticmethod
+    def get_admissions_analytics():
+        total_applications = Student.query.count()
+        pending_review = Student.query.filter(Student.status.in_(["Pending Verification", "Under Review"])).count()
+        approved = Student.query.filter(Student.status.in_(["Approved", "Verified", "Documents Verified"])).count()
+        rejected = Student.query.filter(Student.status == "Rejected").count()
+        under_review = Student.query.filter(Student.status == "Under Review").count()
+        enrolled = Student.query.filter(db.or_(Student.status == "Enrolled", Student.is_enrolled == True)).count()
+
+        admission_rate = round((approved / total_applications * 100), 1) if total_applications > 0 else 0.0
+
+        dept_counts = {}
+        all_students = Student.query.all()
+        for s in all_students:
+            dept = s.department or "Unassigned"
+            if dept not in dept_counts:
+                dept_counts[dept] = {"total": 0, "approved": 0, "pending": 0, "enrolled": 0}
+            dept_counts[dept]["total"] += 1
+            if s.status in ["Approved", "Verified", "Documents Verified"]:
+                dept_counts[dept]["approved"] += 1
+            elif s.status in ["Pending Verification", "Under Review"]:
+                dept_counts[dept]["pending"] += 1
+            if s.status == "Enrolled" or s.is_enrolled:
+                dept_counts[dept]["enrolled"] += 1
+
+        doc_pending_count = Student.query.filter(
+            db.or_(
+                Student.doc_status_photo == "Pending",
+                Student.doc_status_10th == "Pending",
+                Student.doc_status_12th == "Pending",
+                Student.doc_status_lc == "Pending"
+            )
+        ).count()
+
+        approved_unconverted_count = Student.query.filter(
+            Student.status.in_(["Approved", "Verified", "Documents Verified"]),
+            db.or_(Student.is_enrolled == False, Student.is_enrolled == None)
+        ).count()
+
+        return {
+            "total_applications": total_applications,
+            "pending_review": pending_review,
+            "approved": approved,
+            "rejected": rejected,
+            "under_review": under_review,
+            "enrolled": enrolled,
+            "admission_rate": admission_rate,
+            "pipeline": {
+                "new": Student.query.filter(Student.status == "Pending Verification").count(),
+                "under_review": under_review,
+                "documents_verification": Student.query.filter(Student.status == "Documents Verified").count(),
+                "approved": approved,
+                "rejected": rejected,
+                "enrolled": enrolled
+            },
+            "by_department": dept_counts,
+            "attention_required": {
+                "pending_documents": doc_pending_count,
+                "awaiting_review": pending_review,
+                "approved_awaiting_enrollment": approved_unconverted_count
+            }
+        }
