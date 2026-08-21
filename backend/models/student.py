@@ -104,6 +104,7 @@ class Student(db.Model):
             "verified_at": self.verified_at.strftime("%Y-%m-%d %H:%M:%S") if self.verified_at else "",
             "verified_by": self.verified_by or "",
             "enrollment_number": self.enrollment_number or "",
+            "zprn": self.enrollment_number or "",
             "is_enrolled": bool(self.is_enrolled),
             "enrolled_at": self.enrolled_at.strftime("%Y-%m-%d %H:%M:%S") if self.enrolled_at else ""
         }

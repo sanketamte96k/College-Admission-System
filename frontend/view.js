@@ -649,6 +649,11 @@ function populateViewModal(student) {
             ${photoHtml}
             <div class="modal-profile-info">
                 <h3>${escapeHtml(student.fullName)}</h3>
+                ${(student.zprn || student.enrollment_number) ? `
+                    <div style="margin:4px 0 6px 0; font-size:13px; font-weight:800; color:#2563EB; font-family:monospace; background:#EFF6FF; border:1px solid #BFDBFE; display:inline-block; padding:4px 12px; border-radius:6px;">
+                        🆔 ZPRN: ${escapeHtml(student.zprn || student.enrollment_number)}
+                    </div>
+                ` : ''}
                 <p>🎓 ${escapeHtml(student.department)} | ${escapeHtml(student.admissionType)} Admission</p>
                 <p>📧 ${escapeHtml(student.email)} | 📱 ${escapeHtml(student.mobile)}</p>
             </div>
@@ -696,6 +701,7 @@ function populateViewModal(student) {
         <div class="detail-section">
             <h4>📚 Course & Admission Information</h4>
             <div class="detail-grid">
+                <div><strong>ZPRN Number:</strong> <strong style="font-family:monospace; color:#2563EB;">${escapeHtml(student.zprn || student.enrollment_number || "Not Assigned (Pending Enrollment)")}</strong></div>
                 <div><strong>Department:</strong> ${escapeHtml(student.department)}</div>
                 <div><strong>Admission Type:</strong> ${escapeHtml(student.admissionType)}</div>
                 <div><strong>Application Status:</strong> <strong>${escapeHtml(currentStatus)}</strong></div>
@@ -3598,7 +3604,10 @@ function switchAdminSection(paneId, btnEl, pageTitle = "Dashboard Overview") {
         loadExaminations();
     } else if (paneId === "pane-reports") {
         loadReportsAnalytics();
+    } else if (paneId === "pane-library") {
+        loadLibrary();
     }
+
 
     // Scroll to top of content
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -4336,7 +4345,8 @@ function confirmConvertToStudent(id) {
         .then(res => res.json())
         .then(data => {
             if (!data.success) throw new Error(data.error || "Conversion failed");
-            showToast(`Candidate converted to enrolled student! Enrollment No: ${data.enrollment_number}`, "success");
+            const zprnCode = data.zprn || data.enrollment_number || "Generated";
+            showToast(`Candidate converted to enrolled student! Official ZPRN: ${zprnCode}`, "success");
             closeConvertModal();
             loadAdmissionsPortal(admCurrentPage);
         })
@@ -6975,4 +6985,693 @@ function viewReportDetails(reportType) {
 function closeReportPreviewModal() {
     const modal = document.getElementById("modalReportPreview");
     if (modal) modal.style.display = "none";
+}
+
+/* ============================================================ */
+/* LIBRARY MANAGEMENT MODULE                                    */
+/* ============================================================ */
+
+let currentLibTab = "books";
+let currentLibData = {
+    summary: null,
+    books: [],
+    members: [],
+    transactions: [],
+    overdue: []
+};
+
+async function loadLibrary() {
+    try {
+        const sumRes = await fetch('/api/library/dashboard');
+        if (sumRes.ok) {
+            currentLibData.summary = await sumRes.json();
+            renderLibrarySummary(currentLibData.summary);
+        }
+
+        const cat = document.getElementById('libCategoryFilter')?.value || '';
+        const dept = document.getElementById('libDeptFilter')?.value || '';
+        const status = document.getElementById('libStatusFilter')?.value || '';
+        const search = document.getElementById('libSearchInput')?.value || '';
+
+        if (currentLibTab === "books") {
+            const booksRes = await fetch(`/api/library/books?category=${encodeURIComponent(cat)}&status=${encodeURIComponent(status)}&search=${encodeURIComponent(search)}`);
+            if (booksRes.ok) {
+                currentLibData.books = await booksRes.json();
+                renderLibraryBooksTable(currentLibData.books);
+            }
+        } else if (currentLibTab === "members") {
+            const memRes = await fetch(`/api/library/members?department=${encodeURIComponent(dept)}&search=${encodeURIComponent(search)}`);
+            if (memRes.ok) {
+                currentLibData.members = await memRes.json();
+                renderLibraryMembersTable(currentLibData.members);
+            }
+        } else if (currentLibTab === "transactions") {
+            const txRes = await fetch(`/api/library/transactions?status=${encodeURIComponent(status)}&search=${encodeURIComponent(search)}`);
+            if (txRes.ok) {
+                currentLibData.transactions = await txRes.json();
+                renderLibraryTransactionsTable(currentLibData.transactions);
+            }
+        } else if (currentLibTab === "overdue") {
+            const odRes = await fetch('/api/library/overdue');
+            if (odRes.ok) {
+                currentLibData.overdue = await odRes.json();
+                renderLibraryOverdueTable(currentLibData.overdue);
+            }
+        }
+    } catch (err) {
+        console.error("Library load error:", err);
+        showToast("Error loading library data.", "error");
+    }
+}
+
+function renderLibrarySummary(s) {
+    if (!s) return;
+    document.getElementById('libKpiTotal').textContent = s.total_books || 0;
+    document.getElementById('libKpiTitles').textContent = `${s.total_titles || 0} unique titles`;
+    document.getElementById('libKpiAvailable').textContent = s.available_books || 0;
+    document.getElementById('libKpiIssued').textContent = s.issued_books || 0;
+    document.getElementById('libKpiOverdue').textContent = s.overdue_books || 0;
+    document.getElementById('libKpiMembers').textContent = s.total_members || 0;
+    document.getElementById('libKpiFines').textContent = `₹${(s.outstanding_fines || 0).toLocaleString('en-IN')}`;
+}
+
+function switchLibraryTab(tabName) {
+    currentLibTab = tabName;
+    ['tabBtnLibBooks', 'tabBtnLibMembers', 'tabBtnLibTransactions', 'tabBtnLibOverdue'].forEach(btnId => {
+        const b = document.getElementById(btnId);
+        if (b) b.classList.remove('active');
+    });
+
+    const activeBtn = document.getElementById(`tabBtnLib${tabName.charAt(0).toUpperCase() + tabName.slice(1)}`);
+    if (activeBtn) activeBtn.classList.add('active');
+
+    ['libBooksContainer', 'libMembersContainer', 'libTransactionsContainer', 'libOverdueContainer'].forEach(cId => {
+        const c = document.getElementById(cId);
+        if (c) c.style.display = 'none';
+    });
+
+    const targetCont = document.getElementById(`lib${tabName.charAt(0).toUpperCase() + tabName.slice(1)}Container`);
+    if (targetCont) targetCont.style.display = 'block';
+
+    loadLibrary();
+}
+
+function renderLibraryBooksTable(books) {
+    const container = document.getElementById('libBooksContainer');
+    if (!container) return;
+
+    if (!books || books.length === 0) {
+        container.innerHTML = `
+            <div style="padding:40px; text-align:center; color:#64748B;">
+                <div style="font-size:36px; margin-bottom:10px;">📚</div>
+                <h4 style="margin:0; font-size:16px; color:#334155;">No books found.</h4>
+                <p style="margin:4px 0 0 0; font-size:13px;">Try clearing filters or adding a new book title.</p>
+            </div>`;
+        return;
+    }
+
+    let html = `
+        <div style="overflow-x:auto;">
+            <table class="erp-table library-book-table" style="width:100%; border-collapse:collapse;">
+                <thead>
+                    <tr style="background:#F8FAFC; border-bottom:2px solid #E2E8F0; text-align:left;">
+                        <th style="padding:12px; font-size:12px; font-weight:700; color:#475569;">ISBN</th>
+                        <th style="padding:12px; font-size:12px; font-weight:700; color:#475569;">Title</th>
+                        <th style="padding:12px; font-size:12px; font-weight:700; color:#475569;">Author</th>
+                        <th style="padding:12px; font-size:12px; font-weight:700; color:#475569;">Category</th>
+                        <th style="padding:12px; font-size:12px; font-weight:700; color:#475569;">Qty</th>
+                        <th style="padding:12px; font-size:12px; font-weight:700; color:#475569;">Avail</th>
+                        <th style="padding:12px; font-size:12px; font-weight:700; color:#475569;">Location</th>
+                        <th style="padding:12px; font-size:12px; font-weight:700; color:#475569;">Status</th>
+                        <th style="padding:12px; font-size:12px; font-weight:700; color:#475569; text-align:right;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+
+    books.forEach(b => {
+        let badgeColor = b.status === "Available" ? "background:#DCFCE7; color:#166534;" : (b.status === "Partially Available" ? "background:#FEF3C7; color:#92400E;" : "background:#FEE2E2; color:#991B1B;");
+
+        html += `
+            <tr style="border-bottom:1px solid #F1F5F9;">
+                <td style="padding:12px; font-size:12px; font-family:monospace; font-weight:600; color:#2563EB;">${b.isbn}</td>
+                <td style="padding:12px; font-size:13px; font-weight:700; color:#0F172A;">
+                    ${b.title}
+                    <div style="font-size:11px; color:#64748B; font-weight:400;">${b.publisher} (${b.pub_year}) • ${b.edition}</div>
+                </td>
+                <td style="padding:12px; font-size:12px; color:#334155;">${b.author}</td>
+                <td style="padding:12px; font-size:12px; color:#475569;"><span style="background:#F1F5F9; padding:3px 8px; border-radius:4px;">${b.category}</span></td>
+                <td style="padding:12px; font-size:12px; font-weight:700; color:#1E293B;">${b.quantity}</td>
+                <td style="padding:12px; font-size:12px; font-weight:700; color:${b.available_qty > 0 ? '#16A34A' : '#DC2626'};">${b.available_qty}</td>
+                <td style="padding:12px; font-size:12px; color:#64748B;">${b.location}</td>
+                <td style="padding:12px;">
+                    <span style="font-size:11px; font-weight:700; padding:4px 8px; border-radius:12px; ${badgeColor}">${b.status}</span>
+                </td>
+                <td style="padding:12px; text-align:right; white-space:nowrap;">
+                    <button type="button" onclick="openEditBookModal(${b.id})" style="background:#EFF6FF; color:#2563EB; border:1px solid #BFDBFE; border-radius:4px; padding:4px 8px; font-size:11px; font-weight:700; cursor:pointer; margin-right:4px;">✏️ Edit</button>
+                    ${b.available_qty > 0 ? `<button type="button" onclick="openIssueBookModal(${b.id})" style="background:#F0FDF4; color:#166534; border:1px solid #BBF7D0; border-radius:4px; padding:4px 8px; font-size:11px; font-weight:700; cursor:pointer; margin-right:4px;">📖 Issue</button>` : ''}
+                    <button type="button" onclick="confirmDeleteBook(${b.id})" style="background:#FEF2F2; color:#DC2626; border:1px solid #FECACA; border-radius:4px; padding:4px 8px; font-size:11px; font-weight:700; cursor:pointer;">🗑 Delete</button>
+                </td>
+            </tr>`;
+    });
+
+    html += `</tbody></table></div>`;
+    container.innerHTML = html;
+}
+
+function renderLibraryMembersTable(members) {
+    const container = document.getElementById('libMembersContainer');
+    if (!container) return;
+
+    if (!members || members.length === 0) {
+        container.innerHTML = `
+            <div style="padding:40px; text-align:center; color:#64748B;">
+                <div style="font-size:36px; margin-bottom:10px;">👥</div>
+                <h4 style="margin:0; font-size:16px; color:#334155;">No student members found.</h4>
+            </div>`;
+        return;
+    }
+
+    let html = `
+        <div style="overflow-x:auto;">
+            <table class="erp-table library-member-table" style="width:100%; border-collapse:collapse;">
+                <thead>
+                    <tr style="background:#F8FAFC; border-bottom:2px solid #E2E8F0; text-align:left;">
+                        <th style="padding:12px; font-size:12px; font-weight:700; color:#475569;">Roll / Reg No</th>
+                        <th style="padding:12px; font-size:12px; font-weight:700; color:#475569;">Student Name</th>
+                        <th style="padding:12px; font-size:12px; font-weight:700; color:#475569;">Department</th>
+                        <th style="padding:12px; font-size:12px; font-weight:700; color:#475569;">Year</th>
+                        <th style="padding:12px; font-size:12px; font-weight:700; color:#475569;">Books Issued</th>
+                        <th style="padding:12px; font-size:12px; font-weight:700; color:#475569;">Overdue</th>
+                        <th style="padding:12px; font-size:12px; font-weight:700; color:#475569;">Pending Fine</th>
+                        <th style="padding:12px; font-size:12px; font-weight:700; color:#475569;">Status</th>
+                        <th style="padding:12px; font-size:12px; font-weight:700; color:#475569; text-align:right;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+
+    members.forEach(m => {
+        html += `
+            <tr style="border-bottom:1px solid #F1F5F9;">
+                <td style="padding:12px; font-size:12px; font-family:monospace; font-weight:700; color:#0F172A;">${m.roll_number}</td>
+                <td style="padding:12px; font-size:13px; font-weight:700; color:#2563EB;">${m.fullName}</td>
+                <td style="padding:12px; font-size:12px; color:#334155;">${m.department}</td>
+                <td style="padding:12px; font-size:12px; color:#64748B;">Year ${m.academic_year}</td>
+                <td style="padding:12px; font-size:12px; font-weight:700; color:#1E293B;">${m.issued_books_count}</td>
+                <td style="padding:12px; font-size:12px; font-weight:700; color:${m.overdue_count > 0 ? '#DC2626' : '#64748B'};">${m.overdue_count}</td>
+                <td style="padding:12px; font-size:12px; font-weight:700; color:${m.outstanding_fine > 0 ? '#D97706' : '#16A34A'};">₹${m.outstanding_fine}</td>
+                <td style="padding:12px;">
+                    <span style="font-size:11px; font-weight:700; padding:4px 8px; border-radius:12px; background:#DCFCE7; color:#166534;">${m.status}</span>
+                </td>
+                <td style="padding:12px; text-align:right;">
+                    <button type="button" onclick="openIssueBookModal(null, ${m.student_id})" style="background:#F0FDF4; color:#166534; border:1px solid #BBF7D0; border-radius:4px; padding:4px 8px; font-size:11px; font-weight:700; cursor:pointer;">📖 Issue Book</button>
+                </td>
+            </tr>`;
+    });
+
+    html += `</tbody></table></div>`;
+    container.innerHTML = html;
+}
+
+function renderLibraryTransactionsTable(txs) {
+    const container = document.getElementById('libTransactionsContainer');
+    if (!container) return;
+
+    if (!txs || txs.length === 0) {
+        container.innerHTML = `
+            <div style="padding:40px; text-align:center; color:#64748B;">
+                <div style="font-size:36px; margin-bottom:10px;">📜</div>
+                <h4 style="margin:0; font-size:16px; color:#334155;">No transactions found.</h4>
+            </div>`;
+        return;
+    }
+
+    let html = `
+        <div style="overflow-x:auto;">
+            <table class="erp-table library-transaction-table" style="width:100%; border-collapse:collapse;">
+                <thead>
+                    <tr style="background:#F8FAFC; border-bottom:2px solid #E2E8F0; text-align:left;">
+                        <th style="padding:12px; font-size:12px; font-weight:700; color:#475569;">Tx ID</th>
+                        <th style="padding:12px; font-size:12px; font-weight:700; color:#475569;">Student Member</th>
+                        <th style="padding:12px; font-size:12px; font-weight:700; color:#475569;">Book Title</th>
+                        <th style="padding:12px; font-size:12px; font-weight:700; color:#475569;">Issue Date</th>
+                        <th style="padding:12px; font-size:12px; font-weight:700; color:#475569;">Due Date</th>
+                        <th style="padding:12px; font-size:12px; font-weight:700; color:#475569;">Return Date</th>
+                        <th style="padding:12px; font-size:12px; font-weight:700; color:#475569;">Status</th>
+                        <th style="padding:12px; font-size:12px; font-weight:700; color:#475569;">Fine</th>
+                        <th style="padding:12px; font-size:12px; font-weight:700; color:#475569; text-align:right;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+
+    txs.forEach(t => {
+        let badgeStyle = t.status === "Returned" ? "background:#DCFCE7; color:#166534;" : (t.status === "Overdue" ? "background:#FEE2E2; color:#991B1B;" : "background:#EFF6FF; color:#1E40AF;");
+
+        html += `
+            <tr style="border-bottom:1px solid #F1F5F9;">
+                <td style="padding:12px; font-size:12px; font-family:monospace; font-weight:700; color:#64748B;">#LIB-${t.id}</td>
+                <td style="padding:12px; font-size:13px; font-weight:700; color:#0F172A;">
+                    ${t.student_name}
+                    <div style="font-size:11px; color:#64748B; font-weight:400;">${t.student_roll} (${t.department})</div>
+                </td>
+                <td style="padding:12px; font-size:12px; font-weight:600; color:#2563EB;">
+                    ${t.book_title}
+                    <div style="font-size:11px; color:#64748B; font-weight:400;">ISBN: ${t.book_isbn}</div>
+                </td>
+                <td style="padding:12px; font-size:12px; color:#334155;">${t.issue_date}</td>
+                <td style="padding:12px; font-size:12px; font-weight:600; color:#334155;">${t.due_date}</td>
+                <td style="padding:12px; font-size:12px; color:#64748B;">${t.return_date || '-'}</td>
+                <td style="padding:12px;">
+                    <span style="font-size:11px; font-weight:700; padding:4px 8px; border-radius:12px; ${badgeStyle}">${t.status}</span>
+                </td>
+                <td style="padding:12px; font-size:12px; font-weight:700; color:${t.fine_amount > 0 ? '#DC2626' : '#64748B'};">
+                    ₹${t.fine_amount}
+                    ${t.fine_status !== 'None' ? `<span style="font-size:10px; font-weight:600; display:block; color:#475569;">(${t.fine_status})</span>` : ''}
+                </td>
+                <td style="padding:12px; text-align:right;">
+                    ${t.status !== 'Returned' ? `<button type="button" onclick="openReturnBookModal(${t.id})" style="background:#F0FDF4; color:#166534; border:1px solid #BBF7D0; border-radius:4px; padding:4px 8px; font-size:11px; font-weight:700; cursor:pointer;">↩️ Return</button>` : '<span style="font-size:12px; color:#94A3B8;">✓ Complete</span>'}
+                </td>
+            </tr>`;
+    });
+
+    html += `</tbody></table></div>`;
+    container.innerHTML = html;
+}
+
+function renderLibraryOverdueTable(odList) {
+    const container = document.getElementById('libOverdueContainer');
+    if (!container) return;
+
+    if (!odList || odList.length === 0) {
+        container.innerHTML = `
+            <div style="padding:40px; text-align:center; color:#166534; background:#F0FDF4; border-radius:8px; border:1px solid #BBF7D0;">
+                <div style="font-size:36px; margin-bottom:10px;">🎉</div>
+                <h4 style="margin:0; font-size:16px; color:#166534;">No overdue books!</h4>
+                <p style="margin:4px 0 0 0; font-size:13px; color:#15803D;">All borrowed books are returned or within their active due dates.</p>
+            </div>`;
+        return;
+    }
+
+    let html = `
+        <div style="overflow-x:auto;">
+            <table class="erp-table library-transaction-table" style="width:100%; border-collapse:collapse;">
+                <thead>
+                    <tr style="background:#FEF2F2; border-bottom:2px solid #FCA5A5; text-align:left;">
+                        <th style="padding:12px; font-size:12px; font-weight:700; color:#991B1B;">Student Member</th>
+                        <th style="padding:12px; font-size:12px; font-weight:700; color:#991B1B;">Book Title</th>
+                        <th style="padding:12px; font-size:12px; font-weight:700; color:#991B1B;">Issue Date</th>
+                        <th style="padding:12px; font-size:12px; font-weight:700; color:#991B1B;">Due Date</th>
+                        <th style="padding:12px; font-size:12px; font-weight:700; color:#991B1B;">Days Overdue</th>
+                        <th style="padding:12px; font-size:12px; font-weight:700; color:#991B1B;">Accrued Fine</th>
+                        <th style="padding:12px; font-size:12px; font-weight:700; color:#991B1B; text-align:right;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+
+    odList.forEach(t => {
+        html += `
+            <tr style="border-bottom:1px solid #FEE2E2;">
+                <td style="padding:12px; font-size:13px; font-weight:700; color:#0F172A;">
+                    ${t.student_name}
+                    <div style="font-size:11px; color:#64748B; font-weight:400;">${t.student_roll} (${t.department})</div>
+                </td>
+                <td style="padding:12px; font-size:12px; font-weight:600; color:#991B1B;">
+                    ${t.book_title}
+                    <div style="font-size:11px; color:#64748B; font-weight:400;">ISBN: ${t.book_isbn}</div>
+                </td>
+                <td style="padding:12px; font-size:12px; color:#334155;">${t.issue_date}</td>
+                <td style="padding:12px; font-size:12px; font-weight:700; color:#DC2626;">${t.due_date}</td>
+                <td style="padding:12px; font-size:12px; font-weight:700; color:#DC2626;">${t.overdue_days} Days</td>
+                <td style="padding:12px; font-size:12px; font-weight:700; color:#B91C1C;">₹${t.fine_amount}</td>
+                <td style="padding:12px; text-align:right;">
+                    <button type="button" onclick="openReturnBookModal(${t.id})" style="background:#DC2626; color:white; border:none; border-radius:4px; padding:6px 12px; font-size:11px; font-weight:700; cursor:pointer;">↩️ Process Return</button>
+                </td>
+            </tr>`;
+    });
+
+    html += `</tbody></table></div>`;
+    container.innerHTML = html;
+}
+
+function resetLibraryFilters() {
+    if (document.getElementById('libCategoryFilter')) document.getElementById('libCategoryFilter').value = '';
+    if (document.getElementById('libDeptFilter')) document.getElementById('libDeptFilter').value = '';
+    if (document.getElementById('libStatusFilter')) document.getElementById('libStatusFilter').value = '';
+    if (document.getElementById('libSearchInput')) document.getElementById('libSearchInput').value = '';
+    loadLibrary();
+}
+
+/* --- BOOK MODAL FUNCTIONS --- */
+
+function openAddBookModal() {
+    document.getElementById('libBookForm')?.reset();
+    document.getElementById('libBookModalId').value = '';
+    document.getElementById('libBookModalTitle').textContent = '📚 Add New Book Title';
+    document.getElementById('libBookModal').style.display = 'block';
+}
+
+async function openEditBookModal(bookId) {
+    try {
+        const res = await fetch(`/api/library/books/${bookId}`);
+        if (!res.ok) throw new Error("Failed to fetch book");
+        const b = await res.json();
+
+        document.getElementById('libBookModalId').value = b.id;
+        document.getElementById('libModalIsbn').value = b.isbn;
+        document.getElementById('libModalTitle').value = b.title;
+        document.getElementById('libModalAuthor').value = b.author;
+        document.getElementById('libModalCategory').value = b.category;
+        document.getElementById('libModalPublisher').value = b.publisher || '';
+        document.getElementById('libModalEdition').value = b.edition || '';
+        document.getElementById('libModalPubYear').value = b.pub_year || 2024;
+        document.getElementById('libModalQty').value = b.quantity;
+        document.getElementById('libModalLocation').value = b.location || '';
+        document.getElementById('libModalDesc').value = b.description || '';
+
+        document.getElementById('libBookModalTitle').textContent = `✏️ Edit Book (${b.isbn})`;
+        document.getElementById('libBookModal').style.display = 'block';
+    } catch (err) {
+        showToast(err.message, "error");
+    }
+}
+
+function closeLibBookModal() {
+    const m = document.getElementById('libBookModal');
+    if (m) m.style.display = 'none';
+}
+
+async function submitLibBookForm(e) {
+    e.preventDefault();
+
+    const id = document.getElementById('libBookModalId').value;
+    const payload = {
+        isbn: document.getElementById('libModalIsbn').value,
+        title: document.getElementById('libModalTitle').value,
+        author: document.getElementById('libModalAuthor').value,
+        category: document.getElementById('libModalCategory').value,
+        publisher: document.getElementById('libModalPublisher').value,
+        edition: document.getElementById('libModalEdition').value,
+        pub_year: document.getElementById('libModalPubYear').value,
+        quantity: document.getElementById('libModalQty').value,
+        location: document.getElementById('libModalLocation').value,
+        description: document.getElementById('libModalDesc').value
+    };
+
+    const url = id ? `/api/library/books/${id}` : '/api/library/books';
+    const method = id ? 'PUT' : 'POST';
+
+    try {
+        const res = await fetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+            showToast(data.error || "Failed to save book.", "error");
+            return;
+        }
+
+        showToast(data.message || "Book saved successfully!", "success");
+        closeLibBookModal();
+        loadLibrary();
+    } catch (err) {
+        showToast("Server communication error.", "error");
+    }
+}
+
+async function confirmDeleteBook(bookId) {
+    if (!confirm("Are you sure you want to delete this book from the library catalog?")) return;
+
+    try {
+        const res = await fetch(`/api/library/books/${bookId}`, { method: 'DELETE' });
+        const data = await res.json();
+
+        if (!res.ok) {
+            showToast(data.error || "Delete blocked.", "error");
+            return;
+        }
+
+        showToast(data.message || "Book deleted successfully.", "success");
+        loadLibrary();
+    } catch (err) {
+        showToast("Failed to delete book.", "error");
+    }
+}
+
+/* --- ISSUE MODAL FUNCTIONS --- */
+
+async function openIssueBookModal(targetBookId = null, targetStudentId = null) {
+    try {
+        const bRes = await fetch('/api/library/books?status=Available');
+        const books = bRes.ok ? await bRes.json() : [];
+
+        const bSelect = document.getElementById('libIssueBookId');
+        if (bSelect) {
+            bSelect.innerHTML = '<option value="">-- Select Available Book Title --</option>' +
+                books.map(b => `<option value="${b.id}" ${b.id == targetBookId ? 'selected' : ''}>${b.title} (${b.isbn}) - Available: ${b.available_qty}</option>`).join('');
+        }
+
+        // Reset ZPRN Verification Fields
+        if (document.getElementById('libZprnInput')) document.getElementById('libZprnInput').value = '';
+        if (document.getElementById('libZprnMessage')) document.getElementById('libZprnMessage').style.display = 'none';
+        if (document.getElementById('libVerifiedStudentBox')) document.getElementById('libVerifiedStudentBox').style.display = 'none';
+        if (document.getElementById('libVerifiedStudentId')) document.getElementById('libVerifiedStudentId').value = '';
+
+        const submitBtn = document.getElementById('btnSubmitLibIssue');
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.style.background = '#94A3B8';
+            submitBtn.style.cursor = 'not-allowed';
+        }
+
+        // Auto-verify if targetStudentId is provided (e.g. from member list row click)
+        if (targetStudentId) {
+            document.getElementById('libZprnInput').value = targetStudentId;
+            await verifyStudentZprn();
+        }
+
+        const today = new Date();
+        const due = new Date();
+        due.setDate(today.getDate() + 14);
+
+        if (document.getElementById('libIssueDate')) document.getElementById('libIssueDate').value = today.toISOString().split('T')[0];
+        if (document.getElementById('libDueDate')) document.getElementById('libDueDate').value = due.toISOString().split('T')[0];
+        if (document.getElementById('libIssueRemarks')) document.getElementById('libIssueRemarks').value = '';
+
+        document.getElementById('libIssueModal').style.display = 'block';
+    } catch (err) {
+        showToast("Error preparing issue form.", "error");
+    }
+}
+
+async function verifyStudentZprn() {
+    const zprnInput = document.getElementById('libZprnInput')?.value?.trim();
+    const msgBox = document.getElementById('libZprnMessage');
+    const studentBox = document.getElementById('libVerifiedStudentBox');
+    const submitBtn = document.getElementById('btnSubmitLibIssue');
+
+    if (!zprnInput) {
+        if (msgBox) {
+            msgBox.style.display = 'block';
+            msgBox.style.color = '#DC2626';
+            msgBox.textContent = '❌ Please enter ZPRN No. / Enrollment Roll Number.';
+        }
+        return;
+    }
+
+    try {
+        const res = await fetch(`/api/library/verify-student/${encodeURIComponent(zprnInput)}`);
+        const data = await res.json();
+
+        if (!res.ok) {
+            if (msgBox) {
+                msgBox.style.display = 'block';
+                msgBox.style.color = '#DC2626';
+                msgBox.textContent = `❌ ${data.error || 'Student not found in college records'}`;
+            }
+            if (studentBox) studentBox.style.display = 'none';
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.style.background = '#94A3B8';
+                submitBtn.style.cursor = 'not-allowed';
+            }
+            document.getElementById('libVerifiedStudentId').value = '';
+            return;
+        }
+
+        const s = data.student;
+        if (msgBox) {
+            msgBox.style.display = 'block';
+            msgBox.style.color = '#166534';
+            msgBox.textContent = '✓ Student officially verified in college records!';
+        }
+
+        document.getElementById('libVerifiedStudentId').value = s.student_id;
+        document.getElementById('libCardZprn').textContent = s.zprn;
+        document.getElementById('libCardName').textContent = s.fullName;
+        document.getElementById('libCardDept').textContent = s.department;
+        document.getElementById('libCardCourse').textContent = s.course;
+        document.getElementById('libCardYear').textContent = `${s.academic_year} (${s.semester})`;
+        document.getElementById('libCardActiveBooks').textContent = `${s.active_issued_books} Books`;
+
+        if (studentBox) studentBox.style.display = 'block';
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.style.background = '#2563EB';
+            submitBtn.style.cursor = 'pointer';
+        }
+    } catch (err) {
+        if (msgBox) {
+            msgBox.style.display = 'block';
+            msgBox.style.color = '#DC2626';
+            msgBox.textContent = '❌ Connection error while verifying ZPRN.';
+        }
+    }
+}
+
+function closeLibIssueModal() {
+    const m = document.getElementById('libIssueModal');
+    if (m) m.style.display = 'none';
+}
+
+async function submitLibIssueForm(e) {
+    e.preventDefault();
+
+    const studentId = document.getElementById('libVerifiedStudentId')?.value;
+    const bookId = document.getElementById('libIssueBookId')?.value;
+
+    if (!studentId) {
+        showToast("Student not verified. Please verify ZPRN first.", "error");
+        return;
+    }
+
+    if (!bookId) {
+        showToast("Please select a book to issue.", "error");
+        return;
+    }
+
+    const payload = {
+        book_id: bookId,
+        student_id: studentId,
+        issue_date: document.getElementById('libIssueDate').value,
+        due_date: document.getElementById('libDueDate').value,
+        remarks: document.getElementById('libIssueRemarks').value
+    };
+
+    try {
+        const res = await fetch('/api/library/issue', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+            showToast(data.error || "Issue failed.", "error");
+            return;
+        }
+
+        showToast(data.message || "Book issued successfully!", "success");
+        closeLibIssueModal();
+        loadLibrary();
+    } catch (err) {
+        showToast("Server error during book issue.", "error");
+    }
+}
+
+/* --- RETURN MODAL FUNCTIONS --- */
+
+async function openReturnBookModal(txId) {
+    try {
+        const txs = currentLibData.transactions.length ? currentLibData.transactions : (await (await fetch('/api/library/transactions')).json());
+        const tx = txs.find(t => t.id === txId);
+
+        if (!tx) throw new Error("Transaction record not found.");
+
+        document.getElementById('libReturnTxId').value = tx.id;
+        document.getElementById('libReturnBookTitle').textContent = `📖 ${tx.book_title} (ISBN: ${tx.book_isbn})`;
+        document.getElementById('libReturnStudentInfo').textContent = `Student: ${tx.student_name} (${tx.student_roll} • ${tx.department})`;
+        document.getElementById('libReturnIssueDate').textContent = tx.issue_date;
+        document.getElementById('libReturnDueDate').textContent = tx.due_date;
+
+        const todayStr = new Date().toISOString().split('T')[0];
+        document.getElementById('libReturnDate').value = todayStr;
+        document.getElementById('libReturnRemarks').value = '';
+
+        calculateReturnFine();
+
+        document.getElementById('libReturnModal').style.display = 'block';
+    } catch (err) {
+        showToast(err.message, "error");
+    }
+}
+
+function calculateReturnFine() {
+    const dueStr = document.getElementById('libReturnDueDate').textContent;
+    const retStr = document.getElementById('libReturnDate').value;
+    const fineBox = document.getElementById('libFineCalcBox');
+
+    if (!dueStr || !retStr || dueStr === '-') return;
+
+    const dueDate = new Date(dueStr);
+    const retDate = new Date(retStr);
+
+    const diffTime = retDate - dueDate;
+    const diffDays = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+
+    if (diffDays > 0) {
+        const fineAmt = (diffDays * 10).toFixed(2);
+        document.getElementById('libCalcOverdueDays').textContent = diffDays;
+        document.getElementById('libCalcFineAmount').textContent = `₹${fineAmt}`;
+        if (fineBox) fineBox.style.display = 'block';
+    } else {
+        if (fineBox) fineBox.style.display = 'none';
+    }
+}
+
+function closeLibReturnModal() {
+    const m = document.getElementById('libReturnModal');
+    if (m) m.style.display = 'none';
+}
+
+async function submitLibReturnForm(e) {
+    e.preventDefault();
+
+    const txId = document.getElementById('libReturnTxId').value;
+    const payload = {
+        return_date: document.getElementById('libReturnDate').value,
+        fine_status: document.getElementById('libReturnFineStatus')?.value || 'Pending',
+        remarks: document.getElementById('libReturnRemarks').value
+    };
+
+    try {
+        const res = await fetch(`/api/library/return/${txId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+            showToast(data.error || "Return failed.", "error");
+            return;
+        }
+
+        showToast(data.message || "Book returned successfully!", "success");
+        closeLibReturnModal();
+        loadLibrary();
+    } catch (err) {
+        showToast("Server error during book return.", "error");
+    }
+}
+
+/* --- EXPORT REPORT FUNCTIONS --- */
+
+function exportLibraryPDF(reportType = "inventory") {
+    window.open(`/api/library/export/pdf?type=${reportType}`, '_blank');
+}
+
+function exportLibraryCSV(reportType = "inventory") {
+    window.open(`/api/library/export/csv?type=${reportType}`, '_blank');
 }

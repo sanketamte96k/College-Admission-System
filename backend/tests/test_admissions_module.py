@@ -104,7 +104,7 @@ class TestAdmissionsModule(unittest.TestCase):
             self.assertEqual(res.status_code, 200)
             data = json.loads(res.data)
             self.assertTrue(data["success"])
-            self.assertTrue(data["enrollment_number"].startswith("ZEAL-2026-CE-"))
+            self.assertTrue(data["enrollment_number"].startswith("124BT"))
 
             st = Student.query.get(st_id)
             self.assertEqual(st.status, "Enrolled")

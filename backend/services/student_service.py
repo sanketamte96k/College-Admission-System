@@ -883,6 +883,54 @@ class StudentService:
             db.session.rollback()
             raise e
 
+    @staticmethod
+    def generate_official_zprn(student):
+        """
+        Generate official permanent ZPRN (Zeal Permanent Registration Number).
+        Format: COLLEGE_CODE + PROGRAM_CODE + ADMISSION_YEAR_2DIGIT + SEQUENCE
+        Example: 124BT260001, 124IT260042, 124AD260420
+        """
+        if not student:
+            return None
+
+        college_code = "124"
+        try:
+            from flask import current_app
+            if current_app:
+                college_code = str(current_app.config.get("COLLEGE_CODE", "124")).strip()
+        except Exception:
+            college_code = "124"
+
+        dept_str = (student.department or "").strip().lower()
+        if "comp" in dept_str or "cs" in dept_str:
+            program_code = "BT"
+        elif "info" in dept_str or "it" in dept_str:
+            program_code = "IT"
+        elif "ai" in dept_str or "data" in dept_str:
+            program_code = "AD"
+        elif "elec" in dept_str or "e&tc" in dept_str or "telecom" in dept_str:
+            program_code = "ET"
+        elif "mech" in dept_str:
+            program_code = "ME"
+        elif "civil" in dept_str:
+            program_code = "CE"
+        elif "electr" in dept_str:
+            program_code = "EE"
+        else:
+            program_code = "BT"
+
+        year_str = "26"
+        if student.created_at:
+            year_str = student.created_at.strftime("%y")
+        elif student.academic_year:
+            parts = str(student.academic_year).split("-")
+            if len(parts) > 0 and len(parts[0]) == 4:
+                year_str = parts[0][-2:]
+
+        seq_str = f"{student.id:04d}" if student.id else "0001"
+        zprn = f"{college_code}{program_code}{year_str}{seq_str}"
+        return zprn
+
     # =========================================================
     # CONVERT TO ENROLLED STUDENT WORKFLOW
     # =========================================================
@@ -893,15 +941,20 @@ class StudentService:
             return None, "Application record not found"
 
         if student.is_enrolled or student.status == "Enrolled":
-            return None, f"Applicant is already converted to enrolled student ({student.enrollment_number or 'Enrolled'})."
+            return None, f"Applicant is already converted to enrolled student (ZPRN: {student.enrollment_number or 'Enrolled'})."
 
         if student.status not in ["Approved", "Verified", "Documents Verified"]:
             return None, f"Only approved or verified applications can be converted to enrolled students. Current status: '{student.status}'"
 
-        dept_code = "".join([w[0] for w in (student.department or "CE").split() if w]).upper()[:3] or "GEN"
-        enrollment_no = f"ZEAL-2026-{dept_code}-{student.id:04d}"
+        # Generate official permanent ZPRN if not already set
+        if not student.enrollment_number:
+            zprn_code = StudentService.generate_official_zprn(student)
+            dup = Student.query.filter(Student.enrollment_number == zprn_code, Student.id != student.id).first()
+            if dup:
+                zprn_code = f"{zprn_code}-{student.id}"
+            student.enrollment_number = zprn_code
 
-        student.enrollment_number = enrollment_no
+        enrollment_no = student.enrollment_number
         student.is_enrolled = True
         student.enrolled_at = datetime.utcnow()
         student.status = "Enrolled"
@@ -915,7 +968,7 @@ class StudentService:
 
         try:
             db.session.commit()
-            return student, f"Applicant converted to enrolled student successfully! Enrollment Number: {enrollment_no}"
+            return student, f"Applicant converted to enrolled student successfully! Official ZPRN: {enrollment_no}"
         except Exception as e:
             db.session.rollback()
             raise e

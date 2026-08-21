@@ -2600,17 +2600,209 @@
             <!-- ============================================================ -->
             <!-- PANE 10: LIBRARY MANAGEMENT                                  -->
             <!-- ============================================================ -->
-            <div id="pane-library" class="erp-section-pane">
-                <div class="erp-placeholder-card">
-                    <div class="erp-placeholder-icon">📚</div>
-                    <h3>Central Digital & Physical Library</h3>
-                    <p>Access over 50,000+ engineering titles, IEEE e-journals, DELNET repository, and student book issue ledgers.</p>
-                    <div class="erp-badge-grid">
-                        <span class="erp-badge-item">📖 50,000+ Books</span>
-                        <span class="erp-badge-item">🌐 IEEE & ScienceDirect Access</span>
-                        <span class="erp-badge-item">💻 Digital Reading Room</span>
+            <div id="pane-library" class="erp-section-pane library-page">
+
+                <!-- 1. HERO HEADER -->
+                <div class="library-header lib-hero-card">
+                    <div class="lib-hero-content">
+                        <div class="lib-hero-badge">
+                            <span class="lib-pulse-dot"></span>
+                            📚 Central Digital & Physical Library Portal
+                        </div>
+                        <h2 class="lib-hero-title">Library Management</h2>
+                        <p class="lib-hero-subtitle">Manage books, members, borrowing, returns, fines and library activity reports.</p>
+                    </div>
+                    <div class="library-actions lib-hero-actions">
+                        <button type="button" class="btn-lib-primary" onclick="openAddBookModal()" title="Add New Book Title">
+                            <span>+</span> Add Book
+                        </button>
+                        <button type="button" class="btn-lib-glass" onclick="openIssueBookModal()" title="Issue Book to Student Member">
+                            <span>📖</span> Issue Book
+                        </button>
+                        <button type="button" class="btn-lib-glass" onclick="exportLibraryPDF('inventory')" title="Export PDF Inventory Report">
+                            <span>📄</span> PDF Report
+                        </button>
+                        <button type="button" class="btn-lib-glass" onclick="loadLibrary()" title="Refresh Library Data">
+                            <span>🔄</span> Refresh
+                        </button>
                     </div>
                 </div>
+
+                <!-- 2. LIBRARY STATISTICS KPI CARDS -->
+                <div class="library-stats lib-kpi-grid">
+                    <div class="lib-stat-card lib-kpi-card kpi-blue">
+                        <div class="lib-kpi-header">
+                            <div class="lib-kpi-icon">📚</div>
+                            <span class="lib-kpi-tag">Total Books</span>
+                        </div>
+                        <div class="lib-kpi-body">
+                            <small>TOTAL BOOKS IN CATALOG</small>
+                            <h3 id="libKpiTotal">0</h3>
+                            <span class="lib-kpi-sub" id="libKpiTitles">0 unique titles</span>
+                        </div>
+                    </div>
+
+                    <div class="lib-stat-card lib-kpi-card kpi-green">
+                        <div class="lib-kpi-header">
+                            <div class="lib-kpi-icon">✓</div>
+                            <span class="lib-kpi-tag">Available</span>
+                        </div>
+                        <div class="lib-kpi-body">
+                            <small>AVAILABLE FOR ISSUE</small>
+                            <h3 id="libKpiAvailable">0</h3>
+                            <span class="lib-kpi-sub">Ready in shelf racks</span>
+                        </div>
+                    </div>
+
+                    <div class="lib-stat-card lib-kpi-card kpi-purple">
+                        <div class="lib-kpi-header">
+                            <div class="lib-kpi-icon">📖</div>
+                            <span class="lib-kpi-tag">Issued</span>
+                        </div>
+                        <div class="lib-kpi-body">
+                            <small>ISSUED TO STUDENTS</small>
+                            <h3 id="libKpiIssued">0</h3>
+                            <span class="lib-kpi-sub">Active borrowing</span>
+                        </div>
+                    </div>
+
+                    <div class="lib-stat-card lib-kpi-card kpi-red">
+                        <div class="lib-kpi-header">
+                            <div class="lib-kpi-icon">⚠️</div>
+                            <span class="lib-kpi-tag">Overdue</span>
+                        </div>
+                        <div class="lib-kpi-body">
+                            <small>OVERDUE BOOKS</small>
+                            <h3 id="libKpiOverdue">0</h3>
+                            <span class="lib-kpi-sub">Past return due date</span>
+                        </div>
+                    </div>
+
+                    <div class="lib-stat-card lib-kpi-card kpi-indigo">
+                        <div class="lib-kpi-header">
+                            <div class="lib-kpi-icon">👥</div>
+                            <span class="lib-kpi-tag">Total Members</span>
+                        </div>
+                        <div class="lib-kpi-body">
+                            <small>ACTIVE STUDENT MEMBERS</small>
+                            <h3 id="libKpiMembers">0</h3>
+                            <span class="lib-kpi-sub">Enrolled student roster</span>
+                        </div>
+                    </div>
+
+                    <div class="lib-stat-card lib-kpi-card kpi-amber">
+                        <div class="lib-kpi-header">
+                            <div class="lib-kpi-icon">💰</div>
+                            <span class="lib-kpi-tag">Fines</span>
+                        </div>
+                        <div class="lib-kpi-body">
+                            <small>OUTSTANDING FINES</small>
+                            <h3 id="libKpiFines">₹0</h3>
+                            <span class="lib-kpi-sub">Pending overdue fines</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. VIEW TOGGLE TABS -->
+                <div class="lib-tabs-bar" style="display:flex; gap:10px; border-bottom:2px solid #E2E8F0; padding-bottom:8px; margin-bottom:18px;">
+                    <button type="button" id="tabBtnLibBooks" class="lib-tab-btn active" onclick="switchLibraryTab('books')">
+                        📚 Book Inventory
+                    </button>
+                    <button type="button" id="tabBtnLibMembers" class="lib-tab-btn" onclick="switchLibraryTab('members')">
+                        👥 Student Members
+                    </button>
+                    <button type="button" id="tabBtnLibTransactions" class="lib-tab-btn" onclick="switchLibraryTab('transactions')">
+                        📜 Issue / Return Log
+                    </button>
+                    <button type="button" id="tabBtnLibOverdue" class="lib-tab-btn" onclick="switchLibraryTab('overdue')">
+                        ⚠️ Overdue List
+                    </button>
+                </div>
+
+                <!-- 4. FILTER TOOLBAR -->
+                <div class="library-filters lib-filter-card">
+                    <div class="lib-filter-grid">
+                        <div class="lib-filter-field">
+                            <label class="lib-filter-label">Category</label>
+                            <select id="libCategoryFilter" class="lib-control lib-select" onchange="loadLibrary()">
+                                <option value="">All Categories</option>
+                                <option value="Computer Engineering">Computer Engineering</option>
+                                <option value="Information Technology">Information Technology</option>
+                                <option value="Artificial Intelligence & Data Science">Artificial Intelligence & Data Science</option>
+                                <option value="Electronics & Telecommunication">Electronics & Telecommunication</option>
+                                <option value="Mechanical Engineering">Mechanical Engineering</option>
+                                <option value="Civil Engineering">Civil Engineering</option>
+                                <option value="Electrical Engineering">Electrical Engineering</option>
+                                <option value="General">General / Other</option>
+                            </select>
+                        </div>
+
+                        <div class="lib-filter-field">
+                            <label class="lib-filter-label">Department</label>
+                            <select id="libDeptFilter" class="lib-control lib-select" onchange="loadLibrary()">
+                                <option value="">All Departments</option>
+                                <option value="Computer Engineering">Computer Engineering</option>
+                                <option value="Information Technology">Information Technology</option>
+                                <option value="Artificial Intelligence & Data Science">Artificial Intelligence & Data Science</option>
+                                <option value="Electronics & Telecommunication">Electronics & Telecommunication</option>
+                                <option value="Mechanical Engineering">Mechanical Engineering</option>
+                                <option value="Civil Engineering">Civil Engineering</option>
+                                <option value="Electrical Engineering">Electrical Engineering</option>
+                            </select>
+                        </div>
+
+                        <div class="lib-filter-field">
+                            <label class="lib-filter-label">Availability / Status</label>
+                            <select id="libStatusFilter" class="lib-control lib-select" onchange="loadLibrary()">
+                                <option value="">All Statuses</option>
+                                <option value="Available">Available</option>
+                                <option value="Partially Available">Partially Available</option>
+                                <option value="Unavailable">Unavailable</option>
+                                <option value="Issued">Issued</option>
+                                <option value="Overdue">Overdue</option>
+                                <option value="Returned">Returned</option>
+                            </select>
+                        </div>
+
+                        <div class="lib-filter-field filter-search" style="grid-column: span 2;">
+                            <label class="lib-filter-label">Search Books / Students / ISBN</label>
+                            <div class="lib-input-icon-wrap">
+                                <span class="lib-input-icon">🔍</span>
+                                <input type="text" id="libSearchInput" class="lib-control" placeholder="Search title, author, ISBN, student..." onkeyup="if(event.key==='Enter') loadLibrary()">
+                            </div>
+                        </div>
+
+                        <div class="lib-filter-btns" style="grid-column: span 5; display:flex; justify-content:flex-end; gap:8px;">
+                            <button type="button" class="btn-lib-action btn-apply" onclick="loadLibrary()">
+                                Apply Filters
+                            </button>
+                            <button type="button" class="btn-lib-action btn-reset" onclick="resetLibraryFilters()">
+                                Reset
+                            </button>
+                            <button type="button" class="btn-lib-action" onclick="exportLibraryCSV('inventory')" style="background:#059669; color:white; border:none; padding: 6px 14px; border-radius:6px; font-weight:700; cursor:pointer;">
+                                Export CSV
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 5. MAIN CONTENT CONTAINERS -->
+                <div id="libBooksContainer" class="library-table-card">
+                    <!-- Dynamically rendered book inventory table -->
+                </div>
+
+                <div id="libMembersContainer" class="library-table-card" style="display:none;">
+                    <!-- Dynamically rendered library members table -->
+                </div>
+
+                <div id="libTransactionsContainer" class="library-table-card" style="display:none;">
+                    <!-- Dynamically rendered library issue/return transaction log -->
+                </div>
+
+                <div id="libOverdueContainer" class="library-table-card" style="display:none;">
+                    <!-- Dynamically rendered overdue notices list -->
+                </div>
+
             </div>
 
             <!-- ============================================================ -->
@@ -3301,6 +3493,219 @@
         </div>
         <div class="modal-footer" style="margin-top: 16px; padding: 12px 20px; border-top: 1px solid #E2E8F0; display: flex; justify-content: flex-end;">
             <button type="button" class="btn-secondary" onclick="closeSemesterSubjectsModal()" style="background: #F1F5F9; color: #334155; border: 1px solid #CBD5E1; padding: 8px 18px; border-radius: 6px; font-weight: 700; cursor: pointer;">Close</button>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- LIBRARY MODALS                                               -->
+<!-- ============================================================ -->
+
+<!-- 1. Add / Edit Book Modal -->
+<div id="libBookModal" class="modal library-modal">
+    <div class="modal-content" style="max-width: 780px;">
+        <div class="modal-header">
+            <h3 id="libBookModalTitle">📚 Add New Book Title</h3>
+            <span class="close-btn" onclick="closeLibBookModal()">&times;</span>
+        </div>
+        <div class="modal-body" style="padding: 20px;">
+            <form id="libBookForm" onsubmit="submitLibBookForm(event)">
+                <input type="hidden" id="libBookModalId">
+
+                <div class="form-grid-2" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-bottom: 14px;">
+                    <div class="form-group">
+                        <label style="font-size:12px; font-weight:700; color:#334155;">ISBN *</label>
+                        <input type="text" id="libModalIsbn" required placeholder="e.g. 978-0262033848" class="form-input" style="width:100%; height:40px; padding:0 12px; border:1px solid #CBD5E1; border-radius:6px;">
+                    </div>
+                    <div class="form-group">
+                        <label style="font-size:12px; font-weight:700; color:#334155;">Category *</label>
+                        <select id="libModalCategory" required class="form-select" style="width:100%; height:40px; padding:0 12px; border:1px solid #CBD5E1; border-radius:6px;">
+                            <option value="Computer Engineering">Computer Engineering</option>
+                            <option value="Information Technology">Information Technology</option>
+                            <option value="Artificial Intelligence & Data Science">Artificial Intelligence & Data Science</option>
+                            <option value="Electronics & Telecommunication">Electronics & Telecommunication</option>
+                            <option value="Mechanical Engineering">Mechanical Engineering</option>
+                            <option value="Civil Engineering">Civil Engineering</option>
+                            <option value="Electrical Engineering">Electrical Engineering</option>
+                            <option value="General">General / Reference</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-bottom:14px;">
+                    <label style="font-size:12px; font-weight:700; color:#334155;">Book Title *</label>
+                    <input type="text" id="libModalTitle" required placeholder="e.g. Introduction to Algorithms (CLRS)" class="form-input" style="width:100%; height:40px; padding:0 12px; border:1px solid #CBD5E1; border-radius:6px;">
+                </div>
+
+                <div class="form-grid-2" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-bottom: 14px;">
+                    <div class="form-group">
+                        <label style="font-size:12px; font-weight:700; color:#334155;">Author Name(s) *</label>
+                        <input type="text" id="libModalAuthor" required placeholder="e.g. Thomas H. Cormen, Charles E. Leiserson" class="form-input" style="width:100%; height:40px; padding:0 12px; border:1px solid #CBD5E1; border-radius:6px;">
+                    </div>
+                    <div class="form-group">
+                        <label style="font-size:12px; font-weight:700; color:#334155;">Publisher</label>
+                        <input type="text" id="libModalPublisher" placeholder="e.g. MIT Press / McGraw-Hill" class="form-input" style="width:100%; height:40px; padding:0 12px; border:1px solid #CBD5E1; border-radius:6px;">
+                    </div>
+                </div>
+
+                <div class="form-grid-3" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 14px;">
+                    <div class="form-group">
+                        <label style="font-size:12px; font-weight:700; color:#334155;">Edition</label>
+                        <input type="text" id="libModalEdition" placeholder="e.g. 3rd Edition" value="1st Edition" class="form-input" style="width:100%; height:40px; padding:0 12px; border:1px solid #CBD5E1; border-radius:6px;">
+                    </div>
+                    <div class="form-group">
+                        <label style="font-size:12px; font-weight:700; color:#334155;">Publication Year</label>
+                        <input type="number" id="libModalPubYear" placeholder="2024" value="2024" min="1900" max="2030" class="form-input" style="width:100%; height:40px; padding:0 12px; border:1px solid #CBD5E1; border-radius:6px;">
+                    </div>
+                    <div class="form-group">
+                        <label style="font-size:12px; font-weight:700; color:#334155;">Total Quantity *</label>
+                        <input type="number" id="libModalQty" required min="0" value="1" placeholder="1" class="form-input" style="width:100%; height:40px; padding:0 12px; border:1px solid #CBD5E1; border-radius:6px;">
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-bottom:14px;">
+                    <label style="font-size:12px; font-weight:700; color:#334155;">Shelf Location / Rack Number</label>
+                    <input type="text" id="libModalLocation" placeholder="e.g. Shelf CS-01 / Rack A-3" class="form-input" style="width:100%; height:40px; padding:0 12px; border:1px solid #CBD5E1; border-radius:6px;">
+                </div>
+
+                <div class="form-group" style="margin-bottom:18px;">
+                    <label style="font-size:12px; font-weight:700; color:#334155;">Description / Subject Coverage</label>
+                    <textarea id="libModalDesc" rows="3" placeholder="Brief summary of topics covered in book..." class="form-input" style="width:100%; padding:10px 12px; border:1px solid #CBD5E1; border-radius:6px; font-family:inherit;"></textarea>
+                </div>
+
+                <div style="display:flex; justify-content:flex-end; gap:10px; border-top:1px solid #E2E8F0; padding-top:14px;">
+                    <button type="button" onclick="closeLibBookModal()" style="background:#F1F5F9; color:#475569; border:1px solid #CBD5E1; padding:8px 18px; border-radius:6px; font-weight:700; cursor:pointer;">Cancel</button>
+                    <button type="submit" style="background:#2563EB; color:white; border:none; padding:8px 22px; border-radius:6px; font-weight:700; cursor:pointer;">Save Book</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 2. Issue Book Modal -->
+<div id="libIssueModal" class="modal library-modal">
+    <div class="modal-content" style="max-width: 680px;">
+        <div class="modal-header">
+            <h3>📖 Issue Book to Student Member</h3>
+            <span class="close-btn" onclick="closeLibIssueModal()">&times;</span>
+        </div>
+        <div class="modal-body" style="padding: 20px;">
+
+            <!-- STEP 1: ZPRN VERIFICATION INPUT -->
+            <div style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:10px; padding:16px; margin-bottom:18px;">
+                <label style="font-size:12px; font-weight:800; color:#0F172A; display:block; margin-bottom:6px;">
+                    Enter ZPRN No. / Enrollment Roll Number *
+                </label>
+                <div style="display:flex; gap:10px;">
+                    <input type="text" id="libZprnInput" placeholder="e.g. ZPRN-2026-0001, STU-0001, or 1" class="form-input" style="flex:1; height:42px; padding:0 12px; border:1px solid #CBD5E1; border-radius:6px; font-family:monospace; font-weight:700; font-size:13px;" onkeyup="if(event.key==='Enter') verifyStudentZprn()">
+                    <button type="button" onclick="verifyStudentZprn()" style="background:#2563EB; color:white; border:none; padding:0 20px; border-radius:6px; font-weight:700; font-size:13px; cursor:pointer;">
+                        🔍 Verify ZPRN
+                    </button>
+                </div>
+                <div id="libZprnMessage" style="margin-top:8px; font-size:12px; font-weight:700; display:none;"></div>
+            </div>
+
+            <!-- STEP 2: VERIFIED STUDENT CARD -->
+            <div id="libVerifiedStudentBox" style="background:#F0FDF4; border:1px solid #BBF7D0; border-radius:10px; padding:16px; margin-bottom:18px; display:none;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                    <span style="font-size:11px; font-weight:800; text-transform:uppercase; color:#166534; background:#DCFCE7; padding:3px 8px; border-radius:12px;">✓ OFFICIALLY ENROLLED STUDENT</span>
+                    <span style="font-size:12px; font-family:monospace; font-weight:700; color:#15803D;" id="libCardZprn">-</span>
+                </div>
+                <h4 style="margin:0 0 6px 0; font-size:16px; font-weight:800; color:#0F172A;" id="libCardName">Student Name</h4>
+                <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:8px; font-size:12px; color:#334155;">
+                    <div>🏛️ Department: <strong id="libCardDept">-</strong></div>
+                    <div>🎓 Program: <strong id="libCardCourse">-</strong></div>
+                    <div>📅 Academic Context: <strong id="libCardYear">-</strong></div>
+                    <div>📚 Currently Borrowed: <strong id="libCardActiveBooks">0 Books</strong></div>
+                </div>
+            </div>
+
+            <!-- STEP 3: BOOK SELECTION & ISSUE FORM -->
+            <form id="libIssueForm" onsubmit="submitLibIssueForm(event)">
+                <input type="hidden" id="libVerifiedStudentId">
+
+                <div class="form-group" style="margin-bottom:14px;">
+                    <label style="font-size:12px; font-weight:700; color:#334155;">Select Book Title *</label>
+                    <select id="libIssueBookId" required class="form-select" style="width:100%; height:40px; padding:0 12px; border:1px solid #CBD5E1; border-radius:6px;">
+                        <option value="">Loading available books...</option>
+                    </select>
+                </div>
+
+                <div class="form-grid-2" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-bottom: 14px;">
+                    <div class="form-group">
+                        <label style="font-size:12px; font-weight:700; color:#334155;">Issue Date *</label>
+                        <input type="date" id="libIssueDate" required class="form-input" style="width:100%; height:40px; padding:0 12px; border:1px solid #CBD5E1; border-radius:6px;">
+                    </div>
+                    <div class="form-group">
+                        <label style="font-size:12px; font-weight:700; color:#334155;">Due Date (Return By) *</label>
+                        <input type="date" id="libDueDate" required class="form-input" style="width:100%; height:40px; padding:0 12px; border:1px solid #CBD5E1; border-radius:6px;">
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-bottom:18px;">
+                    <label style="font-size:12px; font-weight:700; color:#334155;">Remarks / Borrow Note</label>
+                    <input type="text" id="libIssueRemarks" placeholder="Optional notes (e.g. Reference copy, Exam period issue)..." class="form-input" style="width:100%; height:40px; padding:0 12px; border:1px solid #CBD5E1; border-radius:6px;">
+                </div>
+
+                <div style="display:flex; justify-content:flex-end; gap:10px; border-top:1px solid #E2E8F0; padding-top:14px;">
+                    <button type="button" onclick="closeLibIssueModal()" style="background:#F1F5F9; color:#475569; border:1px solid #CBD5E1; padding:8px 18px; border-radius:6px; font-weight:700; cursor:pointer;">Cancel</button>
+                    <button type="submit" id="btnSubmitLibIssue" disabled style="background:#94A3B8; color:white; border:none; padding:8px 22px; border-radius:6px; font-weight:700; cursor:not-allowed;">Issue Book</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 3. Return Book Modal -->
+<div id="libReturnModal" class="modal library-modal">
+    <div class="modal-content" style="max-width: 600px;">
+        <div class="modal-header">
+            <h3>↩️ Return Borrowed Book</h3>
+            <span class="close-btn" onclick="closeLibReturnModal()">&times;</span>
+        </div>
+        <div class="modal-body" style="padding: 20px;">
+            <form id="libReturnForm" onsubmit="submitLibReturnForm(event)">
+                <input type="hidden" id="libReturnTxId">
+
+                <div class="lib-return-summary-box" style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:8px; padding:14px; margin-bottom:16px;">
+                    <div style="font-size:13px; font-weight:700; color:#1E293B;" id="libReturnBookTitle">Book Title</div>
+                    <div style="font-size:12px; color:#64748B; margin-top:4px;" id="libReturnStudentInfo">Student Info</div>
+                    <div style="display:flex; justify-content:space-between; margin-top:10px; font-size:12px;">
+                        <span>Issue Date: <strong id="libReturnIssueDate">-</strong></span>
+                        <span>Due Date: <strong id="libReturnDueDate">-</strong></span>
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-bottom:14px;">
+                    <label style="font-size:12px; font-weight:700; color:#334155;">Actual Return Date *</label>
+                    <input type="date" id="libReturnDate" required class="form-input" onchange="calculateReturnFine()" style="width:100%; height:40px; padding:0 12px; border:1px solid #CBD5E1; border-radius:6px;">
+                </div>
+
+                <div id="libFineCalcBox" style="background:#FEF2F2; border:1px solid #FCA5A5; border-radius:8px; padding:12px; margin-bottom:14px; display:none;">
+                    <div style="font-size:12px; font-weight:700; color:#991B1B;">⚠️ Overdue Return Detected</div>
+                    <div style="font-size:12px; color:#7F1D1D; margin-top:4px;">
+                        Days Overdue: <strong id="libCalcOverdueDays">0</strong> | Accrued Fine: <strong id="libCalcFineAmount">₹0.00</strong> (₹10/day)
+                    </div>
+                    <div class="form-group" style="margin-top:10px;">
+                        <label style="font-size:11px; font-weight:700; color:#991B1B;">Fine Action Status</label>
+                        <select id="libReturnFineStatus" class="form-select" style="width:100%; height:36px; padding:0 10px; border:1px solid #FCA5A5; border-radius:6px; font-size:12px;">
+                            <option value="Pending">Keep Fine Outstanding (Pending)</option>
+                            <option value="Paid">Mark Fine Paid (Collected Cash/Online)</option>
+                            <option value="Waived">Waive Fine (Authorized Exemption)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-bottom:18px;">
+                    <label style="font-size:12px; font-weight:700; color:#334155;">Return Notes / Condition</label>
+                    <input type="text" id="libReturnRemarks" placeholder="Book condition check (e.g. Good condition, Light pencil markings)..." class="form-input" style="width:100%; height:40px; padding:0 12px; border:1px solid #CBD5E1; border-radius:6px;">
+                </div>
+
+                <div style="display:flex; justify-content:flex-end; gap:10px; border-top:1px solid #E2E8F0; padding-top:14px;">
+                    <button type="button" onclick="closeLibReturnModal()" style="background:#F1F5F9; color:#475569; border:1px solid #CBD5E1; padding:8px 18px; border-radius:6px; font-weight:700; cursor:pointer;">Cancel</button>
+                    <button type="submit" style="background:#16A34A; color:white; border:none; padding:8px 22px; border-radius:6px; font-weight:700; cursor:pointer;">Confirm Return</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>

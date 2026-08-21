@@ -10,8 +10,11 @@ from .course import Course
 from .subject import Subject
 from .examination import Examination
 from .exam_mark import ExamMark
+from .library_book import LibraryBook
+from .library_transaction import LibraryTransaction
 
 __all__ = [
     "db", "Admin", "Student", "Payment", "Ticket", "SeatMatrix",
-    "Attendance", "Department", "Course", "Subject", "Examination", "ExamMark"
+    "Attendance", "Department", "Course", "Subject", "Examination", "ExamMark",
+    "LibraryBook", "LibraryTransaction"
 ]

@@ -656,6 +656,7 @@ def convert_applicant_to_student(student_id):
         return jsonify({
             "success": True,
             "message": msg,
+            "zprn": student.enrollment_number,
             "enrollment_number": student.enrollment_number,
             "student": student.to_dict()
         }), 200
