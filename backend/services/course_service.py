@@ -129,7 +129,70 @@ DEFAULT_SUBJECTS = [
     # 4th Year - Semester 8
     {"code": "CS801", "name": "Deep Learning & Vision", "dept": "Computer Engineering", "program": "B.Tech Computer Engineering", "year": 4, "sem": 8, "credits": 4, "type": "Elective", "desc": "CNNs, RNNs, Transformers, and PyTorch deep learning models."},
     {"code": "CS802", "name": "Cyber Laws & Ethics", "dept": "Computer Engineering", "program": "B.Tech Computer Engineering", "year": 4, "sem": 8, "credits": 3, "type": "Core", "desc": "IT Act, intellectual property, data privacy laws, and compliance."},
-    {"code": "CS803", "name": "Capstone Project Phase II", "dept": "Computer Engineering", "program": "B.Tech Computer Engineering", "year": 4, "sem": 8, "credits": 6, "type": "Project", "desc": "Final year major project implementation, testing, and paper publication."}
+    {"code": "CS803", "name": "Capstone Project Phase II", "dept": "Computer Engineering", "program": "B.Tech Computer Engineering", "year": 4, "sem": 8, "credits": 6, "type": "Project", "desc": "Final year major project implementation, testing, and paper publication."},
+
+    # Information Technology
+    {"code": "IT101", "name": "Engineering Mathematics I", "dept": "Information Technology", "program": "B.Tech Information Technology", "year": 1, "sem": 1, "credits": 4, "type": "Core", "desc": "Calculus and linear algebra."},
+    {"code": "IT102", "name": "Digital Logic & Systems", "dept": "Information Technology", "program": "B.Tech Information Technology", "year": 1, "sem": 1, "credits": 4, "type": "Core", "desc": "Boolean algebra and digital circuits."},
+    {"code": "IT201", "name": "Data Structures in C++", "dept": "Information Technology", "program": "B.Tech Information Technology", "year": 1, "sem": 2, "credits": 4, "type": "Core", "desc": "Linear and non-linear data structures."},
+    {"code": "IT301", "name": "Web Architecture & Protocol", "dept": "Information Technology", "program": "B.Tech Information Technology", "year": 2, "sem": 3, "credits": 4, "type": "Core", "desc": "HTTP, TCP/IP, web servers, and APIs."},
+    {"code": "IT302", "name": "Database Systems & SQL", "dept": "Information Technology", "program": "B.Tech Information Technology", "year": 2, "sem": 3, "credits": 4, "type": "Core", "desc": "Relational databases and query optimization."},
+    {"code": "IT401", "name": "Operating Systems & Shell", "dept": "Information Technology", "program": "B.Tech Information Technology", "year": 2, "sem": 4, "credits": 4, "type": "Core", "desc": "Linux kernel, processes, and memory management."},
+    {"code": "IT501", "name": "Cloud Computing Infrastructure", "dept": "Information Technology", "program": "B.Tech Information Technology", "year": 3, "sem": 5, "credits": 4, "type": "Core", "desc": "AWS, Docker containers, and virtual machines."},
+    {"code": "IT601", "name": "DevOps & CI/CD Pipelines", "dept": "Information Technology", "program": "B.Tech Information Technology", "year": 3, "sem": 6, "credits": 4, "type": "Elective", "desc": "Automated deployment and Kubernetes."},
+    {"code": "IT701", "name": "Cyber Security & Forensics", "dept": "Information Technology", "program": "B.Tech Information Technology", "year": 4, "sem": 7, "credits": 4, "type": "Core", "desc": "Ethical hacking and network security."},
+    {"code": "IT801", "name": "Enterprise Software Design", "dept": "Information Technology", "program": "B.Tech Information Technology", "year": 4, "sem": 8, "credits": 6, "type": "Project", "desc": "Capstone project implementation."},
+
+    # Artificial Intelligence & Data Science
+    {"code": "AD101", "name": "Mathematics for AI", "dept": "Artificial Intelligence & Data Science", "program": "B.Tech AI & Data Science", "year": 1, "sem": 1, "credits": 4, "type": "Core", "desc": "Probability, statistics, and linear algebra."},
+    {"code": "AD201", "name": "Python for Data Science", "dept": "Artificial Intelligence & Data Science", "program": "B.Tech AI & Data Science", "year": 1, "sem": 2, "credits": 4, "type": "Core", "desc": "NumPy, Pandas, and data visualization."},
+    {"code": "AD301", "name": "Data Structures & Algorithms", "dept": "Artificial Intelligence & Data Science", "program": "B.Tech AI & Data Science", "year": 2, "sem": 3, "credits": 4, "type": "Core", "desc": "Algorithms and graph processing."},
+    {"code": "AD302", "name": "Statistical Inference", "dept": "Artificial Intelligence & Data Science", "program": "B.Tech AI & Data Science", "year": 2, "sem": 3, "credits": 4, "type": "Core", "desc": "Hypothesis testing and regression models."},
+    {"code": "AD401", "name": "Machine Learning Algorithms", "dept": "Artificial Intelligence & Data Science", "program": "B.Tech AI & Data Science", "year": 2, "sem": 4, "credits": 4, "type": "Core", "desc": "Supervised and unsupervised learning."},
+    {"code": "AD501", "name": "Deep Learning & Neural Networks", "dept": "Artificial Intelligence & Data Science", "program": "B.Tech AI & Data Science", "year": 3, "sem": 5, "credits": 4, "type": "Core", "desc": "PyTorch, CNNs, and Transformers."},
+    {"code": "AD601", "name": "Natural Language Processing", "dept": "Artificial Intelligence & Data Science", "program": "B.Tech AI & Data Science", "year": 3, "sem": 6, "credits": 4, "type": "Elective", "desc": "Text mining and LLM architectures."},
+    {"code": "AD701", "name": "Big Data Engineering", "dept": "Artificial Intelligence & Data Science", "program": "B.Tech AI & Data Science", "year": 4, "sem": 7, "credits": 4, "type": "Core", "desc": "Spark, Hadoop, and data pipelines."},
+    {"code": "AD801", "name": "AI Capstone Project", "dept": "Artificial Intelligence & Data Science", "program": "B.Tech AI & Data Science", "year": 4, "sem": 8, "credits": 6, "type": "Project", "desc": "End-to-end AI application capstone."},
+
+    # Electronics & Telecommunication
+    {"code": "ET101", "name": "Engineering Physics", "dept": "Electronics & Telecommunication", "program": "B.Tech Electronics & Telecommunication", "year": 1, "sem": 1, "credits": 4, "type": "Core", "desc": "Semiconductors and optics."},
+    {"code": "ET201", "name": "Electronic Devices & Circuits", "dept": "Electronics & Telecommunication", "program": "B.Tech Electronics & Telecommunication", "year": 1, "sem": 2, "credits": 4, "type": "Core", "desc": "Diodes, BJTs, and MOSFETs."},
+    {"code": "ET301", "name": "Signals & Systems", "dept": "Electronics & Telecommunication", "program": "B.Tech Electronics & Telecommunication", "year": 2, "sem": 3, "credits": 4, "type": "Core", "desc": "Continuous and discrete signals."},
+    {"code": "ET401", "name": "Microcontrollers & Embedded C", "dept": "Electronics & Telecommunication", "program": "B.Tech Electronics & Telecommunication", "year": 2, "sem": 4, "credits": 4, "type": "Core", "desc": "8051 and ARM Cortex microcontrollers."},
+    {"code": "ET501", "name": "Digital Signal Processing", "dept": "Electronics & Telecommunication", "program": "B.Tech Electronics & Telecommunication", "year": 3, "sem": 5, "credits": 4, "type": "Core", "desc": "FFT, FIR, and IIR filter design."},
+    {"code": "ET601", "name": "Wireless Communication", "dept": "Electronics & Telecommunication", "program": "B.Tech Electronics & Telecommunication", "year": 3, "sem": 6, "credits": 4, "type": "Elective", "desc": "5G, RF design, and antennas."},
+    {"code": "ET701", "name": "VLSI Design & System on Chip", "dept": "Electronics & Telecommunication", "program": "B.Tech Electronics & Telecommunication", "year": 4, "sem": 7, "credits": 4, "type": "Core", "desc": "Verilog HDL and CMOS layout."},
+    {"code": "ET801", "name": "IoT Systems & Networks", "dept": "Electronics & Telecommunication", "program": "B.Tech Electronics & Telecommunication", "year": 4, "sem": 8, "credits": 6, "type": "Project", "desc": "Smart IoT system capstone."},
+
+    # Mechanical Engineering
+    {"code": "ME101", "name": "Engineering Graphics & CAD", "dept": "Mechanical Engineering", "program": "B.Tech Mechanical Engineering", "year": 1, "sem": 1, "credits": 4, "type": "Core", "desc": "Orthographic projections and CAD design."},
+    {"code": "ME201", "name": "Engineering Thermodynamics", "dept": "Mechanical Engineering", "program": "B.Tech Mechanical Engineering", "year": 1, "sem": 2, "credits": 4, "type": "Core", "desc": "Laws of thermodynamics and cycles."},
+    {"code": "ME301", "name": "Fluid Mechanics", "dept": "Mechanical Engineering", "program": "B.Tech Mechanical Engineering", "year": 2, "sem": 3, "credits": 4, "type": "Core", "desc": "Fluid statics, dynamics, and pumps."},
+    {"code": "ME401", "name": "Kinematics of Machines", "dept": "Mechanical Engineering", "program": "B.Tech Mechanical Engineering", "year": 2, "sem": 4, "credits": 4, "type": "Core", "desc": "Gears, cams, and mechanisms."},
+    {"code": "ME501", "name": "Heat & Mass Transfer", "dept": "Mechanical Engineering", "program": "B.Tech Mechanical Engineering", "year": 3, "sem": 5, "credits": 4, "type": "Core", "desc": "Conduction, convection, and radiation."},
+    {"code": "ME601", "name": "Robotics & Automation", "dept": "Mechanical Engineering", "program": "B.Tech Mechanical Engineering", "year": 3, "sem": 6, "credits": 4, "type": "Elective", "desc": "Industrial manipulators and PLC."},
+    {"code": "ME701", "name": "CAD/CAM & CNC Manufacturing", "dept": "Mechanical Engineering", "program": "B.Tech Mechanical Engineering", "year": 4, "sem": 7, "credits": 4, "type": "Core", "desc": "G-code programming and 3D printing."},
+    {"code": "ME801", "name": "Mechanical Design Capstone", "dept": "Mechanical Engineering", "program": "B.Tech Mechanical Engineering", "year": 4, "sem": 8, "credits": 6, "type": "Project", "desc": "Vehicle or robotics capstone project."},
+
+    # Civil Engineering
+    {"code": "CE101", "name": "Engineering Mechanics", "dept": "Civil Engineering", "program": "B.Tech Civil Engineering", "year": 1, "sem": 1, "credits": 4, "type": "Core", "desc": "Statics, dynamics, and trusses."},
+    {"code": "CE201", "name": "Strength of Materials", "dept": "Civil Engineering", "program": "B.Tech Civil Engineering", "year": 1, "sem": 2, "credits": 4, "type": "Core", "desc": "Stress, strain, and bending moments."},
+    {"code": "CE301", "name": "Surveying & Geomatics", "dept": "Civil Engineering", "program": "B.Tech Civil Engineering", "year": 2, "sem": 3, "credits": 4, "type": "Core", "desc": "Theodolite, Total Station, and GPS."},
+    {"code": "CE401", "name": "Structural Analysis", "dept": "Civil Engineering", "program": "B.Tech Civil Engineering", "year": 2, "sem": 4, "credits": 4, "type": "Core", "desc": "Determinate and indeterminate structures."},
+    {"code": "CE501", "name": "Geotechnical Engineering", "dept": "Civil Engineering", "program": "B.Tech Civil Engineering", "year": 3, "sem": 5, "credits": 4, "type": "Core", "desc": "Soil mechanics and foundations."},
+    {"code": "CE601", "name": "Transportation Engineering", "dept": "Civil Engineering", "program": "B.Tech Civil Engineering", "year": 3, "sem": 6, "credits": 4, "type": "Elective", "desc": "Highway design and traffic engineering."},
+    {"code": "CE701", "name": "Smart Infrastructure & Cities", "dept": "Civil Engineering", "program": "B.Tech Civil Engineering", "year": 4, "sem": 7, "credits": 4, "type": "Core", "desc": "BIM and sustainable urban planning."},
+    {"code": "CE801", "name": "Civil Design Capstone", "dept": "Civil Engineering", "program": "B.Tech Civil Engineering", "year": 4, "sem": 8, "credits": 6, "type": "Project", "desc": "Bridge/building design capstone."},
+
+    # Electrical Engineering
+    {"code": "EE101", "name": "Basic Electrical Engineering", "dept": "Electrical Engineering", "program": "B.Tech Electrical Engineering", "year": 1, "sem": 1, "credits": 4, "type": "Core", "desc": "Circuit theorems and AC fundamentals."},
+    {"code": "EE201", "name": "Electrical Machines I", "dept": "Electrical Engineering", "program": "B.Tech Electrical Engineering", "year": 1, "sem": 2, "credits": 4, "type": "Core", "desc": "Transformers and DC motors."},
+    {"code": "EE301", "name": "Power Systems & Transmission", "dept": "Electrical Engineering", "program": "B.Tech Electrical Engineering", "year": 2, "sem": 3, "credits": 4, "type": "Core", "desc": "Transmission line modeling and grid analysis."},
+    {"code": "EE401", "name": "Control Systems Engineering", "dept": "Electrical Engineering", "program": "B.Tech Electrical Engineering", "year": 2, "sem": 4, "credits": 4, "type": "Core", "desc": "Root locus, Bode plots, and PID controllers."},
+    {"code": "EE501", "name": "Power Electronics & Drives", "dept": "Electrical Engineering", "program": "B.Tech Electrical Engineering", "year": 3, "sem": 5, "credits": 4, "type": "Core", "desc": "Inverters, converters, and motor drives."},
+    {"code": "EE601", "name": "Renewable Energy Systems", "dept": "Electrical Engineering", "program": "B.Tech Electrical Engineering", "year": 3, "sem": 6, "credits": 4, "type": "Elective", "desc": "Solar PV and wind energy systems."},
+    {"code": "EE701", "name": "Smart Grids & Microgrids", "dept": "Electrical Engineering", "program": "B.Tech Electrical Engineering", "year": 4, "sem": 7, "credits": 4, "type": "Core", "desc": "Smart meters and SCADA automation."},
+    {"code": "EE801", "name": "EV Systems & Power Drives", "dept": "Electrical Engineering", "program": "B.Tech Electrical Engineering", "year": 4, "sem": 8, "credits": 6, "type": "Project", "desc": "Electric vehicle powertrain capstone."}
 ]
 
 class CourseService:
@@ -249,41 +312,48 @@ class CourseService:
 
         # Group by Year & Semester (Sem 1 to 8)
         years_breakdown = []
-        
-        for year_num in range(1, 5):  # 1st Year, 2nd Year, 3rd Year, 4th Year
+
+        if academic_year and str(academic_year).isdigit():
+            ay = int(academic_year)
+            target_years = [ay] if 1 <= ay <= 4 else [1, 2, 3, 4]
+        else:
+            target_years = [1, 2, 3, 4]
+
+        target_sem = int(semester) if (semester and str(semester).isdigit()) else None
+
+        is_filtered = bool(department or program or academic_year or semester or search)
+
+        for year_num in target_years:
             sem_1_num = (year_num * 2) - 1
             sem_2_num = year_num * 2
 
-            sem_1_subs = [s.to_dict() for s in all_subjects if s.academic_year == year_num and s.semester == sem_1_num]
-            sem_2_subs = [s.to_dict() for s in all_subjects if s.academic_year == year_num and s.semester == sem_2_num]
+            possible_sems = [sem_1_num, sem_2_num]
+            if target_sem is not None:
+                possible_sems = [s for s in possible_sems if s == target_sem]
 
-            year_obj = {
-                "academic_year": year_num,
-                "year_name": f"{year_num}st Year" if year_num == 1 else (f"{year_num}nd Year" if year_num == 2 else (f"{year_num}rd Year" if year_num == 3 else f"{year_num}th Year")),
-                "semesters": [
-                    {
-                        "semester_number": sem_1_num,
-                        "semester_name": f"Semester {sem_1_num}",
+            sems_list = []
+            for sem_num in possible_sems:
+                sem_subs = [s.to_dict() for s in all_subjects if s.academic_year == year_num and s.semester == sem_num]
+
+                if not is_filtered or len(sem_subs) > 0 or target_sem == sem_num:
+                    sems_list.append({
+                        "semester_number": sem_num,
+                        "semester_name": f"Semester {sem_num}",
                         "academic_year": year_num,
-                        "subject_count": len(sem_1_subs),
-                        "total_credits": sum(s["credits"] for s in sem_1_subs),
-                        "core_count": sum(1 for s in sem_1_subs if s["subject_type"].lower() == "core"),
-                        "elective_count": sum(1 for s in sem_1_subs if s["subject_type"].lower() == "elective"),
-                        "subjects": sem_1_subs
-                    },
-                    {
-                        "semester_number": sem_2_num,
-                        "semester_name": f"Semester {sem_2_num}",
-                        "academic_year": year_num,
-                        "subject_count": len(sem_2_subs),
-                        "total_credits": sum(s["credits"] for s in sem_2_subs),
-                        "core_count": sum(1 for s in sem_2_subs if s["subject_type"].lower() == "core"),
-                        "elective_count": sum(1 for s in sem_2_subs if s["subject_type"].lower() == "elective"),
-                        "subjects": sem_2_subs
-                    }
-                ]
-            }
-            years_breakdown.append(year_obj)
+                        "subject_count": len(sem_subs),
+                        "total_credits": sum(s["credits"] for s in sem_subs),
+                        "core_count": sum(1 for s in sem_subs if (s.get("subject_type") or "").lower() == "core"),
+                        "elective_count": sum(1 for s in sem_subs if (s.get("subject_type") or "").lower() == "elective"),
+                        "subjects": sem_subs
+                    })
+
+            if sems_list:
+                year_obj = {
+                    "academic_year": year_num,
+                    "year_name": f"{year_num}st Year" if year_num == 1 else (f"{year_num}nd Year" if year_num == 2 else (f"{year_num}rd Year" if year_num == 3 else f"{year_num}th Year")),
+                    "semesters": sems_list
+                }
+                years_breakdown.append(year_obj)
 
         total_courses_count = Course.query.count()
 

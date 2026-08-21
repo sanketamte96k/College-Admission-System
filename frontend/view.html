@@ -3289,6 +3289,22 @@
     </div>
 </div>
 
+<!-- Semester Subjects Inspector Modal -->
+<div id="semesterSubjectsModal" class="modal course-modal">
+    <div class="modal-content" style="max-width: 850px;">
+        <div class="modal-header">
+            <h3 id="semModalTitle">📚 Semester Subjects Roster</h3>
+            <span class="close-btn" onclick="closeSemesterSubjectsModal()">&times;</span>
+        </div>
+        <div class="modal-body" id="semModalBody" style="padding: 20px;">
+            <!-- Dynamically populated by viewSemesterSubjects() -->
+        </div>
+        <div class="modal-footer" style="margin-top: 16px; padding: 12px 20px; border-top: 1px solid #E2E8F0; display: flex; justify-content: flex-end;">
+            <button type="button" class="btn-secondary" onclick="closeSemesterSubjectsModal()" style="background: #F1F5F9; color: #334155; border: 1px solid #CBD5E1; padding: 8px 18px; border-radius: 6px; font-weight: 700; cursor: pointer;">Close</button>
+        </div>
+    </div>
+</div>
+
 <!-- Create / Edit Examination Modal -->
 <div id="examCreateEditModal" class="modal exam-modal">
     <div class="modal-content" style="max-width: 720px;">
