@@ -236,7 +236,7 @@
             <!-- PANE 1: DASHBOARD OVERVIEW                                   -->
             <!-- ============================================================ -->
             <div id="pane-dashboard" class="erp-section-pane active">
-                
+
                 <!-- 1. DASHBOARD HERO & WELCOME HEADER -->
                 <div class="dash-hero-header">
                     <div class="dash-hero-left">
@@ -989,7 +989,7 @@
                                     <th style="text-align: right;">ACTIONS</th>
                                 </tr>
                             </thead>
-                            <tbody id="studentTableBody">
+                            <tbody id="admissionsTableBody">
                                 <!-- Records injected via view.js -->
                             </tbody>
                         </table>
@@ -1372,7 +1372,7 @@
             <!-- PANE 4: ATTENDANCE MANAGEMENT MODULE                         -->
             <!-- ============================================================ -->
             <div id="pane-attendance" class="erp-section-pane">
-                
+
                 <!-- ATTENDANCE HERO BANNER -->
                 <div class="att-hero-card">
                     <div class="att-hero-content">
@@ -1526,7 +1526,7 @@
 
                 <!-- SUB-VIEW 2: ACTIVE DEPARTMENT ATTENDANCE DASHBOARD -->
                 <div id="attDeptActiveView" style="display: none;">
-                    
+
                     <!-- Top Active Department Header & Switcher -->
                     <div class="card att-active-header-card">
                         <div class="att-active-dept-info">
@@ -1724,83 +1724,7 @@
 
             </div>
 
-            <!-- ============================================================ -->
-            <!-- PANE 5: FEE & PAYMENT MANAGEMENT                             -->
-            <!-- ============================================================ -->
-            <div id="pane-fees" class="erp-section-pane">
-                <!-- Fee Collection & Financial Analytics Panel -->
-                <div class="verification-stats-panel" style="margin-bottom: 20px;">
-                    <div class="vstat-card" style="border-left: 4px solid #10b981;">
-                        <div class="vstat-icon" style="background: #dcfce7; color: #15803d;">💰</div>
-                        <div class="vstat-info">
-                            <small>Fees Collected</small>
-                            <h3 id="vFeesCollected" style="color: #059669;">₹ 0</h3>
-                        </div>
-                    </div>
-                    <div class="vstat-card" style="border-left: 4px solid #ef4444;">
-                        <div class="vstat-icon" style="background: #fee2e2; color: #dc2626;">⏳</div>
-                        <div class="vstat-info">
-                            <small>Pending Dues</small>
-                            <h3 id="vPendingFees" style="color: #dc2626;">₹ 0</h3>
-                        </div>
-                    </div>
-                    <div class="vstat-card" style="border-left: 4px solid #3b82f6;">
-                        <div class="vstat-icon" style="background: #eff6ff; color: #1d4ed8;">🟢</div>
-                        <div class="vstat-info">
-                            <small>Paid Students</small>
-                            <h3 id="vPaidStudentsCount">0</h3>
-                        </div>
-                    </div>
-                    <div class="vstat-card" style="border-left: 4px solid #f59e0b;">
-                        <div class="vstat-icon" style="background: #fef3c7; color: #d97706;">🟡</div>
-                        <div class="vstat-info">
-                            <small>Partially Paid</small>
-                            <h3 id="vPartialStudentsCount">0</h3>
-                        </div>
-                    </div>
-                    <div class="vstat-card" style="border-left: 4px solid #64748b;">
-                        <div class="vstat-icon" style="background: #f1f5f9; color: #475569;">🔴</div>
-                        <div class="vstat-info">
-                            <small>Pending Fees</small>
-                            <h3 id="vPendingStudentsCount">0</h3>
-                        </div>
-                    </div>
-                </div>
 
-                <!-- Student Fee Records Ledger Table -->
-                <div class="attendance-panel-card">
-                    <div class="attendance-header">
-                        <h3>💳 Student Fee Collections Ledger</h3>
-                        <div class="search-box" style="margin: 0; min-width: 250px;">
-                            <span class="search-icon">🔍</span>
-                            <input type="text" id="feeSearchInput" placeholder="Filter student or dept..." oninput="filterFeeLedgerTable()">
-                        </div>
-                    </div>
-                    <div class="table-responsive">
-                        <table class="fee-table" id="feeLedgerTable">
-                            <thead>
-                                <tr>
-                                    <th style="width: 50px;">Sr</th>
-                                    <th style="width: 70px;">App ID</th>
-                                    <th>Student Name</th>
-                                    <th>Department</th>
-                                    <th>Quota</th>
-                                    <th>Total Fee</th>
-                                    <th>Paid Amount</th>
-                                    <th>Pending Balance</th>
-                                    <th>Fee Status</th>
-                                    <th>Action</th>
-                                </tr>
-                            </thead>
-                            <tbody id="feeLedgerTableBody">
-                                <tr>
-                                    <td colspan="10" style="text-align: center; color: #64748b; padding: 16px;">Loading fee ledger...</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
 
             <!-- ============================================================ -->
             <!-- PANE 7: COURSES & CURRICULUM MANAGEMENT                      -->
@@ -2316,12 +2240,359 @@
             <!-- PANE 9: ANALYTICS & REPORTS                                  -->
             <!-- ============================================================ -->
             <div id="pane-reports" class="erp-section-pane">
-                <div class="erp-placeholder-card">
-                    <div class="erp-placeholder-icon">📈</div>
-                    <h3>Institutional Reports & Analytics Hub</h3>
-                    <p>Generate certified annual reports, compliance summaries, admission statistics, and fee collection audits.</p>
-                    <div style="margin-top: 20px;">
-                        <button class="export-btn" onclick="exportToExcel()">📊 Export Master Admission CSV</button>
+                <div class="report-page">
+                    <!-- Page Header -->
+                    <div class="report-header">
+                        <div>
+                            <h2 class="report-title">REPORTS & ANALYTICS</h2>
+                            <p class="report-subtitle">Analyze student performance, attendance, examinations, fees and academic activity across the institution.</p>
+                        </div>
+                        <div class="report-header-actions">
+                            <button type="button" class="report-btn report-btn-outline" onclick="loadReportsAnalytics()">
+                                🔄 Refresh Data
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Global Filter Bar -->
+                    <div class="report-filters">
+                        <div class="report-filter-group">
+                            <label for="repFilterAcadYear">Academic Year</label>
+                            <select id="repFilterAcadYear" onchange="applyReportFilters()">
+                                <option value="all">All Academic Years</option>
+                                <option value="1">1st Year</option>
+                                <option value="2">2nd Year</option>
+                                <option value="3">3rd Year</option>
+                                <option value="4">4th Year</option>
+                            </select>
+                        </div>
+                        <div class="report-filter-group">
+                            <label for="repFilterSemester">Semester</label>
+                            <select id="repFilterSemester" onchange="applyReportFilters()">
+                                <option value="all">All Semesters</option>
+                                <option value="1">Semester 1</option>
+                                <option value="2">Semester 2</option>
+                                <option value="3">Semester 3</option>
+                                <option value="4">Semester 4</option>
+                                <option value="5">Semester 5</option>
+                                <option value="6">Semester 6</option>
+                                <option value="7">Semester 7</option>
+                                <option value="8">Semester 8</option>
+                            </select>
+                        </div>
+                        <div class="report-filter-group">
+                            <label for="repFilterDepartment">Department</label>
+                            <select id="repFilterDepartment" onchange="applyReportFilters()">
+                                <option value="all">All Departments</option>
+                                <option value="Computer Engineering">Computer Engineering</option>
+                                <option value="Information Technology">Information Technology</option>
+                                <option value="Artificial Intelligence & Data Science">AI & Data Science</option>
+                                <option value="Electronics & Telecommunication">Electronics & Telecom</option>
+                                <option value="Mechanical Engineering">Mechanical Engineering</option>
+                                <option value="Civil Engineering">Civil Engineering</option>
+                                <option value="Electrical Engineering">Electrical Engineering</option>
+                            </select>
+                        </div>
+                        <div class="report-filter-group">
+                            <label for="repFilterProgram">Program / Course</label>
+                            <select id="repFilterProgram" onchange="applyReportFilters()">
+                                <option value="all">All Programs</option>
+                                <option value="B.Tech Computer Engineering">B.Tech Computer Engineering</option>
+                                <option value="B.Tech Information Technology">B.Tech IT</option>
+                                <option value="B.Tech AI & DS">B.Tech AI & DS</option>
+                                <option value="B.Tech Electronics & Telecommunication">B.Tech ENTC</option>
+                                <option value="B.Tech Mechanical Engineering">B.Tech Mechanical</option>
+                                <option value="B.Tech Civil Engineering">B.Tech Civil</option>
+                            </select>
+                        </div>
+                        <div class="report-filter-actions">
+                            <button type="button" class="report-btn report-btn-primary" onclick="applyReportFilters()">
+                                🔍 Apply Filters
+                            </button>
+                            <button type="button" class="report-btn report-btn-secondary" onclick="resetReportFilters()">
+                                ↺ Reset
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Loading State Container -->
+                    <div id="repLoadingState" class="report-loading" style="display: none;">
+                        <div class="report-spinner"></div>
+                        <p>Loading analytics & institutional data...</p>
+                    </div>
+
+                    <!-- Main Analytics Dashboard Body -->
+                    <div id="repDashboardContent">
+
+                        <!-- SECTION 1 — INSTITUTION OVERVIEW -->
+                        <div class="report-section">
+                            <h3 class="report-section-title">SECTION 1 — INSTITUTION OVERVIEW</h3>
+                            <div class="report-stat-grid">
+                                <div class="report-stat-card border-blue">
+                                    <div class="report-stat-icon">🎓</div>
+                                    <div class="report-stat-content">
+                                        <div class="report-stat-label">Total Students</div>
+                                        <div class="report-stat-value" id="repOverviewTotalStudents">-</div>
+                                        <div class="report-stat-sub">Enrolled Candidates</div>
+                                    </div>
+                                </div>
+                                <div class="report-stat-card border-green">
+                                    <div class="report-stat-icon">✅</div>
+                                    <div class="report-stat-content">
+                                        <div class="report-stat-label">Active Students</div>
+                                        <div class="report-stat-value" id="repOverviewActiveStudents">-</div>
+                                        <div class="report-stat-sub">Verified & Enrolled</div>
+                                    </div>
+                                </div>
+                                <div class="report-stat-card border-purple">
+                                    <div class="report-stat-icon">🏛️</div>
+                                    <div class="report-stat-content">
+                                        <div class="report-stat-label">Total Departments</div>
+                                        <div class="report-stat-value" id="repOverviewDepts">-</div>
+                                        <div class="report-stat-sub">Academic Branches</div>
+                                    </div>
+                                </div>
+                                <div class="report-stat-card border-indigo">
+                                    <div class="report-stat-icon">📚</div>
+                                    <div class="report-stat-content">
+                                        <div class="report-stat-label">Total Programs</div>
+                                        <div class="report-stat-value" id="repOverviewPrograms">-</div>
+                                        <div class="report-stat-sub">Degree Offerings</div>
+                                    </div>
+                                </div>
+                                <div class="report-stat-card border-amber">
+                                    <div class="report-stat-icon">📖</div>
+                                    <div class="report-stat-content">
+                                        <div class="report-stat-label">Subjects / Courses</div>
+                                        <div class="report-stat-value" id="repOverviewSubjects">-</div>
+                                        <div class="report-stat-sub">Curriculum Modules</div>
+                                    </div>
+                                </div>
+                                <div class="report-stat-card border-teal">
+                                    <div class="report-stat-icon">📝</div>
+                                    <div class="report-stat-content">
+                                        <div class="report-stat-label">New Admissions</div>
+                                        <div class="report-stat-value" id="repOverviewNewAdmissions">-</div>
+                                        <div class="report-stat-sub">Last 30 Days</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- SECTION 2 — STUDENT ANALYTICS -->
+                        <div class="report-section">
+                            <h3 class="report-section-title">SECTION 2 — STUDENT ANALYTICS</h3>
+                            <div class="report-stat-grid four-col">
+                                <div class="report-mini-stat">
+                                    <span class="lbl">Male Students</span>
+                                    <span class="val text-blue" id="repStudentMaleCount">-</span>
+                                </div>
+                                <div class="report-mini-stat">
+                                    <span class="lbl">Female Students</span>
+                                    <span class="val text-pink" id="repStudentFemaleCount">-</span>
+                                </div>
+                                <div class="report-mini-stat">
+                                    <span class="lbl">Other / Unspecified</span>
+                                    <span class="val text-gray" id="repStudentOtherCount">-</span>
+                                </div>
+                                <div class="report-mini-stat">
+                                    <span class="lbl">Active Enrollment Rate</span>
+                                    <span class="val text-green" id="repStudentActiveRate">-</span>
+                                </div>
+                            </div>
+
+                            <div class="report-chart-grid three-col" style="margin-top: 15px;">
+                                <div class="report-chart-card">
+                                    <div class="report-chart-header">
+                                        <h4>Students by Department</h4>
+                                    </div>
+                                    <div class="report-chart-body">
+                                        <canvas id="repChartDept"></canvas>
+                                    </div>
+                                </div>
+                                <div class="report-chart-card">
+                                    <div class="report-chart-header">
+                                        <h4>Students by Academic Year</h4>
+                                    </div>
+                                    <div class="report-chart-body">
+                                        <canvas id="repChartYear"></canvas>
+                                    </div>
+                                </div>
+                                <div class="report-chart-card">
+                                    <div class="report-chart-header">
+                                        <h4>Students by Semester</h4>
+                                    </div>
+                                    <div class="report-chart-body">
+                                        <canvas id="repChartSem"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- SECTION 3 — DEPARTMENT ANALYTICS -->
+                        <div class="report-section">
+                            <h3 class="report-section-title">SECTION 3 — DEPARTMENT ANALYTICS</h3>
+                            <div class="report-table-wrapper">
+                                <table class="report-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Department</th>
+                                            <th>Code</th>
+                                            <th>HOD</th>
+                                            <th>Students</th>
+                                            <th>Courses</th>
+                                            <th>Capacity</th>
+                                            <th>Occupancy %</th>
+                                            <th>Attendance %</th>
+                                            <th>Avg Marks %</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="repDeptTableBody">
+                                        <tr><td colspan="10" class="report-td-empty">Loading department metrics...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- SECTION 4 — YEAR & SEMESTER ANALYTICS -->
+                        <div class="report-section">
+                            <h3 class="report-section-title">SECTION 4 — YEAR & SEMESTER ANALYTICS</h3>
+                            <div id="repYearSemContainer" class="report-year-sem-grid">
+                                <!-- Dynamically filled with 1st, 2nd, 3rd, 4th Year breakdown cards -->
+                            </div>
+                        </div>
+
+                        <!-- SECTION 5 — ATTENDANCE ANALYTICS -->
+                        <div class="report-section">
+                            <h3 class="report-section-title">SECTION 5 — ATTENDANCE ANALYTICS</h3>
+                            <div class="report-stat-grid four-col">
+                                <div class="report-stat-card border-blue">
+                                    <div class="report-stat-icon">⏱️</div>
+                                    <div class="report-stat-content">
+                                        <div class="report-stat-label">Overall Average Attendance</div>
+                                        <div class="report-stat-value" id="repAttOverallAvg">-</div>
+                                        <div class="report-stat-sub">Recorded Classes</div>
+                                    </div>
+                                </div>
+                                <div class="report-stat-card border-green">
+                                    <div class="report-stat-icon">👍</div>
+                                    <div class="report-stat-content">
+                                        <div class="report-stat-label">Students Above 75%</div>
+                                        <div class="report-stat-value" id="repAttAbove75">-</div>
+                                        <div class="report-stat-sub">Good Standing</div>
+                                    </div>
+                                </div>
+                                <div class="report-stat-card border-amber">
+                                    <div class="report-stat-icon">⚠️</div>
+                                    <div class="report-stat-content">
+                                        <div class="report-stat-label">Students Below 75%</div>
+                                        <div class="report-stat-value" id="repAttBelow75">-</div>
+                                        <div class="report-stat-sub">Attendance Warning</div>
+                                    </div>
+                                </div>
+                                <div class="report-stat-card border-red">
+                                    <div class="report-stat-icon">🚨</div>
+                                    <div class="report-stat-content">
+                                        <div class="report-stat-label">Below Critical (60%)</div>
+                                        <div class="report-stat-value" id="repAttBelowCritical">-</div>
+                                        <div class="report-stat-sub">Debarment Risk</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div style="margin-top: 15px;">
+                                <h4 class="report-sub-title">Subject-Wise Attendance Summary</h4>
+                                <div class="report-table-wrapper">
+                                    <table class="report-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Subject Code</th>
+                                                <th>Subject Name</th>
+                                                <th>Department</th>
+                                                <th>Semester</th>
+                                                <th>Attendance Rate %</th>
+                                                <th>Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="repSubjectAttTableBody">
+                                            <tr><td colspan="6" class="report-td-empty">Loading subject attendance...</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- SECTION 6 — REPORT CENTER -->
+                        <div class="report-section">
+                            <h3 class="report-section-title">SECTION 6 — REPORT CENTER</h3>
+                            <p class="report-section-sub">Generate, view, print, or download certified institutional PDF and CSV reports.</p>
+
+                            <div class="report-center-grid">
+                                <!-- Card 1: Student Report -->
+                                <div class="report-item-card">
+                                    <div class="report-item-icon">👨‍🎓</div>
+                                    <div class="report-item-details">
+                                        <h4>Student Report</h4>
+                                        <p>Complete student roster, gender distribution, and enrollment status breakdown.</p>
+                                    </div>
+                                    <div class="report-item-actions">
+                                        <button type="button" class="report-action-btn btn-view" onclick="viewReportDetails('student')">👁️ View</button>
+                                        <button type="button" class="report-action-btn btn-print" onclick="printReport('student')">🖨️ Print</button>
+                                        <button type="button" class="report-action-btn btn-pdf" onclick="exportReportPDF('student')">📄 PDF</button>
+                                        <button type="button" class="report-action-btn btn-csv" onclick="exportReportCSV('student')">📊 CSV</button>
+                                    </div>
+                                </div>
+
+                                <!-- Card 2: Department Report -->
+                                <div class="report-item-card">
+                                    <div class="report-item-icon">🏛️</div>
+                                    <div class="report-item-details">
+                                        <h4>Department Report</h4>
+                                        <p>Department seat capacities, student occupancy rate, courses, and attendance audit.</p>
+                                    </div>
+                                    <div class="report-item-actions">
+                                        <button type="button" class="report-action-btn btn-view" onclick="viewReportDetails('department')">👁️ View</button>
+                                        <button type="button" class="report-action-btn btn-print" onclick="printReport('department')">🖨️ Print</button>
+                                        <button type="button" class="report-action-btn btn-pdf" onclick="exportReportPDF('department')">📄 PDF</button>
+                                        <button type="button" class="report-action-btn btn-csv" onclick="exportReportCSV('department')">📊 CSV</button>
+                                    </div>
+                                </div>
+
+                                <!-- Card 3: Attendance Report -->
+                                <div class="report-item-card">
+                                    <div class="report-item-icon">⏱️</div>
+                                    <div class="report-item-details">
+                                        <h4>Attendance Report</h4>
+                                        <p>Subject-wise, year-wise, and semester-wise attendance audit report.</p>
+                                    </div>
+                                    <div class="report-item-actions">
+                                        <button type="button" class="report-action-btn btn-view" onclick="viewReportDetails('attendance')">👁️ View</button>
+                                        <button type="button" class="report-action-btn btn-print" onclick="printReport('attendance')">🖨️ Print</button>
+                                        <button type="button" class="report-action-btn btn-pdf" onclick="exportReportPDF('attendance')">📄 PDF</button>
+                                        <button type="button" class="report-action-btn btn-csv" onclick="exportReportCSV('attendance')">📊 CSV</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+            <!-- Report Preview Modal -->
+            <div id="modalReportPreview" class="report-modal" style="display: none;">
+                <div class="report-modal-content">
+                    <div class="report-modal-header">
+                        <h3 id="reportModalTitle">Report Details Preview</h3>
+                        <button type="button" class="report-modal-close" onclick="closeReportPreviewModal()">&times;</button>
+                    </div>
+                    <div class="report-modal-body" id="reportPreviewBody">
+                        <!-- Filled dynamically -->
+                    </div>
+                    <div class="report-modal-footer">
+                        <button type="button" class="report-btn report-btn-secondary" onclick="closeReportPreviewModal()">Close</button>
+                        <button type="button" class="report-btn report-btn-primary" id="btnModalPdfExport">Download PDF</button>
                     </div>
                 </div>
             </div>

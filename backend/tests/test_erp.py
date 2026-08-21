@@ -11,7 +11,7 @@ from models import db, Student, Admin, Payment, Attendance
 def test_erp_suite():
     print("=== STARTING PRODUCTION ERP TEST SUITE ===")
     app = create_app("test")
-    
+
     with app.app_context():
         db.create_all()
         client = app.test_client()
@@ -309,7 +309,7 @@ def test_erp_suite():
         client.get("/api/logout")  # Logout admin
         st_login = client.post("/api/student-login", json={"application_id": st_id, "dob": "2001-09-20"})
         assert st_login.status_code == 200
-        
+
         st_fee_res = client.get("/api/student/fees")
         assert st_fee_res.status_code == 200
         st_fdata = st_fee_res.get_json()
@@ -517,6 +517,28 @@ def test_erp_suite():
         assert "total_fees_collected" in adata
         assert adata["total_fees_collected"] >= summary2["paid_amount"]
         print("  [OK] Analytics Dashboard verification & fee collections confirmed.")
+
+        print("10b. Testing Reports Analytics & Export Endpoints...")
+        rep_res = client.get("/api/analytics/reports?academic_year=1&semester=1&department=Computer%20Engineering")
+        assert rep_res.status_code == 200
+        rep_data = rep_res.get_json()
+        assert "overview" in rep_data
+        assert "student_analytics" in rep_data
+        assert "department_analytics" in rep_data
+        assert "year_semester_matrix" in rep_data
+        assert "attendance_analytics" in rep_data
+        assert "examination_analytics" in rep_data
+        assert "fee_analytics" in rep_data
+        assert "performance_analytics" in rep_data
+
+        pdf_res = client.get("/api/analytics/export/pdf?report_type=student&academic_year=1")
+        assert pdf_res.status_code == 200
+        assert pdf_res.mimetype == "application/pdf"
+
+        csv_res = client.get("/api/analytics/export/csv?report_type=department")
+        assert csv_res.status_code == 200
+        assert "text/csv" in csv_res.mimetype
+        print("  [OK] Reports analytics API, PDF export, and CSV export verified.")
 
         print("11. Testing Student Record Deletion & Attendance/Payment Cascade...")
         del_res = client.delete(f"/api/students/{st_id}")

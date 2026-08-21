@@ -612,7 +612,7 @@ function populateViewModal(student) {
             <div class="verification-decision-header">
                 <h4>📋 Application Details & Verification Decision</h4>
                 <div class="verification-meta">
-                    <span>App ID: <strong>#${student.id}</strong></span> | 
+                    <span>App ID: <strong>#${student.id}</strong></span> |
                     <span>Date: ${escapeHtml(student.created_at || "N/A")}</span>
                     ${student.verified_by ? ` | <span>Verified By: <strong>${escapeHtml(student.verified_by)}</strong> (${escapeHtml(student.verified_at || '')})</span>` : ''}
                 </div>
@@ -3139,7 +3139,7 @@ function initAttendanceModule() {
         const options = { day: 'numeric', month: 'short', year: 'numeric' };
         todayDisplay.textContent = now.toLocaleDateString('en-GB', options);
     }
-    
+
     const deptSelect = document.getElementById("attDeptFilter");
     if (deptSelect && deptSelect.value) {
         selectAttendanceDepartment(deptSelect.value);
@@ -3553,11 +3553,13 @@ function switchAdminSection(paneId, btnEl, pageTitle = "Dashboard Overview") {
     // 2. Update visible pane
     document.querySelectorAll(".erp-section-pane").forEach(pane => {
         pane.classList.remove("active");
+        pane.style.display = "none";
     });
 
     const targetPane = document.getElementById(paneId);
     if (targetPane) {
         targetPane.classList.add("active");
+        targetPane.style.display = "block";
     }
 
     // 3. Update breadcrumb and header title
@@ -3571,7 +3573,7 @@ function switchAdminSection(paneId, btnEl, pageTitle = "Dashboard Overview") {
 
     // 5. Trigger lazy loaders based on selected section
     if (paneId === "pane-fees") {
-        loadFeeLedger();
+        loadFees();
     } else if (paneId === "pane-attendance") {
         const deptSelect = document.getElementById("attDeptFilter");
         if (deptSelect && deptSelect.value) {
@@ -3592,12 +3594,10 @@ function switchAdminSection(paneId, btnEl, pageTitle = "Dashboard Overview") {
         fetchStudentKpiStats();
     } else if (paneId === "pane-departments") {
         loadDepartments();
-    } else if (paneId === "pane-courses") {
-        loadCourses();
     } else if (paneId === "pane-examinations") {
         loadExaminations();
-    } else if (paneId === "pane-fees") {
-        loadFees();
+    } else if (paneId === "pane-reports") {
+        loadReportsAnalytics();
     }
 
     // Scroll to top of content
@@ -3682,7 +3682,7 @@ async function checkAdminAuth() {
         const data = await res.json();
         if (data.authenticated && data.user_type === "admin") {
             const adminName = data.username || "Administrator";
-            
+
             const headerName = document.getElementById("headerAdminName");
             const sidebarName = document.getElementById("sidebarAdminName");
             const menuName = document.getElementById("menuAdminName");
@@ -3747,7 +3747,7 @@ async function loadFeeLedger() {
             return;
         }
 
-        const feePromises = students.map(s => 
+        const feePromises = students.map(s =>
             fetch(`/api/students/${s.id}/fees`)
                 .then(r => r.ok ? r.json() : null)
                 .catch(() => null)
@@ -3849,7 +3849,7 @@ function fetchAdmissions(page = 1) {
         to_date: toDate
     });
 
-    const tbody = document.getElementById("studentTableBody");
+    const tbody = document.getElementById("admissionsTableBody") || document.getElementById("studentTableBody");
     if (tbody) {
         tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:30px; color:#64748B;">⌛ Loading admissions records...</td></tr>`;
     }
@@ -3885,7 +3885,7 @@ function fetchAdmissions(page = 1) {
 }
 
 function renderAdmissionsTable() {
-    const tbody = document.getElementById("studentTableBody");
+    const tbody = document.getElementById("admissionsTableBody") || document.getElementById("studentTableBody");
     if (!tbody) return;
 
     if (!students || students.length === 0) {
@@ -6601,3 +6601,378 @@ function downloadReceiptPdf(paymentId) {
 
 // Backward compatibility alias for fee details
 window.viewStudentDetails = openStudentFeeDetailsModal;
+
+// ============================================================
+// REPORTS & ANALYTICS MODULE
+// ============================================================
+
+let reportsAnalyticsData = null;
+let repChartDeptInstance = null;
+let repChartYearInstance = null;
+let repChartSemInstance = null;
+
+async function loadReportsAnalytics() {
+    const loadingEl = document.getElementById("repLoadingState");
+    const contentEl = document.getElementById("repDashboardContent");
+    if (loadingEl) loadingEl.style.display = "block";
+
+    try {
+        const yearVal = document.getElementById("repFilterAcadYear")?.value || "all";
+        const semVal = document.getElementById("repFilterSemester")?.value || "all";
+        const deptVal = document.getElementById("repFilterDepartment")?.value || "all";
+        const progVal = document.getElementById("repFilterProgram")?.value || "all";
+
+        const params = new URLSearchParams({
+            academic_year: yearVal,
+            semester: semVal,
+            department: deptVal,
+            program: progVal
+        });
+
+        const res = await fetch(`/api/analytics/reports?${params.toString()}`);
+        if (!res.ok) throw new Error("Failed to fetch reports analytics payload");
+
+        const data = await res.json();
+        reportsAnalyticsData = data;
+        renderReportsUI(data);
+    } catch (err) {
+        console.error("Error loading reports analytics:", err);
+        if (contentEl) {
+            contentEl.innerHTML = `
+                <div class="report-error">
+                    <h3>⚠️ Unable to Load Reports & Analytics</h3>
+                    <p>${err.message || 'Server returned error or network unreachable.'}</p>
+                    <button type="button" class="report-btn report-btn-primary" onclick="loadReportsAnalytics()" style="margin-top: 15px;">Retry Loading</button>
+                </div>
+            `;
+        }
+    } finally {
+        if (loadingEl) loadingEl.style.display = "none";
+    }
+}
+
+function applyReportFilters() {
+    loadReportsAnalytics();
+}
+
+function resetReportFilters() {
+    if (document.getElementById("repFilterAcadYear")) document.getElementById("repFilterAcadYear").value = "all";
+    if (document.getElementById("repFilterSemester")) document.getElementById("repFilterSemester").value = "all";
+    if (document.getElementById("repFilterDepartment")) document.getElementById("repFilterDepartment").value = "all";
+    if (document.getElementById("repFilterProgram")) document.getElementById("repFilterProgram").value = "all";
+    loadReportsAnalytics();
+}
+
+function renderReportsUI(data) {
+    if (!data) return;
+
+    // SECTION 1 — INSTITUTION OVERVIEW
+    const ov = data.overview || {};
+    if (document.getElementById("repOverviewTotalStudents")) document.getElementById("repOverviewTotalStudents").textContent = (ov.total_students || 0).toLocaleString();
+    if (document.getElementById("repOverviewActiveStudents")) document.getElementById("repOverviewActiveStudents").textContent = (ov.active_students || 0).toLocaleString();
+    if (document.getElementById("repOverviewDepts")) document.getElementById("repOverviewDepts").textContent = ov.total_departments || 0;
+    if (document.getElementById("repOverviewPrograms")) document.getElementById("repOverviewPrograms").textContent = ov.total_programs || 0;
+    if (document.getElementById("repOverviewSubjects")) document.getElementById("repOverviewSubjects").textContent = ov.total_courses_subjects || 0;
+    if (document.getElementById("repOverviewNewAdmissions")) document.getElementById("repOverviewNewAdmissions").textContent = ov.new_admissions || 0;
+
+    // SECTION 2 — STUDENT ANALYTICS
+    const st = data.student_analytics || {};
+    if (document.getElementById("repStudentMaleCount")) document.getElementById("repStudentMaleCount").textContent = st.male_count || 0;
+    if (document.getElementById("repStudentFemaleCount")) document.getElementById("repStudentFemaleCount").textContent = st.female_count || 0;
+    if (document.getElementById("repStudentOtherCount")) document.getElementById("repStudentOtherCount").textContent = st.other_count || 0;
+    const actRate = st.total_students > 0 ? Math.round((st.active_students / st.total_students) * 100) : 0;
+    if (document.getElementById("repStudentActiveRate")) document.getElementById("repStudentActiveRate").textContent = `${actRate}%`;
+
+    // Render Student Charts
+    renderReportCharts(st);
+
+    // SECTION 3 — DEPARTMENT ANALYTICS
+    const deptList = data.department_analytics || [];
+    const deptTbody = document.getElementById("repDeptTableBody");
+    if (deptTbody) {
+        if (deptList.length === 0) {
+            deptTbody.innerHTML = `<tr><td colspan="10" class="report-td-empty">No department data available for selected filters.</td></tr>`;
+        } else {
+            deptTbody.innerHTML = deptList.map(d => `
+                <tr>
+                    <td><strong>${d.department}</strong></td>
+                    <td><code>${d.code}</code></td>
+                    <td>${d.hod_name}</td>
+                    <td><strong>${d.students}</strong></td>
+                    <td>${d.courses}</td>
+                    <td>${d.capacity}</td>
+                    <td><span class="report-badge badge-blue">${d.occupancy}%</span></td>
+                    <td><span class="report-badge ${d.attendance >= 75 ? 'badge-green' : 'badge-amber'}">${d.attendance}%</span></td>
+                    <td>${d.avg_performance > 0 ? `${d.avg_performance}%` : 'N/A'}</td>
+                    <td><span class="report-badge badge-green">${d.status}</span></td>
+                </tr>
+            `).join('');
+        }
+    }
+
+    // SECTION 4 — YEAR & SEMESTER ANALYTICS
+    const matrix = data.year_semester_matrix || [];
+    const yearSemContainer = document.getElementById("repYearSemContainer");
+    if (yearSemContainer) {
+        if (matrix.length === 0) {
+            yearSemContainer.innerHTML = `<div class="report-empty-box">No year/semester data available for selected filters.</div>`;
+        } else {
+            yearSemContainer.innerHTML = matrix.map(m => `
+                <div class="report-year-card">
+                    <div class="report-year-card-header">
+                        <h4>${m.academic_year} — ${m.semester_label}</h4>
+                        <span class="report-badge badge-blue">${m.students} Students</span>
+                    </div>
+                    <div class="report-year-card-body">
+                        <div class="report-year-metric">
+                            <span class="lbl">Attendance</span>
+                            <span class="val ${m.attendance >= 75 ? 'text-green' : 'text-amber'}">${m.attendance}%</span>
+                        </div>
+                        <div class="report-year-metric">
+                            <span class="lbl">Average Marks</span>
+                            <span class="val text-blue">${m.average_marks !== null ? `${m.average_marks}%` : 'N/A'}</span>
+                        </div>
+                        <div class="report-year-metric">
+                            <span class="lbl">Pass Rate</span>
+                            <span class="val text-purple">${m.pass_percentage !== null ? `${m.pass_percentage}%` : 'N/A'}</span>
+                        </div>
+                        <div class="report-year-metric">
+                            <span class="lbl">Fee Collection</span>
+                            <span class="val text-green">${m.fee_collection_rate}%</span>
+                        </div>
+                        <div class="report-year-metric">
+                            <span class="lbl">Pending Fees</span>
+                            <span class="val text-red">₹${(m.pending_fees || 0).toLocaleString('en-IN')}</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+    }
+
+    // SECTION 5 — ATTENDANCE ANALYTICS
+    const att = data.attendance_analytics || {};
+    if (document.getElementById("repAttOverallAvg")) document.getElementById("repAttOverallAvg").textContent = `${att.overall_avg || 0}%`;
+    if (document.getElementById("repAttAbove75")) document.getElementById("repAttAbove75").textContent = att.above_75_count || 0;
+    if (document.getElementById("repAttBelow75")) document.getElementById("repAttBelow75").textContent = att.below_75_count || 0;
+    if (document.getElementById("repAttBelowCritical")) document.getElementById("repAttBelowCritical").textContent = att.critical_below_60_count || 0;
+
+    const subjAttTbody = document.getElementById("repSubjectAttTableBody");
+    const subjAttList = att.subject_attendance || [];
+    if (subjAttTbody) {
+        if (subjAttList.length === 0) {
+            subjAttTbody.innerHTML = `<tr><td colspan="6" class="report-td-empty">No subject attendance records found.</td></tr>`;
+        } else {
+            subjAttTbody.innerHTML = subjAttList.map(s => `
+                <tr>
+                    <td><code>${s.code}</code></td>
+                    <td><strong>${s.name}</strong></td>
+                    <td>${s.department}</td>
+                    <td>Semester ${s.semester}</td>
+                    <td><span class="report-badge ${s.attendance >= 75 ? 'badge-green' : 'badge-amber'}">${s.attendance}%</span></td>
+                    <td><span class="report-badge ${s.attendance >= 75 ? 'badge-green' : 'badge-red'}">${s.attendance >= 75 ? 'Satisfactory' : 'Critical Warning'}</span></td>
+                </tr>
+            `).join('');
+        }
+    }
+
+}
+
+function renderReportCharts(st) {
+    if (typeof Chart === 'undefined') return;
+
+    // Chart 1: Department Distribution
+    const deptCtx = document.getElementById("repChartDept");
+    if (deptCtx) {
+        if (repChartDeptInstance) repChartDeptInstance.destroy();
+        const depts = (st.students_by_department || []).map(d => d.department);
+        const counts = (st.students_by_department || []).map(d => d.count);
+
+        repChartDeptInstance = new Chart(deptCtx, {
+            type: 'bar',
+            data: {
+                labels: depts.length > 0 ? depts : ['No Data'],
+                datasets: [{
+                    label: 'Students',
+                    data: counts.length > 0 ? counts : [0],
+                    backgroundColor: '#2563EB',
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+            }
+        });
+    }
+
+    // Chart 2: Academic Year Distribution
+    const yearCtx = document.getElementById("repChartYear");
+    if (yearCtx) {
+        if (repChartYearInstance) repChartYearInstance.destroy();
+        const years = (st.students_by_academic_year || []).map(y => y.year);
+        const counts = (st.students_by_academic_year || []).map(y => y.count);
+
+        repChartYearInstance = new Chart(yearCtx, {
+            type: 'doughnut',
+            data: {
+                labels: years,
+                datasets: [{
+                    data: counts,
+                    backgroundColor: ['#2563EB', '#10B981', '#F59E0B', '#8B5CF6']
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom' } }
+            }
+        });
+    }
+
+    // Chart 3: Semester Distribution
+    const semCtx = document.getElementById("repChartSem");
+    if (semCtx) {
+        if (repChartSemInstance) repChartSemInstance.destroy();
+        const sems = (st.students_by_semester || []).map(s => s.semester);
+        const counts = (st.students_by_semester || []).map(s => s.count);
+
+        repChartSemInstance = new Chart(semCtx, {
+            type: 'line',
+            data: {
+                labels: sems,
+                datasets: [{
+                    label: 'Students',
+                    data: counts,
+                    borderColor: '#10B981',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    fill: true,
+                    tension: 0.3
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+            }
+        });
+    }
+}
+
+function getActiveReportFilterParams() {
+    const yearVal = document.getElementById("repFilterAcadYear")?.value || "all";
+    const semVal = document.getElementById("repFilterSemester")?.value || "all";
+    const deptVal = document.getElementById("repFilterDepartment")?.value || "all";
+    const progVal = document.getElementById("repFilterProgram")?.value || "all";
+
+    return new URLSearchParams({
+        academic_year: yearVal,
+        semester: semVal,
+        department: deptVal,
+        program: progVal
+    });
+}
+
+function exportReportPDF(reportType) {
+    const params = getActiveReportFilterParams();
+    params.set("report_type", reportType);
+    window.open(`/api/analytics/export/pdf?${params.toString()}`, '_blank');
+}
+
+function exportReportCSV(reportType) {
+    const params = getActiveReportFilterParams();
+    params.set("report_type", reportType);
+    window.open(`/api/analytics/export/csv?${params.toString()}`, '_blank');
+}
+
+function printReport(reportType) {
+    viewReportDetails(reportType);
+    setTimeout(() => {
+        window.print();
+    }, 500);
+}
+
+function viewReportDetails(reportType) {
+    const modal = document.getElementById("modalReportPreview");
+    const body = document.getElementById("reportPreviewBody");
+    const title = document.getElementById("reportModalTitle");
+    const pdfBtn = document.getElementById("btnModalPdfExport");
+
+    if (!modal || !body || !reportsAnalyticsData) return;
+
+    pdfBtn.onclick = () => exportReportPDF(reportType);
+    modal.style.display = "flex";
+
+    const titles = {
+        "student": "Student Roster & Enrollment Audit Preview",
+        "department": "Department Performance & Capacity Audit Preview",
+        "attendance": "Academic Attendance Audit Preview",
+        "examination": "Examination Schedule & Evaluation Summary",
+        "result": "Student Academic Performance & Result Audit",
+        "fee": "Fee Collection & Revenue Audit Preview",
+        "pending_fee": "Outstanding Fee Dues Audit Preview"
+    };
+
+    title.textContent = titles[reportType] || "Report Preview";
+
+    if (reportType === "student") {
+        const st = reportsAnalyticsData.student_analytics || {};
+        body.innerHTML = `
+            <div style="padding: 10px;">
+                <h4 style="margin-bottom:10px; color:#1e3a8a;">Student Roster Summary</h4>
+                <p><strong>Total Students:</strong> ${st.total_students} | <strong>Male:</strong> ${st.male_count} | <strong>Female:</strong> ${st.female_count} | <strong>Active:</strong> ${st.active_students}</p>
+                <table class="report-table" style="margin-top:15px;">
+                    <thead><tr><th>Department</th><th>Students Count</th></tr></thead>
+                    <tbody>
+                        ${(st.students_by_department || []).map(d => `<tr><td>${d.department}</td><td><strong>${d.count}</strong></td></tr>`).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    } else if (reportType === "department") {
+        const depts = reportsAnalyticsData.department_analytics || [];
+        body.innerHTML = `
+            <div style="padding: 10px;">
+                <h4 style="margin-bottom:10px; color:#1e3a8a;">Department Audit Summary</h4>
+                <table class="report-table">
+                    <thead><tr><th>Department</th><th>Capacity</th><th>Students</th><th>Occupancy</th><th>Attendance</th></tr></thead>
+                    <tbody>
+                        ${depts.map(d => `<tr><td>${d.department}</td><td>${d.capacity}</td><td>${d.students}</td><td>${d.occupancy}%</td><td>${d.attendance}%</td></tr>`).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    } else if (reportType === "fee" || reportType === "pending_fee") {
+        const fee = reportsAnalyticsData.fee_analytics || {};
+        body.innerHTML = `
+            <div style="padding: 10px;">
+                <h4 style="margin-bottom:10px; color:#1e3a8a;">Financial Ledger Audit</h4>
+                <p><strong>Total Expected:</strong> ₹${(fee.total_expected||0).toLocaleString('en-IN')}</p>
+                <p><strong>Total Collected:</strong> ₹${(fee.total_collected||0).toLocaleString('en-IN')}</p>
+                <p><strong>Total Outstanding:</strong> ₹${(fee.total_outstanding||0).toLocaleString('en-IN')}</p>
+                <p><strong>Collection Rate:</strong> ${fee.collection_rate}%</p>
+            </div>
+        `;
+    } else {
+        const matrix = reportsAnalyticsData.year_semester_matrix || [];
+        body.innerHTML = `
+            <div style="padding: 10px;">
+                <h4 style="margin-bottom:10px; color:#1e3a8a;">Academic Matrix Summary</h4>
+                <table class="report-table">
+                    <thead><tr><th>Year</th><th>Semester</th><th>Students</th><th>Attendance %</th><th>Pass Rate %</th></tr></thead>
+                    <tbody>
+                        ${matrix.map(m => `<tr><td>${m.academic_year}</td><td>${m.semester_label}</td><td>${m.students}</td><td>${m.attendance}%</td><td>${m.pass_percentage !== null ? `${m.pass_percentage}%` : 'N/A'}</td></tr>`).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    }
+}
+
+function closeReportPreviewModal() {
+    const modal = document.getElementById("modalReportPreview");
+    if (modal) modal.style.display = "none";
+}
