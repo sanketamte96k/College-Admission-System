@@ -7,10 +7,11 @@ services:
       - "5000:5000"
     environment:
       - FLASK_ENV=prod
-      - MYSQL_HOST=${MYSQL_HOST:-db}
-      - MYSQL_USER=${MYSQL_USER:-root}
-      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
-      - MYSQL_DB=${MYSQL_DB:-college_management_db}
+      - DB_HOST=${DB_HOST:-db}
+      - DB_PORT=${DB_PORT:-3306}
+      - DB_USER=${DB_USER:-root}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME:-college_management_db}
       - SECRET_KEY=${SECRET_KEY}
     depends_on:
       - db
@@ -21,8 +22,8 @@ services:
     command: --default-authentication-plugin=mysql_native_password
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      MYSQL_DATABASE: ${MYSQL_DB:-college_management_db}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME:-college_management_db}
     ports:
       - "3306:3306"
     volumes:
