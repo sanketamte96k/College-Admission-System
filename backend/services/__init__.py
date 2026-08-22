@@ -11,6 +11,7 @@ from .examination_service import ExaminationService
 from .library_service import LibraryService
 from .transport_service import TransportService
 from .notice_service import NoticeService
+from .setting_service import SettingService
 
 __all__ = [
     "StudentService",
@@ -25,5 +26,6 @@ __all__ = [
     "ExaminationService",
     "LibraryService",
     "TransportService",
-    "NoticeService"
+    "NoticeService",
+    "SettingService"
 ]

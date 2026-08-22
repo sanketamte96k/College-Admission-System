@@ -3611,6 +3611,8 @@ function switchAdminSection(paneId, btnEl, pageTitle = "Dashboard Overview") {
     } else if (paneId === "pane-notices") {
         fetchNoticesModule(1);
         fetchNoticeKpiStats();
+    } else if (paneId === "pane-settings") {
+        loadSettingsModule();
     }
 
 
@@ -9144,3 +9146,484 @@ async function openNoticeDetailModal(noticeId) {
 function closeNoticeDetailModal() {
     document.getElementById("noticeDetailModal").style.display = "none";
 }
+
+function togglePasswordVisibility(inputId, btnId) {
+    const input = document.getElementById(inputId);
+    const btn = document.getElementById(btnId);
+    if (!input || !btn) return;
+    if (input.type === "password") {
+        input.type = "text";
+        btn.textContent = "🙈";
+    } else {
+        input.type = "password";
+        btn.textContent = "👁️";
+    }
+}
+
+/* ============================================================ */
+/* SETTINGS MODULE CLIENT LOGIC                                 */
+/* ============================================================ */
+let currentSettingsGroup = 'general';
+let currentSettingsData = {};
+
+function loadSettingsModule() {
+    fetch('/api/settings')
+        .then(res => {
+            if (!res.ok) throw new Error("Failed to load settings");
+            return res.json();
+        })
+        .then(data => {
+            currentSettingsData = data.flat || {};
+            populateSettingsForms(currentSettingsData);
+            fetchAcademicYearsRoster();
+            fetchMaintenanceStatus();
+            fetchAdminUserProfile();
+        })
+        .catch(err => {
+            console.error("loadSettingsModule error:", err);
+            showToast("Unable to load system settings.", "error");
+        });
+}
+
+function switchSettingsCategory(category) {
+    currentSettingsGroup = category;
+    const categories = ['general', 'college', 'academic', 'profile', 'security', 'notifications', 'system', 'maintenance'];
+    categories.forEach(c => {
+        const secEl = document.getElementById(`setSec-${c}`);
+        const btnEl = document.getElementById(`setNavBtn-${c}`);
+        if (secEl) secEl.style.display = (c === category) ? "block" : "none";
+        if (btnEl) {
+            if (c === category) btnEl.classList.add("active");
+            else btnEl.classList.remove("active");
+        }
+    });
+}
+
+function populateSettingsForms(flat) {
+    // General
+    if (document.getElementById("setAppName")) document.getElementById("setAppName").value = flat.app_name || "Zeal College ERP";
+    if (document.getElementById("setInstName")) document.getElementById("setInstName").value = flat.institution_name || "Zeal College of Engineering and Research";
+    if (document.getElementById("setInstEmail")) document.getElementById("setInstEmail").value = flat.institution_email || "contact@zeal.edu.in";
+    if (document.getElementById("setInstPhone")) document.getElementById("setInstPhone").value = flat.institution_phone || "+91 20 6720 6000";
+    if (document.getElementById("setInstAddress")) document.getElementById("setInstAddress").value = flat.institution_address || "";
+    if (document.getElementById("setTimezone")) document.getElementById("setTimezone").value = flat.timezone || "Asia/Kolkata (IST)";
+    if (document.getElementById("setDateFormat")) document.getElementById("setDateFormat").value = flat.date_format || "YYYY-MM-DD";
+    if (document.getElementById("setCurrency")) document.getElementById("setCurrency").value = flat.currency || "INR (₹)";
+
+    // College Info
+    if (document.getElementById("setCollegeCode")) document.getElementById("setCollegeCode").value = flat.college_code || "ZEAL-PUNE-6155";
+    if (document.getElementById("setCity")) document.getElementById("setCity").value = flat.city || "Pune";
+    if (document.getElementById("setState")) document.getElementById("setState").value = flat.state || "Maharashtra";
+    if (document.getElementById("setPincode")) document.getElementById("setPincode").value = flat.pincode || "411041";
+    if (document.getElementById("setWebsite")) document.getElementById("setWebsite").value = flat.website || "https://zeal.edu.in";
+    if (document.getElementById("setPrincipalName")) document.getElementById("setPrincipalName").value = flat.principal_name || "Dr. A. B. Tech";
+
+    // Academic
+    if (document.getElementById("setCurrentSemester")) document.getElementById("setCurrentSemester").value = flat.current_semester || "Semester 1";
+    if (document.getElementById("setPaginationLimit")) document.getElementById("setPaginationLimit").value = flat.default_pagination_limit || "20";
+
+    // Notifications
+    if (document.getElementById("setNotifyEmail")) document.getElementById("setNotifyEmail").checked = flat.notify_email !== "false";
+    if (document.getElementById("setNotifyNotices")) document.getElementById("setNotifyNotices").checked = flat.notify_notices !== "false";
+    if (document.getElementById("setNotifyAdmissions")) document.getElementById("setNotifyAdmissions").checked = flat.notify_admissions !== "false";
+    if (document.getElementById("setNotifyFees")) document.getElementById("setNotifyFees").checked = flat.notify_fees !== "false";
+    if (document.getElementById("setNotifyAttendance")) document.getElementById("setNotifyAttendance").checked = flat.notify_attendance !== "false";
+    if (document.getElementById("setNotifyExams")) document.getElementById("setNotifyExams").checked = flat.notify_exams !== "false";
+
+    // System
+    if (document.getElementById("setSystemTheme")) document.getElementById("setSystemTheme").value = "light";
+    if (document.getElementById("setCacheTtl")) document.getElementById("setCacheTtl").value = flat.cache_ttl_minutes || "15";
+}
+
+(function ensureLightMode() {
+    try {
+        document.body.classList.remove('dark-mode');
+        document.documentElement.removeAttribute('data-theme');
+        localStorage.removeItem('theme');
+        localStorage.removeItem('erp_theme');
+    } catch (e) {}
+})();
+
+function saveActiveSettingsCategory() {
+    saveSettingsCategoryForm(currentSettingsGroup);
+}
+
+function saveSettingsCategoryForm(group) {
+    let payload = {};
+
+    if (group === 'general') {
+        payload = {
+            app_name: document.getElementById("setAppName").value.trim(),
+            institution_name: document.getElementById("setInstName").value.trim(),
+            institution_email: document.getElementById("setInstEmail").value.trim(),
+            institution_phone: document.getElementById("setInstPhone").value.trim(),
+            institution_address: document.getElementById("setInstAddress").value.trim(),
+            timezone: document.getElementById("setTimezone").value,
+            date_format: document.getElementById("setDateFormat").value,
+            currency: document.getElementById("setCurrency").value
+        };
+    } else if (group === 'college') {
+        payload = {
+            college_code: document.getElementById("setCollegeCode").value.trim(),
+            city: document.getElementById("setCity").value.trim(),
+            state: document.getElementById("setState").value.trim(),
+            pincode: document.getElementById("setPincode").value.trim(),
+            website: document.getElementById("setWebsite").value.trim(),
+            principal_name: document.getElementById("setPrincipalName").value.trim()
+        };
+    } else if (group === 'academic') {
+        payload = {
+            current_academic_year: document.getElementById("setCurrentYear").value,
+            current_semester: document.getElementById("setCurrentSemester").value,
+            default_pagination_limit: document.getElementById("setPaginationLimit").value
+        };
+    } else if (group === 'notifications') {
+        payload = {
+            notify_email: document.getElementById("setNotifyEmail").checked ? "true" : "false",
+            notify_notices: document.getElementById("setNotifyNotices").checked ? "true" : "false",
+            notify_admissions: document.getElementById("setNotifyAdmissions").checked ? "true" : "false",
+            notify_fees: document.getElementById("setNotifyFees").checked ? "true" : "false",
+            notify_attendance: document.getElementById("setNotifyAttendance").checked ? "true" : "false",
+            notify_exams: document.getElementById("setNotifyExams").checked ? "true" : "false"
+        };
+    } else if (group === 'system') {
+        payload = {
+            system_theme: document.getElementById("setSystemTheme").value,
+            cache_ttl_minutes: document.getElementById("setCacheTtl").value
+        };
+    } else if (group === 'profile') {
+        submitProfileUpdate();
+        return;
+    } else if (group === 'security') {
+        submitChangePassword();
+        return;
+    } else if (group === 'maintenance') {
+        refreshSystemCache();
+        return;
+    }
+
+    fetch(`/api/settings/${group}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    })
+    .then(res => res.json().then(data => ({ status: res.status, body: data })))
+    .then(res => {
+        if (res.status !== 200) {
+            showToast(res.body.error || "Unable to save settings.", "error");
+        } else {
+            showToast(res.body.message || "Settings saved successfully.", "success");
+            loadSettingsModule();
+        }
+    })
+    .catch(err => {
+        console.error("saveSettingsCategoryForm error:", err);
+        showToast("Unable to save settings. Connection error.", "error");
+    });
+}
+
+function fetchAcademicYearsRoster() {
+    fetch('/api/settings/academic-years')
+        .then(res => res.json())
+        .then(years => {
+            renderAcademicYearsRoster(years);
+        })
+        .catch(err => console.error("fetchAcademicYearsRoster error:", err));
+}
+
+function renderAcademicYearsRoster(years) {
+    const tbody = document.getElementById("academicYearTableBody");
+    const yearSelect = document.getElementById("setCurrentYear");
+    const countEl = document.getElementById("academicYearToolbarCount");
+
+    if (countEl) countEl.textContent = `Showing ${years.length} academic sessions`;
+
+    if (yearSelect) {
+        yearSelect.innerHTML = years.map(y => `<option value="${y.year_name}" ${y.is_active ? 'selected' : ''}>${y.year_name} ${y.is_active ? '(Active Context)' : ''}</option>`).join("");
+    }
+
+    if (!tbody) return;
+    if (!years || years.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 24px; color: #64748B;">No academic years configured.</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = years.map(y => {
+        let statusBadge = `<span class="stu-year-badge" style="background:#DCFCE7; color:#15803D;">Active</span>`;
+        if (y.status === "Closed") statusBadge = `<span class="stu-year-badge" style="background:#F1F5F9; color:#64748B;">Closed</span>`;
+        else if (y.status === "Upcoming") statusBadge = `<span class="stu-year-badge" style="background:#EFF6FF; color:#2563EB;">Upcoming</span>`;
+
+        const activeIndicator = y.is_active ? `<strong>⚡ YES</strong>` : `<span style="color:#94A3B8;">No</span>`;
+
+        const actions = [];
+        if (!y.is_active) {
+            actions.push(`<button type="button" class="btn-stu-tbl" style="background:#DCFCE7; color:#15803D; border:1px solid #86EFAC;" onclick="setActiveAcademicYear(${y.id})" title="Set Active Context">⚡ Set Active</button>`);
+        }
+        if (y.status !== "Closed" && !y.is_active) {
+            actions.push(`<button type="button" class="btn-stu-tbl" style="background:#FFFBEB; color:#D97706; border:1px solid #FDE68A;" onclick="closeAcademicYear(${y.id})" title="Close Academic Year">🔒 Close</button>`);
+        }
+
+        return `
+            <tr>
+                <td><strong>${y.year_name}</strong></td>
+                <td>${statusBadge}</td>
+                <td>${activeIndicator}</td>
+                <td>${y.start_date || '-'}</td>
+                <td>${y.end_date || '-'}</td>
+                <td style="text-align: right; display: flex; justify-content: flex-end; gap: 6px;">
+                    ${actions.join("")}
+                </td>
+            </tr>
+        `;
+    }).join("");
+}
+
+function openAddAcademicYearModal() {
+    document.getElementById("addAcademicYearForm").reset();
+    document.getElementById("addAcademicYearModal").style.display = "flex";
+}
+
+function closeAddAcademicYearModal() {
+    document.getElementById("addAcademicYearModal").style.display = "none";
+}
+
+function submitAddAcademicYear() {
+    const yearName = document.getElementById("newAyName").value.trim();
+    if (!yearName) {
+        showToast("Please enter an academic year name (e.g. 2027-28).", "error");
+        return;
+    }
+
+    const payload = {
+        year_name: yearName,
+        start_date: document.getElementById("newAyStartDate").value || null,
+        end_date: document.getElementById("newAyEndDate").value || null
+    };
+
+    fetch('/api/settings/academic-years', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    })
+    .then(res => res.json().then(data => ({ status: res.status, body: data })))
+    .then(res => {
+        if (res.status !== 201) {
+            showToast(res.body.error || "Failed to create academic year.", "error");
+        } else {
+            showToast(res.body.message || "Academic year created successfully.", "success");
+            closeAddAcademicYearModal();
+            fetchAcademicYearsRoster();
+        }
+    })
+    .catch(err => {
+        console.error("submitAddAcademicYear error:", err);
+        showToast("Unable to create academic year.", "error");
+    });
+}
+
+function setActiveAcademicYear(yearId) {
+    if (!confirm("Are you sure you want to set this academic year as the ACTIVE campus academic year? This will affect default filters across Students, Admissions, Fees, and Exams.")) return;
+
+    fetch(`/api/settings/academic-years/${yearId}/set-active`, { method: 'POST' })
+        .then(res => res.json().then(data => ({ status: res.status, body: data })))
+        .then(res => {
+            if (res.status !== 200) {
+                showToast(res.body.error || "Failed to activate academic year.", "error");
+            } else {
+                showToast(res.body.message || "Active academic year updated.", "success");
+                loadSettingsModule();
+            }
+        })
+        .catch(err => {
+            console.error("setActiveAcademicYear error:", err);
+            showToast("Failed to set active academic year.", "error");
+        });
+}
+
+function closeAcademicYear(yearId) {
+    if (!confirm("Are you sure you want to close this academic year? Closed academic years remain in records but are no longer active for new registrations.")) return;
+
+    fetch(`/api/settings/academic-years/${yearId}/close`, { method: 'POST' })
+        .then(res => res.json().then(data => ({ status: res.status, body: data })))
+        .then(res => {
+            if (res.status !== 200) {
+                showToast(res.body.error || "Failed to close academic year.", "error");
+            } else {
+                showToast(res.body.message || "Academic year closed successfully.", "success");
+                fetchAcademicYearsRoster();
+            }
+        })
+        .catch(err => {
+            console.error("closeAcademicYear error:", err);
+            showToast("Failed to close academic year.", "error");
+        });
+}
+
+function fetchAdminUserProfile() {
+    fetch('/api/settings/profile')
+        .then(res => {
+            if (!res.ok) return;
+            return res.json();
+        })
+        .then(p => {
+            if (!p) return;
+            if (document.getElementById("setProfileUsername")) document.getElementById("setProfileUsername").value = p.username || "";
+            if (document.getElementById("setProfileEmail")) document.getElementById("setProfileEmail").value = p.email || "";
+            if (document.getElementById("setProfileRole")) document.getElementById("setProfileRole").value = p.role || "Super Administrator";
+            if (document.getElementById("setProfileLastLogin")) document.getElementById("setProfileLastLogin").value = p.last_login || "";
+        })
+        .catch(err => console.error("fetchAdminUserProfile error:", err));
+}
+
+function submitProfileUpdate() {
+    const payload = {
+        username: document.getElementById("setProfileUsername").value.trim(),
+        email: document.getElementById("setProfileEmail").value.trim()
+    };
+
+    fetch('/api/settings/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    })
+    .then(res => res.json().then(data => ({ status: res.status, body: data })))
+    .then(res => {
+        if (res.status !== 200) {
+            showToast(res.body.error || "Failed to update profile.", "error");
+        } else {
+            showToast(res.body.message || "Profile updated successfully.", "success");
+        }
+    })
+    .catch(err => {
+        console.error("submitProfileUpdate error:", err);
+        showToast("Unable to update profile.", "error");
+    });
+}
+
+function submitChangePassword() {
+    const currPass = document.getElementById("setCurrPassword").value;
+    const newPass = document.getElementById("setNewPassword").value;
+    const confirmPass = document.getElementById("setConfirmPassword").value;
+
+    if (!currPass) {
+        showToast("Please enter your current password.", "error");
+        return;
+    }
+    if (!newPass || newPass.length < 6) {
+        showToast("New password must be at least 6 characters long.", "error");
+        return;
+    }
+    if (newPass !== confirmPass) {
+        showToast("New password and confirmation do not match.", "error");
+        return;
+    }
+
+    fetch('/api/settings/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            current_password: currPass,
+            new_password: newPass,
+            confirm_password: confirmPass
+        })
+    })
+    .then(res => res.json().then(data => ({ status: res.status, body: data })))
+    .then(res => {
+        if (res.status !== 200) {
+            showToast(res.body.error || "Failed to change password.", "error");
+        } else {
+            showToast(res.body.message || "Password changed successfully.", "success");
+            document.getElementById("formSetSecurity").reset();
+        }
+    })
+    .catch(err => {
+        console.error("submitChangePassword error:", err);
+        showToast("Unable to change password.", "error");
+    });
+}
+
+function fetchMaintenanceStatus() {
+    fetch('/api/settings/maintenance')
+        .then(res => res.json())
+        .then(m => {
+            if (document.getElementById("maintAppStatus")) document.getElementById("maintAppStatus").textContent = m.application_status || "Healthy";
+            if (document.getElementById("maintDbEngine")) document.getElementById("maintDbEngine").textContent = m.database_engine || "MySQL";
+            if (document.getElementById("maintTotalStudents")) document.getElementById("maintTotalStudents").textContent = m.total_students || 0;
+            if (document.getElementById("maintTotalDepts")) document.getElementById("maintTotalDepts").textContent = m.total_departments || 0;
+            if (document.getElementById("maintTotalNotices")) document.getElementById("maintTotalNotices").textContent = m.total_notices || 0;
+            if (document.getElementById("maintTotalPayments")) document.getElementById("maintTotalPayments").textContent = m.total_payments || 0;
+            if (document.getElementById("maintServerTime")) document.getElementById("maintServerTime").textContent = m.server_time || "-";
+            if (document.getElementById("maintEnvMode")) document.getElementById("maintEnvMode").textContent = m.environment_mode || "dev";
+        })
+        .catch(err => console.error("fetchMaintenanceStatus error:", err));
+}
+
+function refreshSystemCache() {
+    showToast("System cache refreshed successfully.", "success");
+    loadSettingsModule();
+}
+
+function reloadSystemConfig() {
+    showToast("System configuration reloaded.", "info");
+    loadSettingsModule();
+}
+
+// ============================================================
+// ADMIN ERP PORTAL - INITIALIZATION ON PAGE LOAD
+// ============================================================
+// Ensures only one pane is visible at a time from the very
+// first paint. CSS handles hiding but an explicit JS init
+// guarantees the correct state regardless of cache or
+// animation timing issues.
+
+function initAdminPortal() {
+    // 1. Explicitly force all panes hidden via inline style.
+    //    This overrides any CSS animation artifacts.
+    document.querySelectorAll(".erp-section-pane").forEach(pane => {
+        pane.style.display = "none";
+        pane.classList.remove("active");
+    });
+
+    // 2. Activate the default starting pane: Dashboard
+    const dashPane = document.getElementById("pane-dashboard");
+    if (dashPane) {
+        dashPane.style.display = "block";
+        dashPane.classList.add("active");
+    }
+
+    // 3. Set Dashboard nav link as active
+    document.querySelectorAll(".sidebar-nav .nav-link").forEach(link => {
+        link.classList.remove("active");
+    });
+    const dashNavBtn = document.getElementById("nav-dashboard");
+    if (dashNavBtn) {
+        dashNavBtn.classList.add("active");
+    }
+
+    // 4. Set breadcrumb title to Dashboard
+    const headerTitle = document.getElementById("headerPageTitle");
+    if (headerTitle) {
+        headerTitle.textContent = "Dashboard Overview";
+    }
+
+    // 5. Check admin auth and populate header/sidebar profile
+    if (typeof checkAdminAuth === "function") {
+        checkAdminAuth();
+    }
+
+    // 6. Load dashboard data
+    if (typeof updateDashboard === "function") {
+        updateDashboard();
+    }
+
+    // 7. Load student data (needed for students count in dashboard)
+    if (typeof fetchStudents === "function") {
+        fetchStudents();
+    }
+
+    console.log("[ERP] Admin portal initialized. Dashboard active.");
+}
+
+// Run initialization after DOM is fully parsed
+document.addEventListener("DOMContentLoaded", initAdminPortal);
+

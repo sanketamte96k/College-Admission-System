@@ -1225,28 +1225,7 @@ table tr:hover {
     border-color: #2563eb;
 }
 
-/* Dark Mode Theme Variables */
-body.dark-mode {
-    background-color: #0f172a !important;
-    color: #f8fafc !important;
-}
 
-body.dark-mode .container,
-body.dark-mode .profile-card,
-body.dark-mode .chart-card,
-body.dark-mode .status-banner-card,
-body.dark-mode .timeline-container,
-body.dark-mode .key-stat-box,
-body.dark-mode table,
-body.dark-mode .modal-content {
-    background-color: #1e293b !important;
-    color: #f8fafc !important;
-    border-color: #334155 !important;
-}
-
-body.dark-mode h1, body.dark-mode h2, body.dark-mode h3, body.dark-mode h4, body.dark-mode td {
-    color: #f8fafc !important;
-}
 
 /* Floating AI Chatbot Widget */
 .ai-widget-fab {
@@ -2662,16 +2641,11 @@ body.dark-mode h1, body.dark-mode h2, body.dark-mode h3, body.dark-mode h4, body
 
 .erp-section-pane {
     display: none;
-    animation: fadeInPane 0.3s ease forwards;
 }
 
 .erp-section-pane.active {
     display: block;
-}
-
-@keyframes fadeInPane {
-    from { opacity: 0; transform: translateY(6px); }
-    to { opacity: 1; transform: translateY(0); }
+    animation: fadeInPane 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 /* Student Dashboard Specific Action Buttons */
@@ -10379,4 +10353,281 @@ body.dark-mode h1, body.dark-mode h2, body.dark-mode h3, body.dark-mode h4, body
     background: #FFFFFF;
     color: #2563EB;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* ============================================================ */
+/* SETTINGS MODULE ENTERPRISE SCOPED STYLES                     */
+/* ============================================================ */
+#pane-settings {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* 1. HERO HEADER CARD */
+#pane-settings .stu-hero-card {
+    background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
+    border-radius: 16px;
+    padding: 24px 32px;
+    box-shadow: 0 4px 20px rgba(15, 23, 42, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    color: #FFFFFF;
+}
+
+#pane-settings .stu-hero-title {
+    font-size: 22px;
+    font-weight: 800;
+    color: #FFFFFF;
+    margin: 4px 0;
+    letter-spacing: -0.3px;
+}
+
+#pane-settings .stu-hero-subtitle {
+    font-size: 13.5px;
+    color: #94A3B8;
+    margin: 0;
+    line-height: 1.5;
+}
+
+#pane-settings .stu-hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: #60A5FA;
+}
+
+#pane-settings .stu-hero-actions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+#pane-settings .stu-hero-actions button {
+    height: 42px;
+    padding: 0 20px;
+    border-radius: 8px;
+    font-size: 13.5px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+}
+
+/* 2. SIDEBAR CATEGORIES */
+#pane-settings .settings-sidebar {
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
+}
+
+#pane-settings .settings-nav-item {
+    background: #FFFFFF;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: #475569;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    margin-bottom: 4px;
+}
+
+#pane-settings .settings-nav-item:hover {
+    background: #F1F5F9;
+    color: #0F172A;
+    transform: translateX(2px);
+}
+
+#pane-settings .settings-nav-item.active {
+    background: #EFF6FF;
+    color: #2563EB;
+    font-weight: 700;
+    border-color: #BFDBFE;
+    box-shadow: inset 4px 0 0 #2563EB, 0 2px 8px rgba(37, 99, 235, 0.08);
+}
+
+/* 3. MAIN CARDS & SECTION HEADERS */
+#pane-settings .stu-section-card {
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 16px;
+    padding: 28px 32px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+}
+
+#pane-settings .stu-card-header {
+    border-bottom: 1px solid #E2E8F0;
+    padding-bottom: 16px;
+    margin-bottom: 22px;
+}
+
+#pane-settings .stu-card-title {
+    font-size: 18px;
+    font-weight: 800;
+    color: #0F172A;
+    margin: 0 0 4px 0;
+    letter-spacing: -0.2px;
+}
+
+#pane-settings .stu-card-header small {
+    font-size: 13px;
+    color: #64748B;
+    display: block;
+}
+
+/* 4. LABELS & INPUTS */
+#pane-settings label,
+#pane-settings .stu-filter-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #344054;
+    margin-bottom: 7px;
+    display: block;
+}
+
+#pane-settings input.stu-control,
+#pane-settings select.stu-control,
+#pane-settings .settings-input,
+#pane-settings .settings-select {
+    height: 45px;
+    width: 100%;
+    padding: 0 16px;
+    border: 1px solid #D7DEEA;
+    border-radius: 8px;
+    background: #FFFFFF;
+    font-size: 14px;
+    color: #172033;
+    transition: all 0.15s ease-in-out;
+    box-sizing: border-box;
+    font-family: inherit;
+}
+
+#pane-settings input.stu-control:hover,
+#pane-settings select.stu-control:hover {
+    border-color: #94A3B8;
+}
+
+#pane-settings input.stu-control:focus,
+#pane-settings select.stu-control:focus {
+    border-color: #2563EB;
+    box-shadow: 0 0 0 3.5px rgba(37, 99, 235, 0.12);
+    outline: none;
+    background: #FFFFFF;
+}
+
+/* 5. BUTTON STYLES */
+#pane-settings .btn-stu-primary {
+    background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
+    color: #FFFFFF;
+    border: none;
+    font-weight: 700;
+    height: 44px;
+    padding: 0 22px;
+    border-radius: 8px;
+    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 13.5px;
+}
+
+#pane-settings .btn-stu-primary:hover {
+    transform: translateY(-1.5px);
+    box-shadow: 0 6px 18px rgba(37, 99, 235, 0.45);
+    background: linear-gradient(135deg, #1D4ED8 0%, #1E40AF 100%);
+}
+
+#pane-settings .btn-stu-primary:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 6px rgba(37, 99, 235, 0.2);
+}
+
+#pane-settings .btn-reset {
+    background: #FFFFFF;
+    color: #334155;
+    border: 1px solid #CBD5E1;
+    font-weight: 700;
+    height: 44px;
+    padding: 0 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    font-size: 13.5px;
+}
+
+#pane-settings .btn-reset:hover {
+    background: #F8FAFC;
+    border-color: #94A3B8;
+    color: #0F172A;
+    transform: translateY(-1px);
+}
+
+/* 6. PASSWORD INPUT WRAPPER WITH SHOW/HIDE EYE BUTTON */
+#pane-settings .password-input-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+#pane-settings .password-input-wrap input {
+    padding-right: 46px;
+}
+
+#pane-settings .password-input-wrap button {
+    position: absolute;
+    right: 8px;
+    background: transparent;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+    color: #64748B;
+    padding: 6px;
+    border-radius: 6px;
+    transition: all 0.15s ease;
+}
+
+#pane-settings .password-input-wrap button:hover {
+    color: #2563EB;
+    background: #F1F5F9;
+}
+
+/* 7. RESPONSIVE DESIGN */
+@media (max-width: 900px) {
+    #pane-settings .settings-layout {
+        grid-template-columns: 1fr !important;
+    }
+    #pane-settings .settings-nav {
+        flex-direction: row !important;
+        overflow-x: auto;
+        padding-bottom: 6px;
+    }
+    #pane-settings .settings-nav-item {
+        white-space: nowrap;
+        width: auto !important;
+    }
+    #pane-settings .stu-hero-card {
+        flex-direction: column;
+        align-items: flex-start;
+    }
 }

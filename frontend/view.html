@@ -11,7 +11,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=3">
     <!-- jsPDF Library for generating Admission Form PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <!-- Chart.js Library for Analytics Charts -->
@@ -466,233 +466,8 @@
                     </div>
                 </div>
 
-                <!-- 5. CAMPUS OPERATIONS (Fee Collection, Attendance, Department Overview) -->
-                <div class="dash-section-header">
-                    <div class="dash-section-header-left">
-                        <span class="dash-section-tag">OPERATIONS &amp; RECONCILIATIONS</span>
-                        <h3 class="dash-section-title">🏛️ Financial, Attendance &amp; Branch Operations</h3>
-                    </div>
-                </div>
-
-                <div class="dash-ops-grid">
-                    <!-- Card 1: Fee Collection Overview -->
-                    <div class="card dash-ops-card ops-fees-card">
-                        <div class="dash-ops-card-header">
-                            <div class="dash-ops-header-icon" style="background: #ECFDF5; color: #059669; border: 1px solid #A7F3D0;">💳</div>
-                            <div>
-                                <h4 class="dash-ops-title">Fee Collection Overview</h4>
-                                <p class="dash-ops-sub">Annual institutional tuition collections &amp; dues</p>
-                            </div>
-                        </div>
-                        <div class="dash-fee-metrics">
-                            <div class="fee-metric-row">
-                                <span class="fee-lbl">Total Expected</span>
-                                <strong class="fee-val" id="dashTotalFeesExpected">₹ 0</strong>
-                            </div>
-                            <div class="fee-metric-row">
-                                <span class="fee-lbl" style="color: #059669;">● Collected Amount</span>
-                                <strong class="fee-val" style="color: #059669;" id="dashTotalFeesCollected">₹ 0</strong>
-                            </div>
-                            <div class="fee-metric-row">
-                                <span class="fee-lbl" style="color: #DC2626;">● Outstanding Pending</span>
-                                <strong class="fee-val" style="color: #DC2626;" id="dashTotalFeesPending">₹ 0</strong>
-                            </div>
-                        </div>
-                        <div class="dash-collection-progress-wrap">
-                            <div class="progress-meta">
-                                <span>Collection Rate</span>
-                                <strong id="dashFeeRateText">0%</strong>
-                            </div>
-                            <div class="dash-progress-track">
-                                <div class="dash-progress-fill" id="dashFeeRateBar" style="width: 0%; background: linear-gradient(90deg, #059669, #10B981);"></div>
-                            </div>
-                        </div>
-                        <div class="dash-ops-footer">
-                            <button type="button" class="dash-card-link-btn" onclick="switchAdminSection('pane-fees', document.getElementById('nav-fees'), 'Fee & Payment Management')">
-                                View Full Fee Ledger →
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Card 2: Attendance Summary -->
-                    <div class="card dash-ops-card ops-att-card">
-                        <div class="dash-ops-card-header">
-                            <div class="dash-ops-header-icon" style="background: #F5F3FF; color: #7C3AED; border: 1px solid #DDD6FE;">📊</div>
-                            <div>
-                                <h4 class="dash-ops-title">Today's Attendance Overview</h4>
-                                <p class="dash-ops-sub">Real-time classroom presence across college</p>
-                            </div>
-                        </div>
-                        <div class="dash-att-metrics">
-                            <div class="att-metric-pill">
-                                <span class="att-p-lbl">Present Today</span>
-                                <strong class="att-p-val" style="color: #059669;" id="dashAttPresentCount">0</strong>
-                            </div>
-                            <div class="att-metric-pill">
-                                <span class="att-p-lbl">Absent Today</span>
-                                <strong class="att-p-val" style="color: #DC2626;" id="dashAttAbsentCount">0</strong>
-                            </div>
-                            <div class="att-metric-pill">
-                                <span class="att-p-lbl">Total Marked</span>
-                                <strong class="att-p-val" style="color: #2563EB;" id="dashAttMarkedCount">0</strong>
-                            </div>
-                        </div>
-                        <div class="dash-collection-progress-wrap">
-                            <div class="progress-meta">
-                                <span>Class Attendance Rate (vs 75% Min)</span>
-                                <strong id="dashAttRatePct">100%</strong>
-                            </div>
-                            <div class="dash-progress-track">
-                                <div class="dash-progress-fill" id="dashAttProgressBar" style="width: 100%; background: linear-gradient(90deg, #7C3AED, #8B5CF6);"></div>
-                            </div>
-                        </div>
-                        <div class="dash-ops-footer">
-                            <button type="button" class="dash-card-link-btn" onclick="switchAdminSection('pane-attendance', document.getElementById('nav-attendance'), 'Attendance Management')">
-                                Manage Daily Attendance →
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Card 3: Department Performance -->
-                    <div class="card dash-ops-card ops-dept-card">
-                        <div class="dash-ops-card-header">
-                            <div class="dash-ops-header-icon" style="background: #EFF6FF; color: #2563EB; border: 1px solid #BFDBFE;">🏢</div>
-                            <div>
-                                <h4 class="dash-ops-title">Department Highlights</h4>
-                                <p class="dash-ops-sub">Branch-wise enrollment &amp; participation metrics</p>
-                            </div>
-                        </div>
-                        <div class="dash-dept-list" id="dashDeptOverviewList">
-                            <!-- Injected dynamically via view.js -->
-                            <div class="dash-dept-row-item">
-                                <span class="dash-d-name">Computer Engineering</span>
-                                <span class="dash-d-meta"><strong id="compCount">0</strong> students</span>
-                            </div>
-                            <div class="dash-dept-row-item">
-                                <span class="dash-d-name">Information Technology</span>
-                                <span class="dash-d-meta"><strong id="itCount">0</strong> students</span>
-                            </div>
-                            <div class="dash-dept-row-item">
-                                <span class="dash-d-name">AI &amp; Data Science</span>
-                                <span class="dash-d-meta"><strong id="aidsCount">0</strong> students</span>
-                            </div>
-                        </div>
-                        <div class="dash-ops-footer">
-                            <button type="button" class="dash-card-link-btn" onclick="switchAdminSection('pane-departments', document.getElementById('nav-departments'), 'Academic Departments')">
-                                View All Academic Departments →
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 6. RECENT DATA TABLES (Admissions & Payments Side by Side) -->
-                <div class="dash-section-header">
-                    <div class="dash-section-header-left">
-                        <span class="dash-section-tag">LIVE TRANSACTION RECORDS</span>
-                        <h3 class="dash-section-title">📋 Recent Admissions &amp; Payment Transactions</h3>
-                    </div>
-                </div>
-
-                <div class="dash-tables-grid">
-                    <!-- Table 1: Recent Admissions -->
-                    <div class="card dash-table-card">
-                        <div class="dash-table-card-header">
-                            <div class="dash-table-title-wrap">
-                                <h4 class="dash-table-title">Recent Student Admissions</h4>
-                                <p class="dash-table-sub">Latest registered candidate profiles</p>
-                            </div>
-                            <button type="button" class="btn-link-action" onclick="switchAdminSection('pane-admissions', document.getElementById('nav-admissions'), 'Student Admissions & Verification')">
-                                View All Admissions →
-                            </button>
-                        </div>
-                        <div class="table-responsive">
-                            <table class="data-table dash-mini-table">
-                                <thead>
-                                    <tr>
-                                        <th>Student</th>
-                                        <th>App ID</th>
-                                        <th>Branch</th>
-                                        <th>Date</th>
-                                        <th>Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="dashRecentAdmissionsBody">
-                                    <tr><td colspan="5" class="table-empty-cell">Loading recent admissions...</td></tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    <!-- Table 2: Recent Fee Payments -->
-                    <div class="card dash-table-card">
-                        <div class="dash-table-card-header">
-                            <div class="dash-table-title-wrap">
-                                <h4 class="dash-table-title">Recent Fee Receipts</h4>
-                                <p class="dash-table-sub">Latest tuition payments recorded in system</p>
-                            </div>
-                            <button type="button" class="btn-link-action" onclick="switchAdminSection('pane-fees', document.getElementById('nav-fees'), 'Fee & Payment Management')">
-                                View All Payments →
-                            </button>
-                        </div>
-                        <div class="table-responsive">
-                            <table class="data-table dash-mini-table">
-                                <thead>
-                                    <tr>
-                                        <th>Student</th>
-                                        <th>Receipt ID</th>
-                                        <th>Amount</th>
-                                        <th>Method</th>
-                                        <th>Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="dashRecentPaymentsBody">
-                                    <tr><td colspan="5" class="table-empty-cell">Loading recent payments...</td></tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 7. ATTENTION REQUIRED & RECENT ACTIVITY -->
-                <div class="dash-bottom-grid">
-                    <!-- Left: Attention Required Alert Panel -->
-                    <div class="card dash-alert-panel-card">
-                        <div class="dash-alert-panel-header">
-                            <div class="alert-panel-icon-box">⚠️</div>
-                            <div>
-                                <h4 class="alert-panel-title">Attention Required</h4>
-                                <p class="alert-panel-sub">Critical institutional items needing administrative action</p>
-                            </div>
-                        </div>
-                        <div class="dash-alerts-list" id="dashAlertsList">
-                            <!-- Populated dynamically -->
-                            <div class="dash-empty-alert-state">
-                                <span>✓</span> Everything is up to date and in academic compliance.
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Right: Live Activity Stream -->
-                    <div class="card dash-activity-card">
-                        <div class="dash-activity-header">
-                            <div class="activity-header-icon-box">⚡</div>
-                            <div>
-                                <h4 class="activity-title">Recent Administrative Activity</h4>
-                                <p class="activity-sub">Live log of institutional actions</p>
-                            </div>
-                        </div>
-                        <div class="dash-activity-timeline" id="dashActivityTimeline">
-                            <!-- Populated dynamically -->
-                            <div class="dash-activity-empty">Loading activity feed...</div>
-                        </div>
-                    </div>
-                </div>
-
             </div>
 
-            <!-- ============================================================ -->
-            <!-- PANE 2: STUDENT ADMISSIONS & VERIFICATION                    -->
-            <!-- ============================================================ -->
             <!-- ============================================================ -->
             <!-- PANE 2: STUDENT ADMISSIONS & VERIFICATION                    -->
             <!-- ============================================================ -->
@@ -3176,15 +2951,497 @@
             <!-- ============================================================ -->
             <!-- PANE 14: SYSTEM SETTINGS                                     -->
             <!-- ============================================================ -->
+            <!-- ============================================================ -->
+            <!-- PANE 14: SETTINGS & SYSTEM CONFIGURATION                     -->
+            <!-- ============================================================ -->
             <div id="pane-settings" class="erp-section-pane">
-                <div class="erp-placeholder-card">
-                    <div class="erp-placeholder-icon">⚙️</div>
-                    <h3>ERP Portal & System Settings</h3>
-                    <p>Manage administrator credentials, admission quotas, academic sessions, and institutional parameters.</p>
-                    <div style="margin-top: 18px;">
-                        <button class="logout-btn" onclick="logoutAdmin()">🚪 Sign Out of Admin Portal</button>
+
+                <!-- 1. HERO HEADER CARD -->
+                <div class="stu-hero-card">
+                    <div class="stu-hero-content">
+                        <div class="stu-hero-badge">
+                            <span class="stu-badge-pulse"></span>
+                            ⚙️ ZEAL ERP ADMINISTRATIVE SYSTEM
+                        </div>
+                        <h2 class="stu-hero-title">Settings &amp; System Configuration</h2>
+                        <p class="stu-hero-subtitle">Manage institutional parameters, campus academic sessions, administrator profile, notification rules, and system maintenance.</p>
+                    </div>
+                    <div class="stu-hero-actions">
+                        <button type="button" class="btn-stu-primary" onclick="saveActiveSettingsCategory()" title="Save Current Category Settings">
+                            <span>💾</span> Save Changes
+                        </button>
+                        <button type="button" class="btn-stu-glass" onclick="loadSettingsModule()" title="Refresh Settings">
+                            <span>🔄</span> Refresh
+                        </button>
                     </div>
                 </div>
+
+                <!-- 2. TWO-COLUMN SETTINGS CONTAINER -->
+                <div class="settings-layout" style="display: grid; grid-template-columns: 260px 1fr; gap: 20px; margin-top: 10px;">
+
+                    <!-- LEFT SIDEBAR CATEGORY NAV -->
+                    <div class="settings-sidebar" style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px; padding: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); height: fit-content;">
+                        <div style="font-size: 11px; font-weight: 800; color: #64748B; text-transform: uppercase; letter-spacing: 0.5px; padding: 6px 12px 10px 12px; border-bottom: 1px solid #F1F5F9;">
+                            Settings Categories
+                        </div>
+                        <nav class="settings-nav" style="display: flex; flex-direction: column; gap: 4px; margin-top: 10px;">
+                            <button type="button" class="settings-nav-item active" id="setNavBtn-general" onclick="switchSettingsCategory('general')">
+                                <span class="nav-icon">⚙️</span> General Settings
+                            </button>
+                            <button type="button" class="settings-nav-item" id="setNavBtn-college" onclick="switchSettingsCategory('college')">
+                                <span class="nav-icon">🏛️</span> College Information
+                            </button>
+                            <button type="button" class="settings-nav-item" id="setNavBtn-academic" onclick="switchSettingsCategory('academic')">
+                                <span class="nav-icon">🎓</span> Academic Parameters
+                            </button>
+                            <button type="button" class="settings-nav-item" id="setNavBtn-profile" onclick="switchSettingsCategory('profile')">
+                                <span class="nav-icon">👤</span> My Admin Profile
+                            </button>
+                            <button type="button" class="settings-nav-item" id="setNavBtn-security" onclick="switchSettingsCategory('security')">
+                                <span class="nav-icon">🔒</span> Password &amp; Security
+                            </button>
+                            <button type="button" class="settings-nav-item" id="setNavBtn-notifications" onclick="switchSettingsCategory('notifications')">
+                                <span class="nav-icon">🔔</span> Notifications
+                            </button>
+                            <button type="button" class="settings-nav-item" id="setNavBtn-system" onclick="switchSettingsCategory('system')">
+                                <span class="nav-icon">💻</span> System Preferences
+                            </button>
+                            <button type="button" class="settings-nav-item" id="setNavBtn-maintenance" onclick="switchSettingsCategory('maintenance')">
+                                <span class="nav-icon">🔧</span> Maintenance &amp; Health
+                            </button>
+                        </nav>
+                        <div style="margin-top: 20px; padding: 12px; background: #F8FAFC; border-radius: 8px; font-size: 11.5px; color: #64748B; border: 1px solid #E2E8F0;">
+                            💡 Environment credentials &amp; DB connection secrets are protected and not displayed.
+                        </div>
+                    </div>
+
+                    <!-- RIGHT SETTINGS CONTENT PANES -->
+                    <div class="settings-content-area">
+
+                        <!-- SECTION 1: GENERAL SETTINGS -->
+                        <div id="setSec-general" class="settings-section">
+                            <div class="stu-section-card">
+                                <div class="stu-card-header" style="margin-bottom: 18px;">
+                                    <h4 class="stu-card-title">⚙️ General ERP System Parameters</h4>
+                                    <small style="color: #64748B;">Core application titles, contact credentials, and default formats.</small>
+                                </div>
+                                <form id="formSetGeneral" onsubmit="event.preventDefault(); saveSettingsCategoryForm('general');">
+                                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 16px;">
+                                        <div>
+                                            <label class="stu-filter-label">Application Title *</label>
+                                            <input type="text" id="setAppName" class="stu-control" style="width: 100%; height: 40px;" required>
+                                        </div>
+                                        <div>
+                                            <label class="stu-filter-label">Institution Full Name *</label>
+                                            <input type="text" id="setInstName" class="stu-control" style="width: 100%; height: 40px;" required>
+                                        </div>
+                                    </div>
+
+                                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 16px;">
+                                        <div>
+                                            <label class="stu-filter-label">Official Institution Email *</label>
+                                            <input type="email" id="setInstEmail" class="stu-control" style="width: 100%; height: 40px;" required>
+                                        </div>
+                                        <div>
+                                            <label class="stu-filter-label">Official Contact Phone *</label>
+                                            <input type="text" id="setInstPhone" class="stu-control" style="width: 100%; height: 40px;" required>
+                                        </div>
+                                    </div>
+
+                                    <div style="margin-bottom: 16px;">
+                                        <label class="stu-filter-label">Physical Campus Address</label>
+                                        <input type="text" id="setInstAddress" class="stu-control" style="width: 100%; height: 40px;">
+                                    </div>
+
+                                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 20px;">
+                                        <div>
+                                            <label class="stu-filter-label">System Timezone</label>
+                                            <select id="setTimezone" class="stu-control stu-select" style="width: 100%; height: 40px;">
+                                                <option value="Asia/Kolkata (IST)">Asia/Kolkata (IST)</option>
+                                                <option value="UTC">UTC (Coordinated Universal Time)</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="stu-filter-label">Display Date Format</label>
+                                            <select id="setDateFormat" class="stu-control stu-select" style="width: 100%; height: 40px;">
+                                                <option value="YYYY-MM-DD">YYYY-MM-DD (ISO)</option>
+                                                <option value="DD/MM/YYYY">DD/MM/YYYY (UK/India)</option>
+                                                <option value="MM/DD/YYYY">MM/DD/YYYY (US)</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="stu-filter-label">Default Currency</label>
+                                            <select id="setCurrency" class="stu-control stu-select" style="width: 100%; height: 40px;">
+                                                <option value="INR (₹)">INR (₹) - Indian Rupee</option>
+                                                <option value="USD ($)">USD ($) - US Dollar</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div style="display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid #E2E8F0; padding-top: 14px;">
+                                        <button type="button" class="btn-stu-action btn-reset" onclick="loadSettingsModule()">Reset</button>
+                                        <button type="submit" class="btn-stu-primary">💾 Save General Settings</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- SECTION 2: COLLEGE INFORMATION -->
+                        <div id="setSec-college" class="settings-section" style="display: none;">
+                            <div class="stu-section-card">
+                                <div class="stu-card-header" style="margin-bottom: 18px;">
+                                    <h4 class="stu-card-title">🏛️ College &amp; Accreditation Details</h4>
+                                    <small style="color: #64748B;">Official DTE institute codes, Principal details, and location specifics.</small>
+                                </div>
+                                <form id="formSetCollege" onsubmit="event.preventDefault(); saveSettingsCategoryForm('college');">
+                                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 16px;">
+                                        <div>
+                                            <label class="stu-filter-label">DTE / College Code *</label>
+                                            <input type="text" id="setCollegeCode" class="stu-control" style="width: 100%; height: 40px;" required>
+                                        </div>
+                                        <div>
+                                            <label class="stu-filter-label">Principal / Director Name *</label>
+                                            <input type="text" id="setPrincipalName" class="stu-control" style="width: 100%; height: 40px;" required>
+                                        </div>
+                                    </div>
+
+                                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 16px;">
+                                        <div>
+                                            <label class="stu-filter-label">City *</label>
+                                            <input type="text" id="setCity" class="stu-control" style="width: 100%; height: 40px;" required>
+                                        </div>
+                                        <div>
+                                            <label class="stu-filter-label">State *</label>
+                                            <input type="text" id="setState" class="stu-control" style="width: 100%; height: 40px;" required>
+                                        </div>
+                                        <div>
+                                            <label class="stu-filter-label">Pincode (6-Digits) *</label>
+                                            <input type="text" id="setPincode" class="stu-control" style="width: 100%; height: 40px;" required placeholder="411041">
+                                        </div>
+                                    </div>
+
+                                    <div style="margin-bottom: 20px;">
+                                        <label class="stu-filter-label">Official Portal Website URL</label>
+                                        <input type="url" id="setWebsite" class="stu-control" style="width: 100%; height: 40px;" placeholder="https://zeal.edu.in">
+                                    </div>
+
+                                    <div style="display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid #E2E8F0; padding-top: 14px;">
+                                        <button type="button" class="btn-stu-action btn-reset" onclick="loadSettingsModule()">Reset</button>
+                                        <button type="submit" class="btn-stu-primary">💾 Save College Information</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- SECTION 3: ACADEMIC CONFIGURATION -->
+                        <div id="setSec-academic" class="settings-section" style="display: none;">
+                            <!-- Active Context Card -->
+                            <div class="stu-section-card" style="margin-bottom: 20px;">
+                                <div class="stu-card-header" style="margin-bottom: 18px;">
+                                    <h4 class="stu-card-title">🎓 Campus Academic Context</h4>
+                                    <small style="color: #64748B;">This academic year integrates across Students, Attendance, Fees, Exams &amp; Transport.</small>
+                                </div>
+                                <form id="formSetAcademic" onsubmit="event.preventDefault(); saveSettingsCategoryForm('academic');">
+                                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 16px;">
+                                        <div>
+                                            <label class="stu-filter-label">Current Active Academic Year *</label>
+                                            <select id="setCurrentYear" class="stu-control stu-select" style="width: 100%; height: 40px; font-weight: 700;">
+                                                <!-- Loaded dynamically from AcademicYear table -->
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="stu-filter-label">Active Campus Semester *</label>
+                                            <select id="setCurrentSemester" class="stu-control stu-select" style="width: 100%; height: 40px; font-weight: 700;">
+                                                <option value="Semester 1">Semester 1</option>
+                                                <option value="Semester 2">Semester 2</option>
+                                                <option value="Semester 3">Semester 3</option>
+                                                <option value="Semester 4">Semester 4</option>
+                                                <option value="Semester 5">Semester 5</option>
+                                                <option value="Semester 6">Semester 6</option>
+                                                <option value="Semester 7">Semester 7</option>
+                                                <option value="Semester 8">Semester 8</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="stu-filter-label">Roster Page Records Limit</label>
+                                            <select id="setPaginationLimit" class="stu-control stu-select" style="width: 100%; height: 40px;">
+                                                <option value="10">10 Records</option>
+                                                <option value="20">20 Records (Default)</option>
+                                                <option value="50">50 Records</option>
+                                                <option value="100">100 Records</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div style="display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid #E2E8F0; padding-top: 14px;">
+                                        <button type="submit" class="btn-stu-primary">💾 Save Academic Context</button>
+                                    </div>
+                                </form>
+                            </div>
+
+                            <!-- Academic Years Roster Table Card -->
+                            <div class="stu-section-card stu-table-card">
+                                <div class="stu-table-toolbar">
+                                    <div class="stu-toolbar-left">
+                                        <h4 class="stu-card-title">📅 Academic Session History &amp; Management</h4>
+                                        <span class="stu-toolbar-count" id="academicYearToolbarCount">Showing academic sessions</span>
+                                    </div>
+                                    <div class="stu-toolbar-right">
+                                        <button type="button" class="btn-stu-tool" onclick="openAddAcademicYearModal()" title="Add Academic Year">
+                                            ➕ New Academic Year
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="stu-table-container">
+                                    <table class="stu-table">
+                                        <thead>
+                                            <tr>
+                                                <th>ACADEMIC YEAR</th>
+                                                <th>STATUS</th>
+                                                <th>ACTIVE CONTEXT</th>
+                                                <th>START DATE</th>
+                                                <th>END DATE</th>
+                                                <th style="text-align: right;">ACTIONS</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="academicYearTableBody">
+                                            <!-- Loaded dynamically -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- SECTION 4: MY PROFILE -->
+                        <div id="setSec-profile" class="settings-section" style="display: none;">
+                            <div class="stu-section-card">
+                                <div class="stu-card-header" style="margin-bottom: 18px;">
+                                    <h4 class="stu-card-title">👤 Logged-in Administrator Profile</h4>
+                                    <small style="color: #64748B;">Manage your account details and contact information.</small>
+                                </div>
+                                <form id="formSetProfile" onsubmit="event.preventDefault(); submitProfileUpdate();">
+                                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 16px;">
+                                        <div>
+                                            <label class="stu-filter-label">Admin Username *</label>
+                                            <input type="text" id="setProfileUsername" class="stu-control" style="width: 100%; height: 40px;" required>
+                                        </div>
+                                        <div>
+                                            <label class="stu-filter-label">Admin Email Address *</label>
+                                            <input type="email" id="setProfileEmail" class="stu-control" style="width: 100%; height: 40px;" required>
+                                        </div>
+                                    </div>
+
+                                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 20px;">
+                                        <div>
+                                            <label class="stu-filter-label">System Role (Read-only)</label>
+                                            <input type="text" id="setProfileRole" class="stu-control" style="width: 100%; height: 40px; background: #F1F5F9;" value="Super Administrator" readonly>
+                                        </div>
+                                        <div>
+                                            <label class="stu-filter-label">Session Last Login</label>
+                                            <input type="text" id="setProfileLastLogin" class="stu-control" style="width: 100%; height: 40px; background: #F1F5F9;" readonly>
+                                        </div>
+                                    </div>
+
+                                    <div style="display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid #E2E8F0; padding-top: 14px;">
+                                        <button type="submit" class="btn-stu-primary">👤 Update Profile</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- SECTION 5: PASSWORD & SECURITY -->
+                        <div id="setSec-security" class="settings-section" style="display: none;">
+                            <div class="stu-section-card">
+                                <div class="stu-card-header" style="margin-bottom: 18px;">
+                                    <h4 class="stu-card-title">🔒 Password &amp; Access Credentials</h4>
+                                    <small style="color: #64748B;">Change your account password safely. Passwords are stored securely using salted password hashing.</small>
+                                </div>
+                                <form id="formSetSecurity" onsubmit="event.preventDefault(); submitChangePassword();">
+                                    <div style="margin-bottom: 16px;">
+                                        <label class="stu-filter-label">Current Password *</label>
+                                        <div class="password-input-wrap">
+                                            <input type="password" id="setCurrPassword" class="stu-control" required placeholder="Enter current admin password...">
+                                            <button type="button" id="btnSetCurrEye" onclick="togglePasswordVisibility('setCurrPassword', 'btnSetCurrEye')" title="Toggle Password Visibility">👁️</button>
+                                        </div>
+                                    </div>
+
+                                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 20px;">
+                                        <div>
+                                            <label class="stu-filter-label">New Password *</label>
+                                            <div class="password-input-wrap">
+                                                <input type="password" id="setNewPassword" class="stu-control" required placeholder="At least 6 characters...">
+                                                <button type="button" id="btnSetNewEye" onclick="togglePasswordVisibility('setNewPassword', 'btnSetNewEye')" title="Toggle Password Visibility">👁️</button>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label class="stu-filter-label">Confirm New Password *</label>
+                                            <div class="password-input-wrap">
+                                                <input type="password" id="setConfirmPassword" class="stu-control" required placeholder="Re-type new password...">
+                                                <button type="button" id="btnSetConfirmEye" onclick="togglePasswordVisibility('setConfirmPassword', 'btnSetConfirmEye')" title="Toggle Password Visibility">👁️</button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div style="display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid #E2E8F0; padding-top: 14px;">
+                                        <button type="submit" class="btn-stu-primary">🔒 Change Password</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- SECTION 6: NOTIFICATIONS -->
+                        <div id="setSec-notifications" class="settings-section" style="display: none;">
+                            <div class="stu-section-card">
+                                <div class="stu-card-header" style="margin-bottom: 18px;">
+                                    <h4 class="stu-card-title">🔔 Notification &amp; Alert Preferences</h4>
+                                    <small style="color: #64748B;">Configure automatic email and portal notification triggers for ERP events.</small>
+                                </div>
+                                <form id="formSetNotifications" onsubmit="event.preventDefault(); saveSettingsCategoryForm('notifications');">
+                                    <div style="display: flex; flex-direction: column; gap: 14px; margin-bottom: 20px;">
+                                        <label style="display: flex; align-items: center; justify-content: space-between; background: #F8FAFC; padding: 12px 16px; border-radius: 8px; border: 1px solid #E2E8F0; cursor: pointer;">
+                                            <div>
+                                                <strong style="color: #0F172A; font-size: 13px;">✉️ SMTP Email Notifications</strong>
+                                                <div style="font-size: 11.5px; color: #64748B;">Send automated email confirmations for student admissions and payments.</div>
+                                            </div>
+                                            <input type="checkbox" id="setNotifyEmail" style="width: 18px; height: 18px; accent-color: #2563EB;">
+                                        </label>
+
+                                        <label style="display: flex; align-items: center; justify-content: space-between; background: #F8FAFC; padding: 12px 16px; border-radius: 8px; border: 1px solid #E2E8F0; cursor: pointer;">
+                                            <div>
+                                                <strong style="color: #0F172A; font-size: 13px;">📢 Campus Notice Board Circulars</strong>
+                                                <div style="font-size: 11.5px; color: #64748B;">Publish notice alerts to active student portal feeds.</div>
+                                            </div>
+                                            <input type="checkbox" id="setNotifyNotices" style="width: 18px; height: 18px; accent-color: #2563EB;">
+                                        </label>
+
+                                        <label style="display: flex; align-items: center; justify-content: space-between; background: #F8FAFC; padding: 12px 16px; border-radius: 8px; border: 1px solid #E2E8F0; cursor: pointer;">
+                                            <div>
+                                                <strong style="color: #0F172A; font-size: 13px;">🎓 New Admission Alerts</strong>
+                                                <div style="font-size: 11.5px; color: #64748B;">Notify admin when new online admission application is submitted.</div>
+                                            </div>
+                                            <input type="checkbox" id="setNotifyAdmissions" style="width: 18px; height: 18px; accent-color: #2563EB;">
+                                        </label>
+
+                                        <label style="display: flex; align-items: center; justify-content: space-between; background: #F8FAFC; padding: 12px 16px; border-radius: 8px; border: 1px solid #E2E8F0; cursor: pointer;">
+                                            <div>
+                                                <strong style="color: #0F172A; font-size: 13px;">💳 Fee Due &amp; Receipt Alerts</strong>
+                                                <div style="font-size: 11.5px; color: #64748B;">Send fee receipts and installment deadline reminders.</div>
+                                            </div>
+                                            <input type="checkbox" id="setNotifyFees" style="width: 18px; height: 18px; accent-color: #2563EB;">
+                                        </label>
+
+                                        <label style="display: flex; align-items: center; justify-content: space-between; background: #F8FAFC; padding: 12px 16px; border-radius: 8px; border: 1px solid #E2E8F0; cursor: pointer;">
+                                            <div>
+                                                <strong style="color: #0F172A; font-size: 13px;">⚠️ Attendance Shortage Alerts</strong>
+                                                <div style="font-size: 11.5px; color: #64748B;">Trigger warning when student attendance drops below minimum percentage.</div>
+                                            </div>
+                                            <input type="checkbox" id="setNotifyAttendance" style="width: 18px; height: 18px; accent-color: #2563EB;">
+                                        </label>
+
+                                        <label style="display: flex; align-items: center; justify-content: space-between; background: #F8FAFC; padding: 12px 16px; border-radius: 8px; border: 1px solid #E2E8F0; cursor: pointer;">
+                                            <div>
+                                                <strong style="color: #0F172A; font-size: 13px;">📋 Examination Schedule &amp; Marks Alerts</strong>
+                                                <div style="font-size: 11.5px; color: #64748B;">Notify students when exam timetables or hall tickets are published.</div>
+                                            </div>
+                                            <input type="checkbox" id="setNotifyExams" style="width: 18px; height: 18px; accent-color: #2563EB;">
+                                        </label>
+                                    </div>
+
+                                    <div style="display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid #E2E8F0; padding-top: 14px;">
+                                        <button type="submit" class="btn-stu-primary">💾 Save Notification Preferences</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- SECTION 7: SYSTEM PREFERENCES -->
+                        <div id="setSec-system" class="settings-section" style="display: none;">
+                            <div class="stu-section-card">
+                                <div class="stu-card-header" style="margin-bottom: 18px;">
+                                    <h4 class="stu-card-title">💻 ERP Portal Theme &amp; System Performance</h4>
+                                    <small style="color: #64748B;">Interface customization and caching intervals.</small>
+                                </div>
+                                <form id="formSetSystem" onsubmit="event.preventDefault(); saveSettingsCategoryForm('system');">
+                                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 20px;">
+                                        <div>
+                                            <label class="stu-filter-label">Portal Theme</label>
+                                            <select id="setSystemTheme" class="stu-control stu-select" style="width: 100%; height: 40px;">
+                                                <option value="light">Light Professional ERP Theme</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="stu-filter-label">Cache Refresh Interval (Minutes)</label>
+                                            <select id="setCacheTtl" class="stu-control stu-select" style="width: 100%; height: 40px;">
+                                                <option value="5">5 Minutes</option>
+                                                <option value="15">15 Minutes (Default)</option>
+                                                <option value="30">30 Minutes</option>
+                                                <option value="60">60 Minutes</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div style="display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid #E2E8F0; padding-top: 14px;">
+                                        <button type="submit" class="btn-stu-primary">💾 Save System Preferences</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- SECTION 8: MAINTENANCE & DATA STATUS -->
+                        <div id="setSec-maintenance" class="settings-section" style="display: none;">
+                            <div class="stu-section-card">
+                                <div class="stu-card-header" style="margin-bottom: 18px;">
+                                    <h4 class="stu-card-title">🔧 Maintenance, Database Health &amp; Diagnostics</h4>
+                                    <small style="color: #64748B;">Safe administrative diagnostics, system health checks, and cache clearing.</small>
+                                </div>
+
+                                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 20px;">
+                                    <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 14px;">
+                                        <small style="font-size: 10.5px; font-weight: 700; color: #64748B; text-transform: uppercase;">APP STATUS</small>
+                                        <div style="font-size: 15px; font-weight: 800; color: #166534; margin-top: 4px;" id="maintAppStatus">Healthy</div>
+                                    </div>
+                                    <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 14px;">
+                                        <small style="font-size: 10.5px; font-weight: 700; color: #64748B; text-transform: uppercase;">DATABASE ENGINE</small>
+                                        <div style="font-size: 14px; font-weight: 800; color: #0F172A; margin-top: 4px;" id="maintDbEngine">MySQL</div>
+                                    </div>
+                                    <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 14px;">
+                                        <small style="font-size: 10.5px; font-weight: 700; color: #64748B; text-transform: uppercase;">TOTAL STUDENTS</small>
+                                        <div style="font-size: 15px; font-weight: 800; color: #2563EB; margin-top: 4px;" id="maintTotalStudents">0</div>
+                                    </div>
+                                </div>
+
+                                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 20px;">
+                                    <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 14px;">
+                                        <small style="font-size: 10.5px; font-weight: 700; color: #64748B; text-transform: uppercase;">DEPARTMENTS</small>
+                                        <div style="font-size: 15px; font-weight: 800; color: #0F172A; margin-top: 4px;" id="maintTotalDepts">0</div>
+                                    </div>
+                                    <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 14px;">
+                                        <small style="font-size: 10.5px; font-weight: 700; color: #64748B; text-transform: uppercase;">NOTICES</small>
+                                        <div style="font-size: 15px; font-weight: 800; color: #0F172A; margin-top: 4px;" id="maintTotalNotices">0</div>
+                                    </div>
+                                    <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 14px;">
+                                        <small style="font-size: 10.5px; font-weight: 700; color: #64748B; text-transform: uppercase;">PAYMENTS RECORDED</small>
+                                        <div style="font-size: 15px; font-weight: 800; color: #0F172A; margin-top: 4px;" id="maintTotalPayments">0</div>
+                                    </div>
+                                </div>
+
+                                <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 14px; margin-bottom: 20px; font-size: 12.5px; color: #475569;">
+                                    <div><strong>Server System Time:</strong> <span id="maintServerTime">-</span></div>
+                                    <div><strong>Environment Mode:</strong> <span id="maintEnvMode">-</span></div>
+                                </div>
+
+                                <div style="display: flex; gap: 10px; border-top: 1px solid #E2E8F0; padding-top: 14px;">
+                                    <button type="button" class="btn-stu-glass" onclick="refreshSystemCache()">🔄 Refresh System Cache</button>
+                                    <button type="button" class="btn-stu-glass" onclick="reloadSystemConfig()">📋 Reload Configuration</button>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                </div>
+
             </div>
 
         </main>
@@ -4856,7 +5113,50 @@
     </div>
 </div>
 
-<script src="view.js"></script>
+<!-- ============================================================ -->
+<!-- CREATE ACADEMIC YEAR MODAL                                    -->
+<!-- ============================================================ -->
+<div id="addAcademicYearModal" class="modal-overlay" style="display: none;">
+    <div class="modal-box" style="max-width: 520px; width: 90%;">
+        <div class="modal-header" style="background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%); color: #FFFFFF; padding: 18px 24px; border-bottom: 1px solid #334155;">
+            <div>
+                <div style="font-size: 10px; font-weight: 800; letter-spacing: 0.8px; text-transform: uppercase; color: #60A5FA; margin-bottom: 2px;">
+                    📅 Zeal Academic Calendar System
+                </div>
+                <h3 style="font-size: 17px; font-weight: 800; color: #FFFFFF; margin: 0;">➕ Add Campus Academic Year</h3>
+            </div>
+            <button type="button" class="close-btn" onclick="closeAddAcademicYearModal()" style="color: #94A3B8; font-size: 24px;">&times;</button>
+        </div>
+
+        <form id="addAcademicYearForm" onsubmit="event.preventDefault(); submitAddAcademicYear();">
+            <div class="modal-body" style="padding: 20px 24px; background: #FFFFFF;">
+                <div style="margin-bottom: 16px;">
+                    <label style="font-weight: 700; font-size: 12.5px; color: #1E293B; display: block; margin-bottom: 6px;">Academic Year Name *</label>
+                    <input type="text" id="newAyName" class="stu-control" placeholder="e.g. 2027-28" required style="width: 100%; height: 40px; font-weight: 600;">
+                    <small style="font-size: 11px; color: #64748B;">Format: YYYY-YY (e.g. 2027-28)</small>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px;">
+                    <div>
+                        <label style="font-weight: 700; font-size: 12.5px; color: #1E293B; display: block; margin-bottom: 6px;">Start Date (Optional)</label>
+                        <input type="date" id="newAyStartDate" class="stu-control" style="width: 100%; height: 40px;">
+                    </div>
+                    <div>
+                        <label style="font-weight: 700; font-size: 12.5px; color: #1E293B; display: block; margin-bottom: 6px;">End Date (Optional)</label>
+                        <input type="date" id="newAyEndDate" class="stu-control" style="width: 100%; height: 40px;">
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer" style="padding: 14px 24px; background: #F8FAFC; border-top: 1px solid #E2E8F0; display: flex; justify-content: flex-end; gap: 10px;">
+                <button type="button" class="btn-stu-action btn-reset" onclick="closeAddAcademicYearModal()">Cancel</button>
+                <button type="submit" class="btn-stu-primary">➕ Create Academic Year</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="view.js?v=3"></script>
 
 </body>
 

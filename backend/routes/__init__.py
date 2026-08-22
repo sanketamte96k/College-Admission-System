@@ -12,6 +12,7 @@ from .examination_routes import examination_bp
 from .library_routes import library_bp
 from .transport_routes import transport_bp
 from .notice_routes import notice_bp
+from .setting_routes import setting_bp
 
 __all__ = [
     "auth_bp",
@@ -27,5 +28,6 @@ __all__ = [
     "examination_bp",
     "library_bp",
     "transport_bp",
-    "notice_bp"
+    "notice_bp",
+    "setting_bp"
 ]
