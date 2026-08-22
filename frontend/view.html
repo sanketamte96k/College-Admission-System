@@ -2915,17 +2915,262 @@
             <!-- ============================================================ -->
             <!-- PANE 13: NOTICE BOARD                                        -->
             <!-- ============================================================ -->
+            <!-- ============================================================ -->
+            <!-- PANE 13: NOTICE BOARD & ANNOUNCEMENT MANAGEMENT              -->
+            <!-- ============================================================ -->
             <div id="pane-notices" class="erp-section-pane">
-                <div class="erp-placeholder-card">
-                    <div class="erp-placeholder-icon">📢</div>
-                    <h3>Campus Notice Board & Circulars</h3>
-                    <p>Official announcements, academic calendars, examination schedules, and scholarship circulars.</p>
-                    <div class="erp-badge-grid">
-                        <span class="erp-badge-item">📌 Academic Calendar 2026</span>
-                        <span class="erp-badge-item">🏛️ Campus Placement Drives</span>
-                        <span class="erp-badge-item">🏆 Annual Cultural Fest 'UDAAN'</span>
+
+                <!-- 1. HERO HEADER CARD -->
+                <div class="stu-hero-card">
+                    <div class="stu-hero-content">
+                        <div class="stu-hero-badge">
+                            <span class="stu-badge-pulse"></span>
+                            📢 Campus Communication System
+                        </div>
+                        <h2 class="stu-hero-title">Notice &amp; Announcement Management</h2>
+                        <p class="stu-hero-subtitle">Create, publish, schedule, target, and archive official campus circulars, examination alerts, and academic notices.</p>
+                    </div>
+                    <div class="stu-hero-actions">
+                        <button type="button" class="btn-stu-primary" onclick="openNoticeModal()" title="Create New Campus Notice">
+                            <span>+</span> Create Notice
+                        </button>
+                        <button type="button" class="btn-stu-glass" onclick="fetchNoticesModule(1); fetchNoticeKpiStats();" title="Refresh Notices">
+                            <span>🔄</span> Refresh
+                        </button>
                     </div>
                 </div>
+
+                <!-- 2. KPI STATISTICS (7 CARDS) -->
+                <div class="ntc-kpi-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; margin-bottom: 20px;">
+                    <div class="stu-kpi-card kpi-blue">
+                        <div class="stu-kpi-header">
+                            <div class="stu-kpi-icon">📢</div>
+                            <span class="stu-kpi-tag">Total</span>
+                        </div>
+                        <div class="stu-kpi-body">
+                            <small>TOTAL NOTICES</small>
+                            <h3 id="ntcKpiTotal">0</h3>
+                            <span class="stu-kpi-sub">All database circulars</span>
+                        </div>
+                    </div>
+
+                    <div class="stu-kpi-card kpi-green">
+                        <div class="stu-kpi-header">
+                            <div class="stu-kpi-icon">✅</div>
+                            <span class="stu-kpi-tag">Published</span>
+                        </div>
+                        <div class="stu-kpi-body">
+                            <small>PUBLISHED</small>
+                            <h3 id="ntcKpiPublished">0</h3>
+                            <span class="stu-kpi-sub">Live active notices</span>
+                        </div>
+                    </div>
+
+                    <div class="stu-kpi-card kpi-indigo">
+                        <div class="stu-kpi-header">
+                            <div class="stu-kpi-icon">📝</div>
+                            <span class="stu-kpi-tag">Drafts</span>
+                        </div>
+                        <div class="stu-kpi-body">
+                            <small>DRAFTS</small>
+                            <h3 id="ntcKpiDrafts">0</h3>
+                            <span class="stu-kpi-sub">Unpublished drafts</span>
+                        </div>
+                    </div>
+
+                    <div class="stu-kpi-card kpi-purple">
+                        <div class="stu-kpi-header">
+                            <div class="stu-kpi-icon">⏰</div>
+                            <span class="stu-kpi-tag">Scheduled</span>
+                        </div>
+                        <div class="stu-kpi-body">
+                            <small>SCHEDULED</small>
+                            <h3 id="ntcKpiScheduled">0</h3>
+                            <span class="stu-kpi-sub">Future publication</span>
+                        </div>
+                    </div>
+
+                    <div class="stu-kpi-card kpi-amber">
+                        <div class="stu-kpi-header">
+                            <div class="stu-kpi-icon">⌛</div>
+                            <span class="stu-kpi-tag">Expired</span>
+                        </div>
+                        <div class="stu-kpi-body">
+                            <small>EXPIRED</small>
+                            <h3 id="ntcKpiExpired">0</h3>
+                            <span class="stu-kpi-sub">Past expiry date</span>
+                        </div>
+                    </div>
+
+                    <div class="stu-kpi-card kpi-indigo">
+                        <div class="stu-kpi-header">
+                            <div class="stu-kpi-icon">📌</div>
+                            <span class="stu-kpi-tag">Pinned</span>
+                        </div>
+                        <div class="stu-kpi-body">
+                            <small>PINNED</small>
+                            <h3 id="ntcKpiPinned">0</h3>
+                            <span class="stu-kpi-sub">Top priority alerts</span>
+                        </div>
+                    </div>
+
+                    <div class="stu-kpi-card kpi-amber" style="background: linear-gradient(135deg, #FEF2F2 0%, #FFE4E6 100%); border-color: #FECDD3;">
+                        <div class="stu-kpi-header">
+                            <div class="stu-kpi-icon" style="background: #FEE2E2; color: #DC2626;">🚨</div>
+                            <span class="stu-kpi-tag" style="background: #FCA5A5; color: #991B1B;">Urgent</span>
+                        </div>
+                        <div class="stu-kpi-body">
+                            <small style="color: #991B1B;">URGENT ALERTS</small>
+                            <h3 id="ntcKpiUrgent" style="color: #991B1B;">0</h3>
+                            <span class="stu-kpi-sub" style="color: #9F1239;">High priority circulars</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. SEARCH & FILTERS CARD -->
+                <div class="stu-section-card stu-filter-card">
+                    <div class="stu-card-header" style="margin-bottom: 14px;">
+                        <h4 class="stu-card-title">🔍 Search &amp; Filter Campus Notices</h4>
+                    </div>
+
+                    <div class="stu-filter-grid">
+                        <div class="stu-filter-field filter-search">
+                            <label class="stu-filter-label">Search Notice</label>
+                            <div class="stu-input-icon-wrap">
+                                <span class="stu-input-icon">🔍</span>
+                                <input type="text" id="ntcSearchInput" class="stu-control" placeholder="Search by title, content, category..." onkeyup="if(event.key==='Enter') applyNoticeFilters()">
+                            </div>
+                        </div>
+
+                        <div class="stu-filter-field">
+                            <label class="stu-filter-label">Category</label>
+                            <select id="ntcCategoryFilter" class="stu-control stu-select">
+                                <option value="" selected>All Categories</option>
+                                <option>General</option>
+                                <option>Academic</option>
+                                <option>Examination</option>
+                                <option>Admission</option>
+                                <option>Fees &amp; Payments</option>
+                                <option>Attendance</option>
+                                <option>Library</option>
+                                <option>Transport</option>
+                                <option>Events</option>
+                                <option>Placement</option>
+                                <option>Emergency</option>
+                            </select>
+                        </div>
+
+                        <div class="stu-filter-field">
+                            <label class="stu-filter-label">Priority</label>
+                            <select id="ntcPriorityFilter" class="stu-control stu-select">
+                                <option value="" selected>All Priorities</option>
+                                <option value="Normal">Normal</option>
+                                <option value="Important">Important</option>
+                                <option value="Urgent">Urgent</option>
+                            </select>
+                        </div>
+
+                        <div class="stu-filter-field">
+                            <label class="stu-filter-label">Status</label>
+                            <select id="ntcStatusFilter" class="stu-control stu-select">
+                                <option value="" selected>All Statuses</option>
+                                <option value="Published">Published</option>
+                                <option value="Draft">Draft</option>
+                                <option value="Scheduled">Scheduled</option>
+                                <option value="Expired">Expired</option>
+                                <option value="Archived">Archived</option>
+                            </select>
+                        </div>
+
+                        <div class="stu-filter-field">
+                            <label class="stu-filter-label">Target Audience</label>
+                            <select id="ntcAudienceFilter" class="stu-control stu-select">
+                                <option value="" selected>All Audiences</option>
+                                <option value="Everyone">Everyone</option>
+                                <option value="Students">Students</option>
+                                <option value="Faculty">Faculty</option>
+                                <option value="Staff">Staff</option>
+                                <option value="Specific Department">Specific Department</option>
+                                <option value="Specific Course">Specific Course</option>
+                                <option value="Specific Year">Specific Year</option>
+                            </select>
+                        </div>
+
+                        <div class="stu-filter-field">
+                            <label class="stu-filter-label">Department</label>
+                            <select id="ntcDeptFilter" class="stu-control stu-select">
+                                <option value="" selected>All Departments</option>
+                                <option value="Computer Engineering">Computer Engineering</option>
+                                <option value="Information Technology">Information Technology</option>
+                                <option value="Artificial Intelligence &amp; Data Science">Artificial Intelligence &amp; Data Science</option>
+                                <option value="Electronics &amp; Telecommunication">Electronics &amp; Telecommunication</option>
+                                <option value="Mechanical Engineering">Mechanical Engineering</option>
+                                <option value="Civil Engineering">Civil Engineering</option>
+                                <option value="Electrical Engineering">Electrical Engineering</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="stu-filter-footer">
+                        <div style="font-size: 12px; color: #64748B; font-weight: 500;">
+                            💡 Press Enter or click Apply Filters to query campus notice database
+                        </div>
+                        <div class="stu-filter-btns">
+                            <button type="button" class="btn-stu-action btn-apply" onclick="applyNoticeFilters()">
+                                Apply Filters
+                            </button>
+                            <button type="button" class="btn-stu-action btn-reset" onclick="resetNoticeFilters()">
+                                Reset
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. NOTICE DATA TABLE CARD -->
+                <div class="stu-section-card stu-table-card">
+                    <div class="stu-table-toolbar">
+                        <div class="stu-toolbar-left">
+                            <h4 class="stu-card-title">📜 Notice Roster &amp; Circulars</h4>
+                            <span class="stu-toolbar-count" id="ntcToolbarCount">Showing records</span>
+                        </div>
+                        <div class="stu-toolbar-right">
+                            <button type="button" class="btn-stu-tool" onclick="fetchNoticesModule(ntcCurrentPage); fetchNoticeKpiStats();" title="Refresh Table">
+                                🔄 Refresh
+                            </button>
+                            <button type="button" class="btn-stu-tool" onclick="openNoticeModal()" title="Create Notice">
+                                ➕ New Notice
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="stu-table-container">
+                        <table class="stu-table">
+                            <thead>
+                                <tr>
+                                    <th>NOTICE &amp; CATEGORY</th>
+                                    <th>PRIORITY</th>
+                                    <th>AUDIENCE &amp; TARGET</th>
+                                    <th>PUBLISHED</th>
+                                    <th>EXPIRES</th>
+                                    <th>STATUS</th>
+                                    <th>CREATED BY</th>
+                                    <th style="text-align: right;">ACTIONS</th>
+                                </tr>
+                            </thead>
+                            <tbody id="noticeTableBody">
+                                <!-- Loaded dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="stu-pagination-bar">
+                        <div class="stu-pagination-info" id="ntcPaginationInfo">Showing 0–0 of 0 notices</div>
+                        <div class="stu-pagination-controls" id="ntcPaginationControls">
+                            <!-- Pagination controls -->
+                        </div>
+                    </div>
+                </div>
+
             </div>
 
             <!-- ============================================================ -->
@@ -4339,6 +4584,274 @@
                     <button type="submit" id="btnSubmitTrnAssign" disabled style="background:#94A3B8; color:white; border:none; padding:8px 22px; border-radius:6px; font-weight:700; cursor:not-allowed;">Issue Transport Pass</button>
                 </div>
             </form>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- NOTICE CREATE / EDIT MODAL                                    -->
+<!-- ============================================================ -->
+<!-- ============================================================ -->
+<!-- ADVANCED NOTICE CREATE / EDIT COMPOSER MODAL                 -->
+<!-- ============================================================ -->
+<div id="noticeFormModal" class="modal-overlay" style="display: none;">
+    <div class="modal-box" style="max-width: 760px; width: 92%;">
+        <div class="modal-header" style="background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%); color: #FFFFFF; padding: 18px 24px; border-bottom: 1px solid #334155;">
+            <div>
+                <div style="font-size: 10px; font-weight: 800; letter-spacing: 0.8px; text-transform: uppercase; color: #60A5FA; margin-bottom: 2px;">
+                    📢 Zeal Campus Communication System
+                </div>
+                <h3 id="noticeModalTitle" style="font-size: 18px; font-weight: 800; color: #FFFFFF; margin: 0;">📢 Advanced Notice &amp; Circular Composer</h3>
+            </div>
+            <button type="button" class="close-btn" onclick="closeNoticeModal()" style="color: #94A3B8; font-size: 24px;">&times;</button>
+        </div>
+
+        <form id="noticeForm" onsubmit="event.preventDefault();">
+            <input type="hidden" id="noticeId">
+
+            <!-- QUICK PRESET TEMPLATES TOOLBAR -->
+            <div style="background: #F8FAFC; border-bottom: 1px solid #E2E8F0; padding: 10px 24px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                <span style="font-size: 11px; font-weight: 800; color: #64748B; text-transform: uppercase; letter-spacing: 0.4px;">⚡ Quick Templates:</span>
+                <button type="button" class="ntc-tmpl-btn" onclick="applyNoticeTemplate('exam')">📋 Exam Alert</button>
+                <button type="button" class="ntc-tmpl-btn" onclick="applyNoticeTemplate('placement')">🏆 Placement Drive</button>
+                <button type="button" class="ntc-tmpl-btn" onclick="applyNoticeTemplate('fee')">💳 Fee Reminder</button>
+                <button type="button" class="ntc-tmpl-btn" onclick="applyNoticeTemplate('event')">🎉 Annual Event</button>
+                <button type="button" class="ntc-tmpl-btn" onclick="applyNoticeTemplate('holiday')">⚠️ Campus Holiday</button>
+            </div>
+
+            <!-- FORM NAVIGATION TABS -->
+            <div style="display: flex; background: #FFFFFF; border-bottom: 1px solid #E2E8F0; padding: 0 24px;">
+                <button type="button" class="ntc-form-tab active" id="ntcTabBtn-basic" onclick="switchNoticeFormTab('basic')">📌 1. Basic Info</button>
+                <button type="button" class="ntc-form-tab" id="ntcTabBtn-target" onclick="switchNoticeFormTab('target')">🎯 2. Target Audience</button>
+                <button type="button" class="ntc-form-tab" id="ntcTabBtn-schedule" onclick="switchNoticeFormTab('schedule')">📅 3. Schedule &amp; Expiry</button>
+                <button type="button" class="ntc-form-tab" id="ntcTabBtn-content" onclick="switchNoticeFormTab('content')">📝 4. Content &amp; Preview</button>
+            </div>
+
+            <div class="modal-body" style="padding: 22px 24px; max-height: 68vh; overflow-y: auto; background: #FFFFFF;">
+
+                <!-- TAB 1: BASIC INFORMATION -->
+                <div id="ntcTabPane-basic" class="ntc-form-pane">
+                    <div style="margin-bottom: 16px;">
+                        <label style="font-weight: 700; font-size: 12.5px; color: #1E293B; display: block; margin-bottom: 6px;">Notice Headline / Title *</label>
+                        <input type="text" id="noticeTitle" class="stu-control" placeholder="e.g. Schedule for End-Semester Examinations Summer 2026..." required style="width: 100%; height: 42px; font-weight: 600;">
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 16px;">
+                        <div>
+                            <label style="font-weight: 700; font-size: 12.5px; color: #1E293B; display: block; margin-bottom: 6px;">Category *</label>
+                            <select id="noticeCategory" class="stu-control stu-select" style="width: 100%; height: 40px;">
+                                <option value="General">General</option>
+                                <option value="Academic">Academic</option>
+                                <option value="Examination">Examination</option>
+                                <option value="Admission">Admission</option>
+                                <option value="Fees &amp; Payments">Fees &amp; Payments</option>
+                                <option value="Attendance">Attendance</option>
+                                <option value="Library">Library</option>
+                                <option value="Transport">Transport</option>
+                                <option value="Events">Events</option>
+                                <option value="Placement">Placement</option>
+                                <option value="Emergency">Emergency</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label style="font-weight: 700; font-size: 12.5px; color: #1E293B; display: block; margin-bottom: 6px;">Priority Level *</label>
+                            <select id="noticePriority" class="stu-control stu-select" style="width: 100%; height: 40px;">
+                                <option value="Normal">⚪ Normal Priority</option>
+                                <option value="Important">⚠️ Important Notice</option>
+                                <option value="Urgent">🚨 Urgent Campus Alert</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 14px; margin-top: 10px;">
+                        <label style="font-weight: 700; font-size: 13px; color: #1E293B; display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                            <input type="checkbox" id="noticeIsPinned" style="width: 18px; height: 18px; accent-color: #2563EB;">
+                            <div>
+                                <div style="font-weight: 800; color: #0F172A;">📌 Pin Notice to Top of Board</div>
+                                <div style="font-size: 11.5px; color: #64748B; font-weight: 400;">Pinned notices remain fixed at the top of the campus circular feed for maximum visibility.</div>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- TAB 2: TARGET AUDIENCE -->
+                <div id="ntcTabPane-target" class="ntc-form-pane" style="display: none;">
+                    <div style="margin-bottom: 16px;">
+                        <label style="font-weight: 700; font-size: 12.5px; color: #1E293B; display: block; margin-bottom: 6px;">Target Audience Group *</label>
+                        <select id="noticeAudience" class="stu-control stu-select" onchange="toggleNoticeAudienceFields()" style="width: 100%; height: 40px;">
+                            <option value="Everyone">👥 Everyone (Entire Campus)</option>
+                            <option value="Students">🎓 All Students</option>
+                            <option value="Faculty">👨‍🏫 Faculty &amp; Professors</option>
+                            <option value="Staff">💼 Administrative Staff</option>
+                            <option value="Specific Department">🏛️ Specific Department</option>
+                            <option value="Specific Course">📖 Specific Program / Course</option>
+                            <option value="Specific Year">📅 Specific Academic Year</option>
+                        </select>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 16px;">
+                        <div id="noticeDeptWrap">
+                            <label style="font-weight: 700; font-size: 12.5px; color: #1E293B; display: block; margin-bottom: 6px;">Department Target</label>
+                            <select id="noticeDept" class="stu-control stu-select" style="width: 100%; height: 40px;">
+                                <option value="">All Departments</option>
+                                <option value="Computer Engineering">Computer Engineering</option>
+                                <option value="Information Technology">Information Technology</option>
+                                <option value="Artificial Intelligence &amp; Data Science">Artificial Intelligence &amp; Data Science</option>
+                                <option value="Electronics &amp; Telecommunication">Electronics &amp; Telecommunication</option>
+                                <option value="Mechanical Engineering">Mechanical Engineering</option>
+                                <option value="Civil Engineering">Civil Engineering</option>
+                                <option value="Electrical Engineering">Electrical Engineering</option>
+                            </select>
+                        </div>
+
+                        <div id="noticeCourseWrap">
+                            <label style="font-weight: 700; font-size: 12.5px; color: #1E293B; display: block; margin-bottom: 6px;">Course Target</label>
+                            <select id="noticeCourse" class="stu-control stu-select" style="width: 100%; height: 40px;">
+                                <option value="">All Courses</option>
+                                <option value="B.Tech Computer Engineering">B.Tech Computer Engineering</option>
+                                <option value="B.Tech Information Technology">B.Tech Information Technology</option>
+                                <option value="B.Tech Artificial Intelligence &amp; Data Science">B.Tech Artificial Intelligence &amp; Data Science</option>
+                                <option value="B.Tech Electronics &amp; Telecommunication">B.Tech Electronics &amp; Telecommunication</option>
+                                <option value="B.Tech Mechanical Engineering">B.Tech Mechanical Engineering</option>
+                                <option value="B.Tech Civil Engineering">B.Tech Civil Engineering</option>
+                                <option value="B.Tech Electrical Engineering">B.Tech Electrical Engineering</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div id="noticeCourseYearRow" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;">
+                        <div id="noticeYearWrap">
+                            <label style="font-weight: 700; font-size: 12.5px; color: #1E293B; display: block; margin-bottom: 6px;">Academic Year</label>
+                            <select id="noticeYear" class="stu-control stu-select" style="width: 100%; height: 40px;">
+                                <option value="">All Academic Years</option>
+                                <option value="2026-27">2026–27</option>
+                                <option value="2025-26">2025–26</option>
+                            </select>
+                        </div>
+
+                        <div id="noticeSemesterWrap">
+                            <label style="font-weight: 700; font-size: 12.5px; color: #1E293B; display: block; margin-bottom: 6px;">Semester (Optional)</label>
+                            <select id="noticeSemester" class="stu-control stu-select" style="width: 100%; height: 40px;">
+                                <option value="">All Semesters</option>
+                                <option value="Semester 1">Semester 1</option>
+                                <option value="Semester 2">Semester 2</option>
+                                <option value="Semester 3">Semester 3</option>
+                                <option value="Semester 4">Semester 4</option>
+                                <option value="Semester 5">Semester 5</option>
+                                <option value="Semester 6">Semester 6</option>
+                                <option value="Semester 7">Semester 7</option>
+                                <option value="Semester 8">Semester 8</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 3: SCHEDULE & EXPIRY -->
+                <div id="ntcTabPane-schedule" class="ntc-form-pane" style="display: none;">
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 16px;">
+                        <div>
+                            <label style="font-weight: 700; font-size: 12.5px; color: #1E293B; display: block; margin-bottom: 6px;">Publish Date &amp; Time</label>
+                            <input type="datetime-local" id="noticePublishDate" class="stu-control" style="width: 100%; height: 40px;">
+                            <small style="font-size: 11px; color: #64748B; display: block; margin-top: 4px;">📅 Leave blank to publish immediately upon saving.</small>
+                        </div>
+
+                        <div>
+                            <label style="font-weight: 700; font-size: 12.5px; color: #1E293B; display: block; margin-bottom: 6px;">Expiry Date &amp; Time</label>
+                            <input type="datetime-local" id="noticeExpiryDate" class="stu-control" style="width: 100%; height: 40px;">
+                            <small style="font-size: 11px; color: #64748B; display: block; margin-top: 4px;">⌛ Notice will auto-expire from student feed after this timestamp.</small>
+                        </div>
+                    </div>
+
+                    <div style="background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 8px; padding: 12px 14px; font-size: 12px; color: #1E40AF;">
+                        <strong>💡 Publication Rules:</strong> Setting a future Publish Date automatically sets notice status to <em>Scheduled</em>. Notices automatically transition to <em>Expired</em> when current time exceeds the Expiry Date.
+                    </div>
+                </div>
+
+                <!-- TAB 4: CONTENT & LIVE PREVIEW -->
+                <div id="ntcTabPane-content" class="ntc-form-pane" style="display: none;">
+
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <div style="display: flex; gap: 6px;">
+                            <button type="button" class="ntc-fmt-btn" onclick="insertNoticeTextSnippet('**', '**')"><strong>B</strong> Bold</button>
+                            <button type="button" class="ntc-fmt-btn" onclick="insertNoticeTextSnippet('\n• ', '')">• Bullet</button>
+                            <button type="button" class="ntc-fmt-btn" onclick="insertNoticeTextSnippet('📅 Date: ', '')">📅 Date</button>
+                            <button type="button" class="ntc-fmt-btn" onclick="insertNoticeTextSnippet('⚠️ Note: ', '')">⚠️ Note</button>
+                            <button type="button" class="ntc-fmt-btn" onclick="insertNoticeTextSnippet('📞 Contact: ', '')">📞 Contact</button>
+                        </div>
+
+                        <div style="display: flex; gap: 4px; background: #F1F5F9; padding: 3px; border-radius: 6px;">
+                            <button type="button" id="btnNtcWriteMode" class="ntc-mode-btn active" onclick="toggleNoticeLivePreview(false)">✏️ Write</button>
+                            <button type="button" id="btnNtcPreviewMode" class="ntc-mode-btn" onclick="toggleNoticeLivePreview(true)">👁️ Preview</button>
+                        </div>
+                    </div>
+
+                    <!-- EDITOR TEXTAREA -->
+                    <div id="ntcEditorWrap">
+                        <textarea id="noticeContent" class="stu-control" rows="8" placeholder="Write full notice details, instructions, circular body, or venue details..." required style="width: 100%; height: 200px; resize: vertical; padding: 12px; font-family: inherit; line-height: 1.5;" oninput="updateNoticeCharCounts()"></textarea>
+                        <div style="display: flex; justify-content: space-between; margin-top: 6px; font-size: 11px; color: #64748B;">
+                            <span>Markdown &amp; plain formatting supported</span>
+                            <span id="ntcCharCounter">0 characters | 0 words</span>
+                        </div>
+                    </div>
+
+                    <!-- LIVE CIRCULAR PREVIEW CARD -->
+                    <div id="ntcPreviewWrap" style="display: none; background: #FAFAFA; border: 1px solid #E2E8F0; border-radius: 8px; padding: 20px; min-height: 200px;">
+                        <div style="border-bottom: 2px solid #2563EB; padding-bottom: 10px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: flex-start;">
+                            <div>
+                                <span id="prevCategoryBadge" class="stu-year-badge">📁 General</span>
+                                <h3 id="prevTitle" style="font-size: 18px; font-weight: 800; color: #0F172A; margin: 6px 0 0 0;">Notice Title Preview</h3>
+                            </div>
+                            <span id="prevPriorityBadge" style="padding: 3px 10px; border-radius: 999px; font-weight: 700; font-size: 11px; background: #F1F5F9; color: #475569;">Normal Priority</span>
+                        </div>
+                        <div id="prevContent" style="font-size: 13.5px; color: #334155; line-height: 1.6; white-space: pre-wrap;">
+                            Notice content preview will appear here...
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- MODAL FOOTER WITH ADVANCED BUTTON SYSTEM -->
+            <div class="modal-footer" style="padding: 16px 24px; background: #F8FAFC; border-top: 1px solid #E2E8F0; display: flex; justify-content: space-between; align-items: center;">
+                <div style="font-size: 11.5px; color: #64748B; font-weight: 600;">
+                    Status: <span id="ntcFormStatusBadge" style="background: #F1F5F9; color: #475569; padding: 2px 8px; border-radius: 4px; border: 1px solid #CBD5E1;">Draft</span>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button type="button" class="btn-stu-action btn-reset" onclick="closeNoticeModal()">Cancel</button>
+                    <button type="button" class="btn-stu-glass" onclick="submitNoticeForm('Draft')">💾 Save Draft</button>
+                    <button type="button" class="btn-stu-primary" onclick="submitNoticeForm('Published')">🚀 Publish Notice</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- NOTICE DETAIL VIEW MODAL                                      -->
+<!-- ============================================================ -->
+<div id="noticeDetailModal" class="modal-overlay" style="display: none;">
+    <div class="modal-box" style="max-width: 640px; width: 90%;">
+        <div class="modal-header">
+            <h3 id="ntcDetailHeaderTitle">📢 Notice Details</h3>
+            <button type="button" class="close-btn" onclick="closeNoticeDetailModal()">&times;</button>
+        </div>
+        <div class="modal-body" style="padding: 20px; max-height: 75vh; overflow-y: auto;">
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px;" id="ntcDetailBadges">
+                <!-- Dynamic status/priority/category badges -->
+            </div>
+            <h2 id="ntcDetailTitle" style="font-size: 20px; font-weight: 800; color: #0F172A; margin-bottom: 12px; line-height: 1.3;"></h2>
+
+            <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 12px 14px; margin-bottom: 16px; font-size: 12.5px; color: #475569; display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;" id="ntcDetailMetaGrid">
+                <!-- Meta information -->
+            </div>
+
+            <div style="font-size: 14px; color: #334155; line-height: 1.6; white-space: pre-wrap; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 8px; padding: 16px;" id="ntcDetailContent">
+            </div>
+        </div>
+        <div class="modal-footer" style="padding: 14px 20px; border-top: 1px solid #E2E8F0; display: flex; justify-content: flex-end; gap: 10px;" id="ntcDetailFooterBtns">
+            <button type="button" class="btn-stu-action btn-reset" onclick="closeNoticeDetailModal()">Close</button>
         </div>
     </div>
 </div>

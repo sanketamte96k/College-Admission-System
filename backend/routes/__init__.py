@@ -11,6 +11,7 @@ from .course_routes import course_bp
 from .examination_routes import examination_bp
 from .library_routes import library_bp
 from .transport_routes import transport_bp
+from .notice_routes import notice_bp
 
 __all__ = [
     "auth_bp",
@@ -25,5 +26,6 @@ __all__ = [
     "course_bp",
     "examination_bp",
     "library_bp",
-    "transport_bp"
+    "transport_bp",
+    "notice_bp"
 ]

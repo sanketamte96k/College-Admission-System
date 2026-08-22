@@ -13,10 +13,12 @@ from .exam_mark import ExamMark
 from .library_book import LibraryBook
 from .library_transaction import LibraryTransaction
 from .transport import TransportDriver, TransportRoute, TransportStop, TransportVehicle, TransportAssignment
+from .notice import Notice
 
 __all__ = [
     "db", "Admin", "Student", "Payment", "Ticket", "SeatMatrix",
     "Attendance", "Department", "Course", "Subject", "Examination", "ExamMark",
     "LibraryBook", "LibraryTransaction",
-    "TransportDriver", "TransportRoute", "TransportStop", "TransportVehicle", "TransportAssignment"
+    "TransportDriver", "TransportRoute", "TransportStop", "TransportVehicle", "TransportAssignment",
+    "Notice"
 ]

@@ -3608,6 +3608,9 @@ function switchAdminSection(paneId, btnEl, pageTitle = "Dashboard Overview") {
         loadLibrary();
     } else if (paneId === "pane-transport") {
         loadTransport();
+    } else if (paneId === "pane-notices") {
+        fetchNoticesModule(1);
+        fetchNoticeKpiStats();
     }
 
 
@@ -8497,4 +8500,647 @@ function resetTransportFilters() {
     if (document.getElementById("trnDeptFilter")) document.getElementById("trnDeptFilter").value = "all";
     if (document.getElementById("trnRouteFilter")) document.getElementById("trnRouteFilter").value = "all";
     renderActiveTransportTab();
+}
+
+// ============================================================
+// NOTICE BOARD & ANNOUNCEMENT MANAGEMENT MODULE LOGIC
+// ============================================================
+
+let ntcCurrentPage = 1;
+let ntcLimit = 20;
+let ntcTotalCount = 0;
+let ntcDbTotalCount = 0;
+
+async function fetchNoticesModule(page = 1) {
+    ntcCurrentPage = page;
+    const searchVal = document.getElementById("ntcSearchInput") ? document.getElementById("ntcSearchInput").value.trim() : "";
+    const categoryVal = document.getElementById("ntcCategoryFilter") ? document.getElementById("ntcCategoryFilter").value.trim() : "";
+    const priorityVal = document.getElementById("ntcPriorityFilter") ? document.getElementById("ntcPriorityFilter").value.trim() : "";
+    const statusVal = document.getElementById("ntcStatusFilter") ? document.getElementById("ntcStatusFilter").value.trim() : "";
+    const audienceVal = document.getElementById("ntcAudienceFilter") ? document.getElementById("ntcAudienceFilter").value.trim() : "";
+    const deptVal = document.getElementById("ntcDeptFilter") ? document.getElementById("ntcDeptFilter").value.trim() : "";
+
+    const queryParams = {
+        page: ntcCurrentPage,
+        limit: ntcLimit
+    };
+    if (searchVal) queryParams.search = searchVal;
+    if (categoryVal) queryParams.category = categoryVal;
+    if (priorityVal) queryParams.priority = priorityVal;
+    if (statusVal) queryParams.status = statusVal;
+    if (audienceVal) queryParams.audience = audienceVal;
+    if (deptVal) queryParams.department = deptVal;
+
+    const params = new URLSearchParams(queryParams);
+    const tbodyEl = document.getElementById("noticeTableBody");
+
+    if (tbodyEl) {
+        tbodyEl.innerHTML = `
+            <tr>
+                <td colspan="8" style="text-align: center; padding: 40px; color: #64748B;">
+                    <div style="font-size: 24px; margin-bottom: 8px;">⌛</div>
+                    <div>Loading campus notices from database...</div>
+                </td>
+            </tr>
+        `;
+    }
+
+    try {
+        const response = await fetch(`/api/notices?${params.toString()}`);
+        if (!response.ok) throw new Error("Failed to fetch notice records");
+        const data = await response.json();
+
+        console.log("Notices API response:", data);
+
+        let noticesList = [];
+        if (Array.isArray(data)) {
+            noticesList = data;
+            ntcTotalCount = data.length;
+        } else if (data && Array.isArray(data.notices)) {
+            noticesList = data.notices;
+            ntcTotalCount = (data.total !== undefined) ? data.total : data.notices.length;
+        } else {
+            noticesList = [];
+            ntcTotalCount = 0;
+        }
+
+        console.log("Notices loaded count:", noticesList.length);
+        renderNoticesTableFromData(noticesList);
+        renderNoticesPagination();
+
+    } catch (err) {
+        console.error("fetchNoticesModule error:", err);
+        if (tbodyEl) {
+            tbodyEl.innerHTML = `
+                <tr>
+                    <td colspan="8" style="text-align: center; padding: 30px; color: #EF4444;">
+                        ⚠️ Unable to load notices. Please try again.
+                    </td>
+                </tr>
+            `;
+        }
+    }
+}
+
+async function fetchNoticeKpiStats() {
+    try {
+        const response = await fetch("/api/notices/stats");
+        if (!response.ok) return;
+        const stats = await response.json();
+
+        ntcDbTotalCount = stats.total_notices || 0;
+
+        const totalEl = document.getElementById("ntcKpiTotal");
+        const pubEl = document.getElementById("ntcKpiPublished");
+        const draftEl = document.getElementById("ntcKpiDrafts");
+        const schedEl = document.getElementById("ntcKpiScheduled");
+        const expEl = document.getElementById("ntcKpiExpired");
+        const pinEl = document.getElementById("ntcKpiPinned");
+        const urgEl = document.getElementById("ntcKpiUrgent");
+
+        if (totalEl) totalEl.textContent = stats.total_notices || 0;
+        if (pubEl) pubEl.textContent = stats.published || 0;
+        if (draftEl) draftEl.textContent = stats.drafts || 0;
+        if (schedEl) schedEl.textContent = stats.scheduled || 0;
+        if (expEl) expEl.textContent = stats.expired || 0;
+        if (pinEl) pinEl.textContent = stats.pinned || 0;
+        if (urgEl) urgEl.textContent = stats.urgent || 0;
+
+    } catch (err) {
+        console.error("fetchNoticeKpiStats error:", err);
+    }
+}
+
+function renderNoticesTableFromData(list) {
+    const tbodyEl = document.getElementById("noticeTableBody");
+    const countEl = document.getElementById("ntcToolbarCount");
+    if (!tbodyEl) return;
+
+    const totalDisplayCount = ntcDbTotalCount || ntcTotalCount || (list ? list.length : 0);
+
+    if (countEl) {
+        countEl.textContent = `Showing ${list.length} of ${totalDisplayCount} records`;
+    }
+
+    if (!list || list.length === 0) {
+        tbodyEl.innerHTML = `
+            <tr>
+                <td colspan="8" style="text-align: center; padding: 40px; color: #64748B;">
+                    <div style="font-size: 28px; margin-bottom: 8px;">📂</div>
+                    <div style="font-weight: 600; color: #1E293B;">No notices match the selected filters.</div>
+                    <small>Try adjusting your search criteria or resetting filters.</small>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    tbodyEl.innerHTML = list.map(n => {
+        const title = escapeHtml(n.title || "Untitled Notice");
+        const category = escapeHtml(n.category || "General");
+        const priority = n.priority || "Normal";
+        const status = n.status || "Draft";
+        const audience = escapeHtml(n.audience || "Everyone");
+        const targetDept = escapeHtml(n.department || "");
+        const targetYear = escapeHtml(n.academic_year || "");
+        const pubDate = n.publish_date ? n.publish_date.substring(0, 16) : "Immediate";
+        const expDate = n.expiry_date ? n.expiry_date.substring(0, 16) : "Never";
+        const createdBy = escapeHtml(n.created_by || "Admin");
+        const isPinned = Boolean(n.is_pinned);
+
+        // Priority Badge styling
+        let prioStyle = "background: #F1F5F9; color: #475569; border: 1px solid #CBD5E1;";
+        let prioIcon = "⚪";
+        if (priority === "Important") {
+            prioStyle = "background: #FEF3C7; color: #D97706; border: 1px solid #FCD34D;";
+            prioIcon = "⚠️";
+        } else if (priority === "Urgent") {
+            prioStyle = "background: #FEE2E2; color: #DC2626; border: 1px solid #FCA5A5;";
+            prioIcon = "🚨";
+        }
+
+        // Status Badge styling
+        let statusStyle = "background: #F3E8FF; color: #7E22CE; border: 1px solid #D8B4FE;";
+        let statusIcon = "📝";
+        if (status === "Published") {
+            statusStyle = "background: #DCFCE7; color: #15803D; border: 1px solid #86EFAC;";
+            statusIcon = "✅";
+        } else if (status === "Scheduled") {
+            statusStyle = "background: #EFF6FF; color: #1D4ED8; border: 1px solid #BFDBFE;";
+            statusIcon = "⏰";
+        } else if (status === "Expired") {
+            statusStyle = "background: #FEE2E2; color: #DC2626; border: 1px solid #FCA5A5;";
+            statusIcon = "⌛";
+        } else if (status === "Archived") {
+            statusStyle = "background: #E2E8F0; color: #475569; border: 1px solid #94A3B8;";
+            statusIcon = "📦";
+        }
+
+        const pinnedBadge = isPinned ? `<span style="background:#EEF2FF; color:#4338CA; border:1px solid #C7D2FE; font-size:10px; font-weight:800; padding:2px 6px; border-radius:4px; margin-left:6px;">📌 PINNED</span>` : "";
+
+        return `
+            <tr>
+                <td>
+                    <div style="font-weight: 700; color: #0F172A; font-size: 13.5px; margin-bottom: 3px;">
+                        ${title} ${pinnedBadge}
+                    </div>
+                    <span class="stu-year-badge" style="background: #F1F5F9; color: #475569;">📁 ${category}</span>
+                </td>
+                <td>
+                    <span style="display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 600; ${prioStyle}">
+                        <span>${prioIcon}</span> ${priority}
+                    </span>
+                </td>
+                <td>
+                    <strong style="color: #334155; font-size: 12.5px;">👥 ${audience}</strong>
+                    ${targetDept ? `<div style="font-size: 11px; color: #64748B;">🏛️ ${targetDept}</div>` : ""}
+                    ${targetYear ? `<div style="font-size: 11px; color: #64748B;">📅 ${targetYear}</div>` : ""}
+                </td>
+                <td><span class="stu-date-badge">📅 ${pubDate}</span></td>
+                <td><span class="stu-date-badge">⌛ ${expDate}</span></td>
+                <td>
+                    <span style="display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 600; ${statusStyle}">
+                        <span>${statusIcon}</span> ${status}
+                    </span>
+                </td>
+                <td>
+                    <div style="font-weight: 600; font-size: 12.5px; color: #1E293B;">👤 ${createdBy}</div>
+                    <small style="color: #64748B; font-size: 11px;">ID: #${n.id}</small>
+                </td>
+                <td style="text-align: right;">
+                    <div class="stu-action-group">
+                        <button type="button" class="btn-stu-tbl btn-tbl-view" onclick="openNoticeDetailModal(${n.id})" title="View Notice Content">👁 View</button>
+                        <button type="button" class="btn-stu-tbl btn-tbl-edit" onclick="editNotice(${n.id})" title="Edit Notice">✏️ Edit</button>
+                        <button type="button" class="btn-stu-tbl" style="background:#EEF2FF; color:#4338CA; border:1px solid #C7D2FE;" onclick="togglePinNotice(${n.id})" title="${isPinned ? 'Unpin Notice' : 'Pin Notice'}">${isPinned ? '📌 Unpin' : '📍 Pin'}</button>
+                        ${status !== 'Published' ? `<button type="button" class="btn-stu-tbl" style="background:#DCFCE7; color:#15803D; border:1px solid #86EFAC;" onclick="publishNotice(${n.id})" title="Publish Now">🚀 Publish</button>` : ''}
+                        ${status !== 'Archived' ? `<button type="button" class="btn-stu-tbl" style="background:#FFFBEB; color:#D97706; border:1px solid #FDE68A;" onclick="archiveNotice(${n.id})" title="Archive Notice">📦 Archive</button>` : ''}
+                        <button type="button" class="btn-stu-tbl btn-tbl-delete" onclick="deleteNotice(${n.id})" title="Delete Notice">🗑 Delete</button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+function renderNoticesPagination() {
+    const infoEl = document.getElementById("ntcPaginationInfo");
+    const controlsEl = document.getElementById("ntcPaginationControls");
+    if (!infoEl || !controlsEl) return;
+
+    const start = ntcTotalCount === 0 ? 0 : (ntcCurrentPage - 1) * ntcLimit + 1;
+    const end = Math.min(ntcCurrentPage * ntcLimit, ntcTotalCount);
+    const totalPages = Math.ceil(ntcTotalCount / ntcLimit) || 1;
+
+    infoEl.textContent = `Showing ${start}–${end} of ${ntcTotalCount} notices`;
+
+    controlsEl.innerHTML = `
+        <button type="button" class="stu-page-btn" ${ntcCurrentPage <= 1 ? 'disabled' : ''} onclick="fetchNoticesModule(${ntcCurrentPage - 1})">
+            ◀ Prev
+        </button>
+        <span class="stu-page-active">Page ${ntcCurrentPage} of ${totalPages}</span>
+        <button type="button" class="stu-page-btn" ${ntcCurrentPage >= totalPages ? 'disabled' : ''} onclick="fetchNoticesModule(${ntcCurrentPage + 1})">
+            Next ▶
+        </button>
+    `;
+}
+
+function applyNoticeFilters() {
+    fetchNoticesModule(1);
+    fetchNoticeKpiStats();
+}
+
+function resetNoticeFilters() {
+    if (document.getElementById("ntcSearchInput")) document.getElementById("ntcSearchInput").value = "";
+    if (document.getElementById("ntcCategoryFilter")) document.getElementById("ntcCategoryFilter").value = "";
+    if (document.getElementById("ntcPriorityFilter")) document.getElementById("ntcPriorityFilter").value = "";
+    if (document.getElementById("ntcStatusFilter")) document.getElementById("ntcStatusFilter").value = "";
+    if (document.getElementById("ntcAudienceFilter")) document.getElementById("ntcAudienceFilter").value = "";
+    if (document.getElementById("ntcDeptFilter")) document.getElementById("ntcDeptFilter").value = "";
+
+    fetchNoticesModule(1);
+    fetchNoticeKpiStats();
+}
+
+function toggleNoticeAudienceFields() {
+    const audience = document.getElementById("noticeAudience") ? document.getElementById("noticeAudience").value : "Everyone";
+    const deptWrap = document.getElementById("noticeDeptWrap");
+    const courseYearRow = document.getElementById("noticeCourseYearRow");
+
+    if (deptWrap) {
+        deptWrap.style.display = (audience === "Specific Department" || audience === "Everyone" || audience === "Students" || audience === "Faculty") ? "block" : "block";
+    }
+    if (courseYearRow) {
+        courseYearRow.style.display = "grid";
+    }
+}
+
+function openNoticeModal(noticeId = null) {
+    document.getElementById("noticeForm").reset();
+    document.getElementById("noticeId").value = "";
+    document.getElementById("noticeModalTitle").textContent = "📢 Advanced Notice & Circular Composer";
+    const statusBadge = document.getElementById("ntcFormStatusBadge");
+    if (statusBadge) {
+        statusBadge.textContent = "Draft";
+        statusBadge.style.cssText = "background: #F1F5F9; color: #475569; padding: 2px 8px; border-radius: 4px; border: 1px solid #CBD5E1;";
+    }
+
+    switchNoticeFormTab('basic');
+    toggleNoticeLivePreview(false);
+    updateNoticeCharCounts();
+
+    if (noticeId) {
+        fetch(`/api/notices/${noticeId}`)
+            .then(res => {
+                if (!res.ok) throw new Error("Notice not found");
+                return res.json();
+            })
+            .then(n => {
+                document.getElementById("noticeId").value = n.id;
+                document.getElementById("noticeModalTitle").textContent = "✏️ Edit Campus Notice & Circular";
+                document.getElementById("noticeTitle").value = n.title || "";
+                document.getElementById("noticeCategory").value = n.category || "General";
+                document.getElementById("noticePriority").value = n.priority || "Normal";
+                document.getElementById("noticeAudience").value = n.audience || "Everyone";
+                document.getElementById("noticeDept").value = n.department || "";
+                document.getElementById("noticeCourse").value = n.course || "";
+                document.getElementById("noticeYear").value = n.academic_year || "";
+                if (document.getElementById("noticeSemester")) document.getElementById("noticeSemester").value = n.semester || "";
+                document.getElementById("noticePublishDate").value = n.publish_date_iso || "";
+                document.getElementById("noticeExpiryDate").value = n.expiry_date_iso || "";
+                document.getElementById("noticeIsPinned").checked = Boolean(n.is_pinned);
+                document.getElementById("noticeContent").value = n.content || "";
+
+                if (statusBadge) {
+                    statusBadge.textContent = n.status || "Draft";
+                }
+
+                toggleNoticeAudienceFields();
+                updateNoticeCharCounts();
+                document.getElementById("noticeFormModal").style.display = "flex";
+            })
+            .catch(err => {
+                console.error("openNoticeModal error:", err);
+                showToast("Failed to fetch notice data for editing.", "error");
+            });
+    } else {
+        toggleNoticeAudienceFields();
+        document.getElementById("noticeFormModal").style.display = "flex";
+    }
+}
+
+function closeNoticeModal() {
+    document.getElementById("noticeFormModal").style.display = "none";
+}
+
+function switchNoticeFormTab(tabName) {
+    const tabs = ['basic', 'target', 'schedule', 'content'];
+    tabs.forEach(t => {
+        const paneEl = document.getElementById(`ntcTabPane-${t}`);
+        const btnEl = document.getElementById(`ntcTabBtn-${t}`);
+        if (paneEl) paneEl.style.display = (t === tabName) ? "block" : "none";
+        if (btnEl) {
+            if (t === tabName) btnEl.classList.add("active");
+            else btnEl.classList.remove("active");
+        }
+    });
+}
+
+function applyNoticeTemplate(type) {
+    const templates = {
+        exam: {
+            title: "Schedule for End-Semester Examinations Summer 2026",
+            category: "Examination",
+            priority: "Urgent",
+            content: "Dear Students,\n\nThe timetable for End-Semester Examinations Summer 2026 has been published.\n\n📅 Exam Dates: May 15, 2026 - May 30, 2026\n📍 Exam Centers: Main Block Auditorium & IT Labs\n\n⚠️ Hall tickets will be issued starting May 10, 2026 at the Examination Cell. Ensure all term-work and fee dues are cleared prior to hall ticket generation.\n\nController of Examinations,\nZeal Education Society"
+        },
+        placement: {
+            title: "Campus Recruitment Drive - Tata Consultancy Services (TCS)",
+            category: "Placement",
+            priority: "Important",
+            content: "Campus Placement Cell Announcement:\n\nTCS (Tata Consultancy Services) will be conducting an on-campus recruitment drive for Final Year B.Tech students.\n\n💼 Eligible Branches: Computer Engineering, IT, AI & Data Science, ENTC\n📅 Date: April 25, 2026 | 09:00 AM\n📍 Venue: Zeal Seminar Hall 1\n\n• Register on T&P Portal before April 20, 2026.\n• Carry 2 printed copies of updated resume, passport photos, and college ID card.\n\nTraining & Placement Officer,\nZeal College of Engineering"
+        },
+        fee: {
+            title: "Important Notice: Fee Payment Deadline & Online Portal Instructions",
+            category: "Fees & Payments",
+            priority: "Important",
+            content: "Notice to All Enrolled Students:\n\nAll students are advised to clear their remaining academic tuition and hostel fee installment for Academic Year 2025-26.\n\n📅 Final Due Date: April 30, 2026\n💳 Payment Portal: Accessible via Accounts / Fee Section on ERP\n\n⚠️ Late payment surcharge will apply for payments made past the deadline. Contact Accounts Department for fee receipt queries.\n\nAccounts & Finance Department"
+        },
+        event: {
+            title: "Invitation to Annual Cultural Fest 'UDAAN 2026'",
+            category: "Events",
+            priority: "Normal",
+            content: "Zeal Cultural Committee invites all students, faculty, and staff to UDAAN 2026 - Annual Cultural Fest!\n\n🎉 Fest Dates: March 28 - March 30, 2026\n📍 Location: College Sports Complex & Main Campus Grounds\n\n• Competitions: Music, Dance, Drama, Hackathon, Short Film Festival\n• Star Night Performance on Day 3!\n\nGet ready for an exciting celebration of talent and culture!\n\nCultural Fest Committee"
+        },
+        holiday: {
+            title: "Campus Holiday Announcement on Account of Public Festival",
+            category: "Emergency",
+            priority: "Normal",
+            content: "Official Circular:\n\nThe college campus, library, and administrative offices will remain closed on account of Public Holiday.\n\n📅 Date of Holiday: April 14, 2026\n\nRegular academic classes and laboratory sessions will resume on the next working day as per regular timetable.\n\nPrincipal,\nZeal College of Engineering"
+        }
+    };
+
+    const tmpl = templates[type];
+    if (!tmpl) return;
+
+    document.getElementById("noticeTitle").value = tmpl.title;
+    document.getElementById("noticeCategory").value = tmpl.category;
+    document.getElementById("noticePriority").value = tmpl.priority;
+    document.getElementById("noticeContent").value = tmpl.content;
+
+    updateNoticeCharCounts();
+    switchNoticeFormTab('basic');
+    showToast(`Applied ${tmpl.category} template.`, "info");
+}
+
+function insertNoticeTextSnippet(prefix, suffix) {
+    const textarea = document.getElementById("noticeContent");
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = textarea.value.substring(start, end);
+    const replacement = prefix + (selectedText || "") + suffix;
+
+    textarea.value = textarea.value.substring(0, start) + replacement + textarea.value.substring(end);
+    textarea.focus();
+    textarea.selectionStart = start + prefix.length;
+    textarea.selectionEnd = start + prefix.length + (selectedText || "").length;
+
+    updateNoticeCharCounts();
+}
+
+function toggleNoticeLivePreview(showPreview) {
+    const editorWrap = document.getElementById("ntcEditorWrap");
+    const previewWrap = document.getElementById("ntcPreviewWrap");
+    const writeBtn = document.getElementById("btnNtcWriteMode");
+    const previewBtn = document.getElementById("btnNtcPreviewMode");
+
+    if (showPreview) {
+        if (editorWrap) editorWrap.style.display = "none";
+        if (previewWrap) {
+            previewWrap.style.display = "block";
+            const title = document.getElementById("noticeTitle").value.trim() || "Untitled Notice";
+            const category = document.getElementById("noticeCategory").value || "General";
+            const priority = document.getElementById("noticePriority").value || "Normal";
+            const content = document.getElementById("noticeContent").value.trim() || "No content provided yet.";
+
+            document.getElementById("prevTitle").textContent = title;
+            document.getElementById("prevCategoryBadge").textContent = `📁 ${category}`;
+
+            let prioStyle = "background: #F1F5F9; color: #475569; border: 1px solid #CBD5E1;";
+            if (priority === "Important") prioStyle = "background: #FEF3C7; color: #D97706; border: 1px solid #FCD34D;";
+            else if (priority === "Urgent") prioStyle = "background: #FEE2E2; color: #DC2626; border: 1px solid #FCA5A5;";
+
+            const prioBadge = document.getElementById("prevPriorityBadge");
+            if (prioBadge) {
+                prioBadge.textContent = `${priority} Priority`;
+                prioBadge.style.cssText = `padding: 3px 10px; border-radius: 999px; font-weight: 700; font-size: 11px; ${prioStyle}`;
+            }
+
+            document.getElementById("prevContent").textContent = content;
+        }
+        if (writeBtn) writeBtn.classList.remove("active");
+        if (previewBtn) previewBtn.classList.add("active");
+    } else {
+        if (editorWrap) editorWrap.style.display = "block";
+        if (previewWrap) previewWrap.style.display = "none";
+        if (writeBtn) writeBtn.classList.add("active");
+        if (previewBtn) previewBtn.classList.remove("active");
+    }
+}
+
+function updateNoticeCharCounts() {
+    const text = document.getElementById("noticeContent") ? document.getElementById("noticeContent").value : "";
+    const charCount = text.length;
+    const wordCount = text.trim() ? text.trim().split(/\s+/).length : 0;
+    const counterEl = document.getElementById("ntcCharCounter");
+    if (counterEl) {
+        counterEl.textContent = `${charCount} characters | ${wordCount} words`;
+    }
+}
+
+async function submitNoticeForm(targetStatus = 'Draft') {
+    const noticeId = document.getElementById("noticeId").value;
+    const title = document.getElementById("noticeTitle").value.trim();
+    const content = document.getElementById("noticeContent").value.trim();
+
+    if (!title) {
+        showToast("Please enter a notice title.", "error");
+        return;
+    }
+    if (!content) {
+        showToast("Please enter notice content.", "error");
+        return;
+    }
+
+    const pubDate = document.getElementById("noticePublishDate").value;
+    const expDate = document.getElementById("noticeExpiryDate").value;
+
+    if (pubDate && expDate && new Date(expDate) < new Date(pubDate)) {
+        showToast("Expiry date cannot be before publish date.", "error");
+        return;
+    }
+
+    const payload = {
+        title: title,
+        content: content,
+        category: document.getElementById("noticeCategory").value,
+        priority: document.getElementById("noticePriority").value,
+        status: targetStatus,
+        audience: document.getElementById("noticeAudience").value,
+        department: document.getElementById("noticeDept").value,
+        course: document.getElementById("noticeCourse").value,
+        academic_year: document.getElementById("noticeYear").value,
+        publish_date: pubDate || null,
+        expiry_date: expDate || null,
+        is_pinned: document.getElementById("noticeIsPinned").checked
+    };
+
+    try {
+        let res;
+        if (noticeId) {
+            res = await fetch(`/api/notices/${noticeId}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+        } else {
+            res = await fetch(`/api/notices`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+        }
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Failed to save notice");
+
+        const msg = noticeId
+            ? "Notice updated successfully."
+            : (targetStatus === 'Published' ? "Notice published successfully." : "Notice draft saved successfully.");
+
+        showToast(msg, "success");
+        closeNoticeModal();
+        fetchNoticesModule(ntcCurrentPage);
+        fetchNoticeKpiStats();
+
+    } catch (err) {
+        console.error("submitNoticeForm error:", err);
+        showToast(err.message || "Failed to save notice.", "error");
+    }
+}
+
+function editNotice(noticeId) {
+    openNoticeModal(noticeId);
+}
+
+async function publishNotice(noticeId) {
+    if (!confirm("Are you sure you want to publish this notice? It will become live on the campus portal.")) return;
+    try {
+        const res = await fetch(`/api/notices/${noticeId}/publish`, { method: "POST" });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Failed to publish notice");
+
+        showToast("Notice published successfully.", "success");
+        fetchNoticesModule(ntcCurrentPage);
+        fetchNoticeKpiStats();
+    } catch (err) {
+        showToast(err.message, "error");
+    }
+}
+
+async function archiveNotice(noticeId) {
+    if (!confirm("Are you sure you want to archive this notice? It will be hidden from active lists.")) return;
+    try {
+        const res = await fetch(`/api/notices/${noticeId}/archive`, { method: "POST" });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Failed to archive notice");
+
+        showToast("Notice archived successfully.", "success");
+        fetchNoticesModule(ntcCurrentPage);
+        fetchNoticeKpiStats();
+    } catch (err) {
+        showToast(err.message, "error");
+    }
+}
+
+async function togglePinNotice(noticeId) {
+    try {
+        const res = await fetch(`/api/notices/${noticeId}/pin`, { method: "POST" });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Failed to update pin status");
+
+        showToast(data.message || "Notice pin status updated.", "success");
+        fetchNoticesModule(ntcCurrentPage);
+        fetchNoticeKpiStats();
+    } catch (err) {
+        showToast(err.message, "error");
+    }
+}
+
+async function deleteNotice(noticeId) {
+    if (!confirm("This notice will be permanently removed. Continue?")) return;
+    try {
+        const res = await fetch(`/api/notices/${noticeId}`, { method: "DELETE" });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Failed to delete notice");
+
+        showToast("Notice deleted successfully.", "success");
+        fetchNoticesModule(ntcCurrentPage);
+        fetchNoticeKpiStats();
+    } catch (err) {
+        showToast(err.message, "error");
+    }
+}
+
+async function openNoticeDetailModal(noticeId) {
+    try {
+        const res = await fetch(`/api/notices/${noticeId}`);
+        const n = await res.json();
+        if (!res.ok) throw new Error(n.error || "Failed to load notice details");
+
+        document.getElementById("ntcDetailTitle").textContent = n.title || "Notice";
+
+        let prioStyle = "background: #F1F5F9; color: #475569; border: 1px solid #CBD5E1;";
+        if (n.priority === "Important") prioStyle = "background: #FEF3C7; color: #D97706; border: 1px solid #FCD34D;";
+        else if (n.priority === "Urgent") prioStyle = "background: #FEE2E2; color: #DC2626; border: 1px solid #FCA5A5;";
+
+        let statusStyle = "background: #F3E8FF; color: #7E22CE; border: 1px solid #D8B4FE;";
+        if (n.status === "Published") statusStyle = "background: #DCFCE7; color: #15803D; border: 1px solid #86EFAC;";
+        else if (n.status === "Scheduled") statusStyle = "background: #EFF6FF; color: #1D4ED8; border: 1px solid #BFDBFE;";
+        else if (n.status === "Expired") statusStyle = "background: #FEE2E2; color: #DC2626; border: 1px solid #FCA5A5;";
+        else if (n.status === "Archived") statusStyle = "background: #E2E8F0; color: #475569; border: 1px solid #94A3B8;";
+
+        document.getElementById("ntcDetailBadges").innerHTML = `
+            <span style="padding: 4px 12px; border-radius: 999px; font-weight: 700; font-size: 12px; ${statusStyle}">${n.status}</span>
+            <span style="padding: 4px 12px; border-radius: 999px; font-weight: 700; font-size: 12px; ${prioStyle}">${n.priority} Priority</span>
+            <span style="padding: 4px 12px; border-radius: 999px; font-weight: 700; font-size: 12px; background: #F1F5F9; color: #475569; border: 1px solid #E2E8F0;">📁 ${escapeHtml(n.category)}</span>
+            ${n.is_pinned ? `<span style="padding: 4px 12px; border-radius: 999px; font-weight: 800; font-size: 12px; background: #EEF2FF; color: #4338CA; border: 1px solid #C7D2FE;">📌 PINNED</span>` : ''}
+        `;
+
+        document.getElementById("ntcDetailMetaGrid").innerHTML = `
+            <div><strong>Audience:</strong> ${escapeHtml(n.audience)}</div>
+            <div><strong>Target Dept:</strong> ${escapeHtml(n.department || 'All Departments')}</div>
+            <div><strong>Published Date:</strong> ${n.publish_date || 'Immediate'}</div>
+            <div><strong>Expiry Date:</strong> ${n.expiry_date || 'Never'}</div>
+            <div><strong>Created By:</strong> ${escapeHtml(n.created_by)}</div>
+            <div><strong>Created At:</strong> ${n.created_at || 'N/A'}</div>
+        `;
+
+        document.getElementById("ntcDetailContent").textContent = n.content || "";
+
+        document.getElementById("ntcDetailFooterBtns").innerHTML = `
+            <button type="button" class="btn-stu-action btn-reset" onclick="closeNoticeDetailModal()">Close</button>
+            <button type="button" class="btn-stu-glass" onclick="closeNoticeDetailModal(); editNotice(${n.id});">✏️ Edit Notice</button>
+            ${n.status !== 'Published' ? `<button type="button" class="btn-stu-primary" onclick="closeNoticeDetailModal(); publishNotice(${n.id});">🚀 Publish Now</button>` : ''}
+        `;
+
+        document.getElementById("noticeDetailModal").style.display = "flex";
+    } catch (err) {
+        showToast(err.message, "error");
+    }
+}
+
+function closeNoticeDetailModal() {
+    document.getElementById("noticeDetailModal").style.display = "none";
 }

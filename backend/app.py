@@ -22,10 +22,10 @@ from config import config_by_name
 from models import db, Admin
 from email_service import init_mail_config
 from utils import setup_logger
-from services import StudentService
+from services import StudentService, NoticeService
 from routes import (
     auth_bp, student_bp, analytics_bp, ai_bp,
-    admin_erp_bp, payment_bp, ticket_bp, attendance_bp, department_bp, course_bp, examination_bp, library_bp, transport_bp
+    admin_erp_bp, payment_bp, ticket_bp, attendance_bp, department_bp, course_bp, examination_bp, library_bp, transport_bp, notice_bp
 )
 
 def create_app(config_name=None):
@@ -100,6 +100,7 @@ def create_app(config_name=None):
     app.register_blueprint(examination_bp)
     app.register_blueprint(library_bp)
     app.register_blueprint(transport_bp)
+    app.register_blueprint(notice_bp)
 
     # Custom HTTP Error Handlers
     @app.errorhandler(404)
@@ -225,6 +226,7 @@ def create_app(config_name=None):
 
             if not app.config.get("TESTING") and not app.testing and os.getenv("TESTING") != "True":
                 StudentService.seed_default_students()
+                NoticeService.seed_default_notices()
         except Exception as ae:
             app.logger.info(f"Seeding note: {ae}")
 

@@ -10,6 +10,7 @@ from .course_service import CourseService
 from .examination_service import ExaminationService
 from .library_service import LibraryService
 from .transport_service import TransportService
+from .notice_service import NoticeService
 
 __all__ = [
     "StudentService",
@@ -23,5 +24,6 @@ __all__ = [
     "CourseService",
     "ExaminationService",
     "LibraryService",
-    "TransportService"
+    "TransportService",
+    "NoticeService"
 ]
