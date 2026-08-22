@@ -34,9 +34,13 @@ def api_login():
     else:
         current_app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(minutes=30)
 
+    user_info = admin.to_dict()
+    user_info["role"] = "Administrator"
+    user_info["avatar"] = "/images/admin-avatar.svg"
+
     return jsonify({
         "message": "Admin login successful",
-        "user": admin.to_dict()
+        "user": user_info
     }), 200
 
 @auth_bp.route("/api/logout", methods=["GET", "POST"])
@@ -85,7 +89,9 @@ def check_auth():
         return jsonify({
             "authenticated": True,
             "user_type": "admin",
-            "username": session.get("admin_username")
+            "username": session.get("admin_username"),
+            "role": "Administrator",
+            "avatar": "/images/admin-avatar.svg"
         }), 200
     elif session.get("student_id"):
         return jsonify({

@@ -11,18 +11,39 @@
 
 <body>
 
-    <!-- Header -->
-    <header>
-
-        <div class="logo">
-            🎓
+    <!-- Executive Admin ERP Top Header -->
+    <header class="app-header-admin">
+        <div class="header-brand-wrap">
+            <div class="header-brand-logo">🎓</div>
+            <div class="header-brand-titles">
+                <h1>College Management &amp; Administration System</h1>
+                <div class="header-sub-breadcrumb">
+                    <span class="badge-adm-pill">Admission Management</span>
+                    <span class="adm-breadcrumb-sep">/</span>
+                    <span class="adm-breadcrumb-active">Student Admission Form</span>
+                </div>
+            </div>
         </div>
 
-        <div class="college-name">
-            <h1>Zeal College of Engineering</h1>
-            <p>Online Admission Portal</p>
-        </div>
+        <div class="header-admin-profile-wrap">
+            <a href="view.html" class="btn-erp-back-nav" title="Back to Admin Dashboard">
+                <span>📊</span> Back to Dashboard
+            </a>
 
+            <!-- Logged-in Admin Profile Card -->
+            <div class="admin-profile-badge" id="admProfileBadge">
+                <div class="admin-avatar-container">
+                    <img src="images/admin-avatar.svg" alt="Admin Profile" class="admin-avatar-img" id="formAdminAvatar">
+                </div>
+                <div class="admin-info-text">
+                    <strong class="admin-name" id="formAdminName">Administrator</strong>
+                    <span class="admin-role-label" id="formAdminRole">Administrator</span>
+                </div>
+                <button type="button" class="admin-logout-quick-btn" onclick="logoutAdminForm()" title="Sign Out">
+                    🚪
+                </button>
+            </div>
+        </div>
     </header>
 
     <!-- Main Container -->
@@ -31,7 +52,6 @@
 
         <div class="form-header-bar">
             <h2>Student Admission Form</h2>
-            <a href="view.html" class="view-records-btn">📋 View Records</a>
         </div>
         <div id="errorMessage" class="error-box" style="display: none;"></div>
 

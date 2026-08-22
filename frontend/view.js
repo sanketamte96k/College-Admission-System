@@ -3698,21 +3698,33 @@ async function checkAdminAuth() {
         const data = await res.json();
         if (data.authenticated && data.user_type === "admin") {
             const adminName = data.username || "Administrator";
+            const adminRole = data.role || "Administrator";
+            const avatarSrc = data.avatar || "images/admin-avatar.svg";
 
             const headerName = document.getElementById("headerAdminName");
             const sidebarName = document.getElementById("sidebarAdminName");
             const menuName = document.getElementById("menuAdminName");
+            const headerRole = document.getElementById("headerAdminRole");
+            const sidebarRole = document.getElementById("sidebarAdminRole");
+            const menuRole = document.getElementById("menuAdminRole");
+            const dashGreeting = document.getElementById("dashAdminGreeting");
 
             if (headerName) headerName.textContent = adminName;
             if (sidebarName) sidebarName.textContent = adminName;
             if (menuName) menuName.textContent = adminName;
+            if (dashGreeting) dashGreeting.textContent = adminName;
 
-            const initials = adminName.slice(0, 2).toUpperCase();
-            const headerPill = document.getElementById("headerAvatarPill");
-            const sidebarAvatar = document.getElementById("sidebarProfileAvatar");
+            if (headerRole) headerRole.textContent = adminRole;
+            if (sidebarRole) sidebarRole.textContent = adminRole;
+            if (menuRole) menuRole.textContent = adminRole;
 
-            if (headerPill) headerPill.textContent = initials || "🛡️";
-            if (sidebarAvatar) sidebarAvatar.textContent = initials || "🛡️";
+            const headerImg = document.getElementById("headerAvatarImg");
+            const sidebarImg = document.getElementById("sidebarAvatarImg");
+            const menuImg = document.getElementById("menuAvatarImg");
+
+            if (headerImg) headerImg.src = avatarSrc;
+            if (sidebarImg) sidebarImg.src = avatarSrc;
+            if (menuImg) menuImg.src = avatarSrc;
         } else {
             window.location.href = "login.html";
         }
@@ -7985,7 +7997,7 @@ function renderTransportPassesTable(list) {
                         <td><span style="padding:3px 8px; border-radius:12px; font-size:11px; font-weight:700; background:#DCFCE7; color:#166534;">₹${p.fee_amount} (${p.fee_status})</span></td>
                         <td><span style="padding:3px 8px; border-radius:12px; font-size:11px; font-weight:700; background:${p.status === 'Active' ? '#DCFCE7' : '#FEF2F2'}; color:${p.status === 'Active' ? '#166534' : '#DC2626'};">${p.status}</span></td>
                         <td style="text-align:right;">
-                            ${p.status === 'Active' ? `<button type="button" onclick="cancelTransportPass(${p.id})" style="background:#FEF2F2; color:#DC2626; border:1px solid #FCA5A5; border-radius:4px; padding:4px 8px; font-size:11px; font-weight:700; cursor:pointer;">❌ Cancel Pass</button>` : ''}
+                            ${p.status === 'Active' ? `<button type="button" class="btn-cancel-pass" onclick="cancelTransportPass(${p.id})">❌ Cancel Pass</button>` : ''}
                         </td>
                     </tr>
                 `).join('')}

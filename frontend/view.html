@@ -132,10 +132,12 @@
 
         <!-- Sidebar Admin Profile Card (Footer Area) -->
         <div class="sidebar-profile-card">
-            <div class="profile-avatar" id="sidebarProfileAvatar">🛡️</div>
+            <div class="profile-avatar" id="sidebarProfileAvatar">
+                <img src="images/admin-avatar.svg" alt="Admin Profile" class="admin-avatar-img" id="sidebarAvatarImg">
+            </div>
             <div class="profile-meta">
                 <h5 class="profile-name" id="sidebarAdminName">Administrator</h5>
-                <span class="profile-role" id="sidebarAdminRole">System Admin</span>
+                <span class="profile-role" id="sidebarAdminRole">Administrator</span>
             </div>
             <button class="profile-logout-icon-btn" onclick="logoutAdmin()" title="Logout from Admin Portal">
                 🚪
@@ -198,18 +200,27 @@
 
                 <!-- Administrator Profile Dropdown Pill -->
                 <div class="header-user-dropdown" id="headerUserDropdownContainer">
-                    <button class="header-user-btn" id="headerUserBtn" onclick="toggleAdminProfileMenu()">
-                        <div class="user-avatar-pill" id="headerAvatarPill">🛡️</div>
+                    <button class="header-user-btn" id="headerUserBtn" onclick="toggleAdminProfileMenu()" title="Administrator Profile & Settings">
+                        <div class="user-avatar-pill" id="headerAvatarPill">
+                            <img src="images/admin-avatar.svg" alt="Admin Profile" class="admin-avatar-img" id="headerAvatarImg">
+                        </div>
                         <div class="user-text-pill">
                             <strong id="headerAdminName">Administrator</strong>
-                            <small id="headerAdminRole">Admin</small>
+                            <small id="headerAdminRole">Administrator</small>
                         </div>
                         <span class="dropdown-chevron">▾</span>
                     </button>
                     <div class="user-dropdown-menu" id="headerUserMenu" style="display: none;">
                         <div class="dropdown-header">
-                            <strong id="menuAdminName">Administrator</strong>
-                            <small id="menuAdminRole">Role: Administrator</small>
+                            <div style="display:flex; align-items:center; gap:10px; margin-bottom:4px;">
+                                <div style="width:34px; height:34px; border-radius:50%; overflow:hidden; flex-shrink:0;">
+                                    <img src="images/admin-avatar.svg" alt="Admin Avatar" class="admin-avatar-img" id="menuAvatarImg">
+                                </div>
+                                <div>
+                                    <strong id="menuAdminName" style="display:block; font-size:13px; color:var(--color-text);">Administrator</strong>
+                                    <small id="menuAdminRole" style="color:var(--color-text-secondary); font-size:11px;">Administrator</small>
+                                </div>
+                            </div>
                         </div>
                         <div class="dropdown-divider"></div>
                         <button class="dropdown-item" onclick="switchAdminSection('pane-settings', document.getElementById('nav-settings'), 'System Settings')">
@@ -4069,7 +4080,7 @@
             <!-- Dynamically populated by viewSemesterSubjects() -->
         </div>
         <div class="modal-footer" style="margin-top: 16px; padding: 12px 20px; border-top: 1px solid #E2E8F0; display: flex; justify-content: flex-end;">
-            <button type="button" class="btn-secondary" onclick="closeSemesterSubjectsModal()" style="background: #F1F5F9; color: #334155; border: 1px solid #CBD5E1; padding: 8px 18px; border-radius: 6px; font-weight: 700; cursor: pointer;">Close</button>
+            <button type="button" class="btn-secondary" onclick="closeSemesterSubjectsModal()">Close</button>
         </div>
     </div>
 </div>
@@ -4151,7 +4162,7 @@
                 </div>
 
                 <div style="display:flex; justify-content:flex-end; gap:10px; border-top:1px solid #E2E8F0; padding-top:14px;">
-                    <button type="button" onclick="closeLibBookModal()" style="background:#F1F5F9; color:#475569; border:1px solid #CBD5E1; padding:8px 18px; border-radius:6px; font-weight:700; cursor:pointer;">Cancel</button>
+                    <button type="button" class="btn-cancel" onclick="closeLibBookModal()">Cancel</button>
                     <button type="submit" style="background:#2563EB; color:white; border:none; padding:8px 22px; border-radius:6px; font-weight:700; cursor:pointer;">Save Book</button>
                 </div>
             </form>
@@ -4225,7 +4236,7 @@
                 </div>
 
                 <div style="display:flex; justify-content:flex-end; gap:10px; border-top:1px solid #E2E8F0; padding-top:14px;">
-                    <button type="button" onclick="closeLibIssueModal()" style="background:#F1F5F9; color:#475569; border:1px solid #CBD5E1; padding:8px 18px; border-radius:6px; font-weight:700; cursor:pointer;">Cancel</button>
+                    <button type="button" class="btn-cancel" onclick="closeLibIssueModal()">Cancel</button>
                     <button type="submit" id="btnSubmitLibIssue" disabled style="background:#94A3B8; color:white; border:none; padding:8px 22px; border-radius:6px; font-weight:700; cursor:not-allowed;">Issue Book</button>
                 </div>
             </form>
@@ -4279,7 +4290,7 @@
                 </div>
 
                 <div style="display:flex; justify-content:flex-end; gap:10px; border-top:1px solid #E2E8F0; padding-top:14px;">
-                    <button type="button" onclick="closeLibReturnModal()" style="background:#F1F5F9; color:#475569; border:1px solid #CBD5E1; padding:8px 18px; border-radius:6px; font-weight:700; cursor:pointer;">Cancel</button>
+                    <button type="button" class="btn-cancel" onclick="closeLibReturnModal()">Cancel</button>
                     <button type="submit" style="background:#16A34A; color:white; border:none; padding:8px 22px; border-radius:6px; font-weight:700; cursor:pointer;">Confirm Return</button>
                 </div>
             </form>
@@ -4613,7 +4624,7 @@
                 </div>
 
                 <div style="display:flex; justify-content:flex-end; gap:10px; border-top:1px solid #E2E8F0; padding-top:12px;">
-                    <button type="button" onclick="closeTransportVehicleModal()" style="background:#F1F5F9; color:#475569; border:1px solid #CBD5E1; padding:8px 16px; border-radius:6px; font-weight:700; cursor:pointer;">Cancel</button>
+                    <button type="button" class="btn-cancel" onclick="closeTransportVehicleModal()">Cancel</button>
                     <button type="submit" style="background:#2563EB; color:white; border:none; padding:8px 20px; border-radius:6px; font-weight:700; cursor:pointer;">Save Vehicle</button>
                 </div>
             </form>
@@ -4673,7 +4684,7 @@
                 </div>
 
                 <div style="display:flex; justify-content:flex-end; gap:10px; border-top:1px solid #E2E8F0; padding-top:12px;">
-                    <button type="button" onclick="closeTransportRouteModal()" style="background:#F1F5F9; color:#475569; border:1px solid #CBD5E1; padding:8px 16px; border-radius:6px; font-weight:700; cursor:pointer;">Cancel</button>
+                    <button type="button" class="btn-cancel" onclick="closeTransportRouteModal()">Cancel</button>
                     <button type="submit" style="background:#2563EB; color:white; border:none; padding:8px 20px; border-radius:6px; font-weight:700; cursor:pointer;">Save Route</button>
                 </div>
             </form>
@@ -4713,7 +4724,7 @@
                 </div>
 
                 <div style="display:flex; justify-content:flex-end; gap:10px; border-top:1px solid #E2E8F0; padding-top:12px;">
-                    <button type="button" onclick="closeTransportStopModal()" style="background:#F1F5F9; color:#475569; border:1px solid #CBD5E1; padding:8px 16px; border-radius:6px; font-weight:700; cursor:pointer;">Cancel</button>
+                    <button type="button" class="btn-cancel" onclick="closeTransportStopModal()">Cancel</button>
                     <button type="submit" style="background:#2563EB; color:white; border:none; padding:8px 20px; border-radius:6px; font-weight:700; cursor:pointer;">Add Stop</button>
                 </div>
             </form>
@@ -4758,7 +4769,7 @@
                 </div>
 
                 <div style="display:flex; justify-content:flex-end; gap:10px; border-top:1px solid #E2E8F0; padding-top:12px;">
-                    <button type="button" onclick="closeTransportDriverModal()" style="background:#F1F5F9; color:#475569; border:1px solid #CBD5E1; padding:8px 16px; border-radius:6px; font-weight:700; cursor:pointer;">Cancel</button>
+                    <button type="button" class="btn-cancel" onclick="closeTransportDriverModal()">Cancel</button>
                     <button type="submit" style="background:#2563EB; color:white; border:none; padding:8px 20px; border-radius:6px; font-weight:700; cursor:pointer;">Save Driver</button>
                 </div>
             </form>
@@ -4837,7 +4848,7 @@
                 </div>
 
                 <div style="display:flex; justify-content:flex-end; gap:10px; border-top:1px solid #E2E8F0; padding-top:12px;">
-                    <button type="button" onclick="closeTransportAssignModal()" style="background:#F1F5F9; color:#475569; border:1px solid #CBD5E1; padding:8px 16px; border-radius:6px; font-weight:700; cursor:pointer;">Cancel</button>
+                    <button type="button" class="btn-cancel" onclick="closeTransportAssignModal()">Cancel</button>
                     <button type="submit" id="btnSubmitTrnAssign" disabled style="background:#94A3B8; color:white; border:none; padding:8px 22px; border-radius:6px; font-weight:700; cursor:not-allowed;">Issue Transport Pass</button>
                 </div>
             </form>

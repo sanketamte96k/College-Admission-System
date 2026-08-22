@@ -959,3 +959,40 @@ function escapeHtml(text) {
             "&#039;"
         );
 }
+
+// ============================================================
+// ADMIN HEADER SYNC & AUTHENTICATION
+// ============================================================
+
+(async function initAdminHeader() {
+    try {
+        const res = await fetch("/api/check-auth");
+        if (res.ok) {
+            const data = await res.json();
+            if (data.authenticated && data.user_type === "admin") {
+                const adminName = data.username || "Administrator";
+                const adminRole = data.role || "Administrator";
+                const avatarSrc = data.avatar || "images/admin-avatar.svg";
+
+                const nameEl = document.getElementById("formAdminName");
+                const roleEl = document.getElementById("formAdminRole");
+                const avatarEl = document.getElementById("formAdminAvatar");
+
+                if (nameEl) nameEl.textContent = adminName;
+                if (roleEl) roleEl.textContent = adminRole;
+                if (avatarEl) avatarEl.src = avatarSrc;
+            }
+        }
+    } catch (e) {
+        // Guest or applicant mode
+    }
+})();
+
+async function logoutAdminForm() {
+    try {
+        await fetch("/api/logout", { method: "POST" });
+        window.location.href = "login.html";
+    } catch (e) {
+        window.location.href = "login.html";
+    }
+}

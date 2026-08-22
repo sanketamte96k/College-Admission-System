@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1E3A8A"/>
+      <stop offset="50%" stop-color="#2563EB"/>
+      <stop offset="100%" stop-color="#4F46E5"/>
+    </linearGradient>
+    <linearGradient id="skinGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FCD34D"/>
+      <stop offset="100%" stop-color="#F59E0B"/>
+    </linearGradient>
+    <linearGradient id="suitGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1E293B"/>
+      <stop offset="100%" stop-color="#0F172A"/>
+    </linearGradient>
+    <linearGradient id="tieGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#EF4444"/>
+      <stop offset="100%" stop-color="#B91C1C"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+
+  <!-- Circular Base -->
+  <circle cx="64" cy="64" r="64" fill="url(#bgGrad)"/>
+
+  <!-- Subtle Inner Border Glow -->
+  <circle cx="64" cy="64" r="62" fill="none" stroke="#60A5FA" stroke-width="2" stroke-opacity="0.4"/>
+
+  <!-- Body / Shoulders (Dark Suit) -->
+  <path d="M22 128 C22 96, 42 86, 64 86 C86 86, 106 96, 106 128 Z" fill="url(#suitGrad)" filter="url(#shadow)"/>
+
+  <!-- White Shirt Collar -->
+  <polygon points="64,90 48,74 56,72 64,84 72,72 80,74" fill="#FFFFFF"/>
+
+  <!-- Red Executive Tie -->
+  <polygon points="64,84 68,90 64,118 60,90" fill="url(#tieGrad)"/>
+  <polygon points="61,84 67,84 69,89 59,89" fill="#DC2626"/>
+
+  <!-- Neck -->
+  <rect x="56" y="60" width="16" height="18" rx="4" fill="#FBBF24"/>
+
+  <!-- Head -->
+  <ellipse cx="64" cy="46" rx="20" ry="24" fill="#FDE68A" filter="url(#shadow)"/>
+
+  <!-- Professional Hair Style -->
+  <path d="M44 42 C44 26, 52 20, 64 20 C76 20, 84 26, 84 42 C84 32, 78 26, 64 26 C50 26, 44 34, 44 42 Z" fill="#334155"/>
+  <path d="M44 38 C42 45, 43 52, 45 54 C46 48, 48 40, 52 34 C48 35, 45 36, 44 38 Z" fill="#334155"/>
+  <path d="M84 38 C86 45, 85 52, 83 54 C82 48, 80 40, 76 34 C80 35, 83 36, 84 38 Z" fill="#334155"/>
+
+  <!-- Glasses -->
+  <rect x="49" y="42" width="12" height="9" rx="2" fill="none" stroke="#1E293B" stroke-width="2"/>
+  <rect x="67" y="42" width="12" height="9" rx="2" fill="none" stroke="#1E293B" stroke-width="2"/>
+  <line x1="61" y1="46" x2="67" y2="46" stroke="#1E293B" stroke-width="2"/>
+  <line x1="45" y1="44" x2="49" y2="44" stroke="#1E293B" stroke-width="1.5"/>
+  <line x1="79" y1="44" x2="83" y2="44" stroke="#1E293B" stroke-width="1.5"/>
+
+  <!-- Friendly Professional Smile -->
+  <path d="M58 58 Q64 63 70 58" fill="none" stroke="#92400E" stroke-width="1.8" stroke-linecap="round"/>
+
+  <!-- Verified Admin Shield Badge -->
+  <g transform="translate(86, 86)">
+    <circle cx="14" cy="14" r="14" fill="#059669" stroke="#FFFFFF" stroke-width="2"/>
+    <path d="M9 14 L12 17 L19 10" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>
