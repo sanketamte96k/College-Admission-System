@@ -3606,6 +3606,8 @@ function switchAdminSection(paneId, btnEl, pageTitle = "Dashboard Overview") {
         loadReportsAnalytics();
     } else if (paneId === "pane-library") {
         loadLibrary();
+    } else if (paneId === "pane-transport") {
+        loadTransport();
     }
 
 
@@ -4373,6 +4375,7 @@ function exportAdmissionsReport() {
 let stuCurrentPage = 1;
 let stuLimit = 20;
 let stuTotalCount = 0;
+let stuDbTotalCount = 0;
 
 async function fetchStudentsModule(page = 1) {
     stuCurrentPage = page;
@@ -4383,16 +4386,18 @@ async function fetchStudentsModule(page = 1) {
     const genderVal = document.getElementById("stuGenderFilter") ? document.getElementById("stuGenderFilter").value.trim() : "";
     const statusVal = document.getElementById("stuStatusFilter") ? document.getElementById("stuStatusFilter").value.trim() : "";
 
-    const params = new URLSearchParams({
+    const queryParams = {
         page: stuCurrentPage,
-        limit: stuLimit,
-        search: searchVal,
-        dept: deptVal,
-        course: courseVal,
-        academic_year: yearVal,
-        gender: genderVal,
-        status: statusVal
-    });
+        limit: stuLimit
+    };
+    if (searchVal) queryParams.search = searchVal;
+    if (deptVal) queryParams.dept = deptVal;
+    if (courseVal) queryParams.course = courseVal;
+    if (yearVal) queryParams.academic_year = yearVal;
+    if (genderVal) queryParams.gender = genderVal;
+    if (statusVal) queryParams.status = statusVal;
+
+    const params = new URLSearchParams(queryParams);
 
     const tbodyEl = document.getElementById("studentTableBody");
     if (tbodyEl) {
@@ -4411,14 +4416,23 @@ async function fetchStudentsModule(page = 1) {
         if (!response.ok) throw new Error("Failed to fetch students data");
         const data = await response.json();
 
+        console.log("Students API response:", data);
+
         let studentsList = [];
         if (Array.isArray(data)) {
             studentsList = data;
             stuTotalCount = data.length;
         } else if (data && Array.isArray(data.students)) {
             studentsList = data.students;
-            stuTotalCount = data.total || data.students.length;
+            stuTotalCount = (data.total !== undefined) ? data.total : data.students.length;
+        } else {
+            studentsList = [];
+            stuTotalCount = 0;
         }
+
+        console.log("Students loaded count:", studentsList.length);
+        console.log("Active filters:", { search: searchVal, dept: deptVal, course: courseVal, academic_year: yearVal, gender: genderVal, status: statusVal });
+        console.log("Filtered students count:", studentsList.length);
 
         renderStudentsTableFromData(studentsList);
         renderStudentsPagination();
@@ -4429,7 +4443,7 @@ async function fetchStudentsModule(page = 1) {
             tbodyEl.innerHTML = `
                 <tr>
                     <td colspan="9" style="text-align: center; padding: 30px; color: #EF4444;">
-                        ⚠️ Unable to load student records. Please ensure backend server is running.
+                        ⚠️ Unable to load student records.
                     </td>
                 </tr>
             `;
@@ -4442,6 +4456,8 @@ async function fetchStudentKpiStats() {
         const response = await fetch("/api/students/stats");
         if (!response.ok) return;
         const stats = await response.json();
+
+        stuDbTotalCount = stats.total_students || 0;
 
         const totalEl = document.getElementById("stuKpiTotal");
         const activeEl = document.getElementById("stuKpiActive");
@@ -4465,8 +4481,10 @@ function renderStudentsTableFromData(list) {
     const countEl = document.getElementById("stuToolbarCount");
     if (!tbodyEl) return;
 
+    const totalDisplayCount = stuDbTotalCount || stuTotalCount || (list ? list.length : 0);
+
     if (countEl) {
-        countEl.textContent = `Showing ${list.length} of ${stuTotalCount} records`;
+        countEl.textContent = `Showing ${list.length} of ${totalDisplayCount} records`;
     }
 
     if (!list || list.length === 0) {
@@ -4474,7 +4492,7 @@ function renderStudentsTableFromData(list) {
             <tr>
                 <td colspan="9" style="text-align: center; padding: 40px; color: #64748B;">
                     <div style="font-size: 28px; margin-bottom: 8px;">📂</div>
-                    <div style="font-weight: 600; color: #1E293B;">No matching student records found</div>
+                    <div style="font-weight: 600; color: #1E293B;">No matching student records found.</div>
                     <small>Try clearing search filters or selecting a different department/academic year.</small>
                 </td>
             </tr>
@@ -7674,4 +7692,809 @@ function exportLibraryPDF(reportType = "inventory") {
 
 function exportLibraryCSV(reportType = "inventory") {
     window.open(`/api/library/export/csv?type=${reportType}`, '_blank');
+}
+
+/* ============================================================ */
+/* TRANSPORT MANAGEMENT SUBSYSTEM JS LOGIC                     */
+/* ============================================================ */
+
+let currentTransportTab = "vehicles";
+let cachedTransportVehicles = [];
+let cachedTransportRoutes = [];
+let cachedTransportDrivers = [];
+let cachedTransportPasses = [];
+
+async function loadTransport() {
+    try {
+        const [dashRes, vehRes, routeRes, driverRes, passRes] = await Promise.all([
+            fetch('/api/transport/dashboard'),
+            fetch('/api/transport/vehicles'),
+            fetch('/api/transport/routes'),
+            fetch('/api/transport/drivers'),
+            fetch('/api/transport/assignments')
+        ]);
+
+        if (dashRes.ok) {
+            const summary = await dashRes.json();
+            renderTransportSummary(summary);
+        }
+
+        cachedTransportVehicles = vehRes.ok ? await vehRes.json() : [];
+        cachedTransportRoutes = routeRes.ok ? await routeRes.json() : [];
+        cachedTransportDrivers = driverRes.ok ? await driverRes.json() : [];
+        cachedTransportPasses = passRes.ok ? await passRes.json() : [];
+
+        populateTransportDropdowns();
+        renderActiveTransportTab();
+    } catch (err) {
+        console.error("loadTransport error:", err);
+        showToast("Error loading transport management data.", "error");
+    }
+}
+
+function renderTransportSummary(s) {
+    if (document.getElementById("trnKpiVehicles")) document.getElementById("trnKpiVehicles").textContent = s.total_vehicles || 0;
+    if (document.getElementById("trnKpiActiveVehicles")) document.getElementById("trnKpiActiveVehicles").textContent = s.active_vehicles || 0;
+    if (document.getElementById("trnKpiRoutes")) document.getElementById("trnKpiRoutes").textContent = s.total_routes || 0;
+    if (document.getElementById("trnKpiDrivers")) document.getElementById("trnKpiDrivers").textContent = s.total_drivers || 0;
+    if (document.getElementById("trnKpiStudents")) document.getElementById("trnKpiStudents").textContent = s.total_transport_students || 0;
+    if (document.getElementById("trnKpiSeats")) document.getElementById("trnKpiSeats").textContent = s.available_seats || 0;
+    if (document.getElementById("trnKpiPendingFees")) document.getElementById("trnKpiPendingFees").textContent = `₹${(s.pending_fees || 0).toLocaleString('en-IN')}`;
+}
+
+function populateTransportDropdowns() {
+    const routeSelect = document.getElementById("trnRouteFilter");
+    if (routeSelect) {
+        routeSelect.innerHTML = '<option value="all">All Routes</option>' +
+            cachedTransportRoutes.map(r => `<option value="${r.id}">${r.route_code} - ${r.route_name}</option>`).join('');
+    }
+
+    const vehDriverSelect = document.getElementById("trnVehDriver");
+    if (vehDriverSelect) {
+        vehDriverSelect.innerHTML = '<option value="">-- Choose Driver --</option>' +
+            cachedTransportDrivers.map(d => `<option value="${d.id}">${d.name} (${d.phone})</option>`).join('');
+    }
+
+    const vehRouteSelect = document.getElementById("trnVehRoute");
+    if (vehRouteSelect) {
+        vehRouteSelect.innerHTML = '<option value="">-- Choose Route --</option>' +
+            cachedTransportRoutes.map(r => `<option value="${r.id}">${r.route_code} - ${r.route_name}</option>`).join('');
+    }
+
+    const assignRouteSelect = document.getElementById("trnAssignRouteId");
+    if (assignRouteSelect) {
+        assignRouteSelect.innerHTML = '<option value="">-- Choose Route --</option>' +
+            cachedTransportRoutes.map(r => `<option value="${r.id}">${r.route_code} - ${r.route_name} (Avail Seats: ${r.available_seats})</option>`).join('');
+    }
+}
+
+function switchTransportTab(tabName, btnEl) {
+    currentTransportTab = tabName;
+    document.querySelectorAll(".trn-tab-btn").forEach(b => b.classList.remove("active"));
+    if (btnEl) btnEl.classList.add("active");
+
+    const containers = ["trnVehiclesContainer", "trnRoutesContainer", "trnDriversContainer", "trnPassesContainer", "trnOccupancyContainer"];
+    containers.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = "none";
+    });
+
+    renderActiveTransportTab();
+}
+
+function renderActiveTransportTab() {
+    if (currentTransportTab === "vehicles") {
+        document.getElementById("trnVehiclesContainer").style.display = "block";
+        renderTransportVehiclesTable(cachedTransportVehicles);
+    } else if (currentTransportTab === "routes") {
+        document.getElementById("trnRoutesContainer").style.display = "block";
+        renderTransportRoutesTable(cachedTransportRoutes);
+    } else if (currentTransportTab === "drivers") {
+        document.getElementById("trnDriversContainer").style.display = "block";
+        renderTransportDriversTable(cachedTransportDrivers);
+    } else if (currentTransportTab === "passes") {
+        document.getElementById("trnPassesContainer").style.display = "block";
+        renderTransportPassesTable(cachedTransportPasses);
+    } else if (currentTransportTab === "occupancy") {
+        document.getElementById("trnOccupancyContainer").style.display = "block";
+        renderTransportOccupancyTable(cachedTransportRoutes);
+    }
+}
+
+function renderTransportVehiclesTable(list) {
+    const c = document.getElementById("trnVehiclesContainer");
+    if (!c) return;
+
+    if (!list || list.length === 0) {
+        c.innerHTML = `<div style="text-align:center; padding:40px; color:#64748B;">No transport vehicles found. Click "+ Add Vehicle" to register a bus.</div>`;
+        return;
+    }
+
+    c.innerHTML = `
+        <table class="erp-table" style="width:100%;">
+            <thead>
+                <tr>
+                    <th>Vehicle Number</th>
+                    <th>Reg Number</th>
+                    <th>Type</th>
+                    <th>Capacity</th>
+                    <th>Driver</th>
+                    <th>Assigned Route</th>
+                    <th>Status</th>
+                    <th>Expiry Dates</th>
+                    <th style="text-align:right;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${list.map(v => `
+                    <tr>
+                        <td><strong style="color:#0F172A; font-family:monospace;">${v.vehicle_number}</strong></td>
+                        <td><small style="color:#64748B; font-weight:700;">${v.registration_number}</small></td>
+                        <td><span style="background:#EFF6FF; color:#1E40AF; padding:2px 8px; border-radius:12px; font-size:11px; font-weight:700;">${v.vehicle_type}</span></td>
+                        <td><strong>${v.assigned_students} / ${v.capacity}</strong> <small>(${v.available_seats} free)</small></td>
+                        <td>${v.driver_name} <br><small style="color:#64748B;">📞 ${v.driver_phone}</small></td>
+                        <td><strong style="color:#2563EB;">${v.route_code}</strong> - ${v.route_name}</td>
+                        <td>
+                            <span style="padding:3px 10px; border-radius:12px; font-size:11px; font-weight:700; background:${v.status === 'Active' ? '#DCFCE7' : v.status === 'Maintenance' ? '#FEF3C7' : '#F1F5F9'}; color:${v.status === 'Active' ? '#166534' : v.status === 'Maintenance' ? '#92400E' : '#475569'};">
+                                ${v.status}
+                            </span>
+                        </td>
+                        <td>
+                            <small style="display:block;">🛡️ Ins: ${v.insurance_expiry || 'N/A'}</small>
+                            <small style="display:block;">🔧 Fit: ${v.fitness_expiry || 'N/A'}</small>
+                        </td>
+                        <td style="text-align:right;">
+                            <button type="button" onclick="openTransportVehicleModal(${v.id})" style="background:#F1F5F9; color:#2563EB; border:1px solid #CBD5E1; border-radius:4px; padding:4px 8px; font-size:11px; font-weight:700; cursor:pointer; margin-right:4px;">✏️ Edit</button>
+                            <button type="button" onclick="deleteTransportVehicle(${v.id})" style="background:#FEF2F2; color:#DC2626; border:1px solid #FCA5A5; border-radius:4px; padding:4px 8px; font-size:11px; font-weight:700; cursor:pointer;">🗑 Delete</button>
+                        </td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>
+    `;
+}
+
+function renderTransportRoutesTable(list) {
+    const c = document.getElementById("trnRoutesContainer");
+    if (!c) return;
+
+    if (!list || list.length === 0) {
+        c.innerHTML = `<div style="text-align:center; padding:40px; color:#64748B;">No bus routes found. Click "+ Add Route" to create a route.</div>`;
+        return;
+    }
+
+    c.innerHTML = `
+        <table class="erp-table" style="width:100%;">
+            <thead>
+                <tr>
+                    <th>Code</th>
+                    <th>Route Name</th>
+                    <th>Start ➔ Destination</th>
+                    <th>Distance & Time</th>
+                    <th>Stops Count</th>
+                    <th>Vehicles</th>
+                    <th>Occupancy</th>
+                    <th>Status</th>
+                    <th style="text-align:right;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${list.map(r => `
+                    <tr>
+                        <td><strong style="color:#2563EB; font-family:monospace;">${r.route_code}</strong></td>
+                        <td><strong style="color:#0F172A;">${r.route_name}</strong></td>
+                        <td>${r.start_point} ➔ ${r.destination}</td>
+                        <td>${r.distance_km} km <small>(${r.estimated_time})</small></td>
+                        <td><strong>📍 ${r.stops_count} Stops</strong></td>
+                        <td><strong>🚌 ${r.vehicles_count} Buses</strong></td>
+                        <td><strong>${r.assigned_students} / ${r.total_capacity} Seats</strong></td>
+                        <td><span style="padding:3px 8px; border-radius:12px; font-size:11px; font-weight:700; background:#DCFCE7; color:#166534;">${r.status}</span></td>
+                        <td style="text-align:right;">
+                            <button type="button" onclick="openTransportStopModal(${r.id})" style="background:#F0FDF4; color:#166534; border:1px solid #BBF7D0; border-radius:4px; padding:4px 8px; font-size:11px; font-weight:700; cursor:pointer; margin-right:4px;">+ Stop</button>
+                            <button type="button" onclick="openTransportRouteModal(${r.id})" style="background:#F1F5F9; color:#2563EB; border:1px solid #CBD5E1; border-radius:4px; padding:4px 8px; font-size:11px; font-weight:700; cursor:pointer; margin-right:4px;">✏️ Edit</button>
+                            <button type="button" onclick="deleteTransportRoute(${r.id})" style="background:#FEF2F2; color:#DC2626; border:1px solid #FCA5A5; border-radius:4px; padding:4px 8px; font-size:11px; font-weight:700; cursor:pointer;">🗑 Delete</button>
+                        </td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>
+    `;
+}
+
+function renderTransportDriversTable(list) {
+    const c = document.getElementById("trnDriversContainer");
+    if (!c) return;
+
+    if (!list || list.length === 0) {
+        c.innerHTML = `<div style="text-align:center; padding:40px; color:#64748B;">No drivers found. Click "+ Add Driver" to register a driver.</div>`;
+        return;
+    }
+
+    c.innerHTML = `
+        <table class="erp-table" style="width:100%;">
+            <thead>
+                <tr>
+                    <th>Driver Name</th>
+                    <th>Phone Number</th>
+                    <th>License Number</th>
+                    <th>License Expiry</th>
+                    <th>Assigned Vehicle</th>
+                    <th>Emergency Contact</th>
+                    <th>Status</th>
+                    <th style="text-align:right;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${list.map(d => `
+                    <tr>
+                        <td><strong style="color:#0F172A;">${d.name}</strong></td>
+                        <td>📞 ${d.phone}</td>
+                        <td><code style="font-weight:700; color:#475569;">${d.license_number}</code></td>
+                        <td>${d.license_expiry || 'N/A'}</td>
+                        <td><strong style="color:#2563EB;">${d.assigned_vehicle}</strong></td>
+                        <td>${d.emergency_contact}</td>
+                        <td><span style="padding:3px 8px; border-radius:12px; font-size:11px; font-weight:700; background:${d.status === 'Active' ? '#DCFCE7' : '#F1F5F9'}; color:${d.status === 'Active' ? '#166534' : '#475569'};">${d.status}</span></td>
+                        <td style="text-align:right;">
+                            <button type="button" onclick="deleteTransportDriver(${d.id})" style="background:#FEF2F2; color:#DC2626; border:1px solid #FCA5A5; border-radius:4px; padding:4px 8px; font-size:11px; font-weight:700; cursor:pointer;">🗑 Delete</button>
+                        </td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>
+    `;
+}
+
+function renderTransportPassesTable(list) {
+    const c = document.getElementById("trnPassesContainer");
+    if (!c) return;
+
+    if (!list || list.length === 0) {
+        c.innerHTML = `<div style="text-align:center; padding:40px; color:#64748B;">No active student transport passes. Click "🚌 Register Student" to issue a pass using ZPRN.</div>`;
+        return;
+    }
+
+    c.innerHTML = `
+        <table class="erp-table" style="width:100%;">
+            <thead>
+                <tr>
+                    <th>ZPRN</th>
+                    <th>Student Name</th>
+                    <th>Department</th>
+                    <th>Assigned Route</th>
+                    <th>Bus Stop</th>
+                    <th>Vehicle</th>
+                    <th>Fee Status</th>
+                    <th>Pass Status</th>
+                    <th style="text-align:right;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${list.map(p => `
+                    <tr>
+                        <td><strong style="color:#2563EB; font-family:monospace;">${p.zprn}</strong></td>
+                        <td><strong style="color:#0F172A;">${p.student_name}</strong></td>
+                        <td>${p.department}</td>
+                        <td><strong style="color:#4F46E5;">${p.route_code}</strong> - ${p.route_name}</td>
+                        <td>📍 ${p.stop_name}</td>
+                        <td>🚌 ${p.vehicle_number}</td>
+                        <td><span style="padding:3px 8px; border-radius:12px; font-size:11px; font-weight:700; background:#DCFCE7; color:#166534;">₹${p.fee_amount} (${p.fee_status})</span></td>
+                        <td><span style="padding:3px 8px; border-radius:12px; font-size:11px; font-weight:700; background:${p.status === 'Active' ? '#DCFCE7' : '#FEF2F2'}; color:${p.status === 'Active' ? '#166534' : '#DC2626'};">${p.status}</span></td>
+                        <td style="text-align:right;">
+                            ${p.status === 'Active' ? `<button type="button" onclick="cancelTransportPass(${p.id})" style="background:#FEF2F2; color:#DC2626; border:1px solid #FCA5A5; border-radius:4px; padding:4px 8px; font-size:11px; font-weight:700; cursor:pointer;">❌ Cancel Pass</button>` : ''}
+                        </td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>
+    `;
+}
+
+function renderTransportOccupancyTable(routes) {
+    const c = document.getElementById("trnOccupancyContainer");
+    if (!c) return;
+
+    if (!routes || routes.length === 0) {
+        c.innerHTML = `<div style="text-align:center; padding:40px; color:#64748B;">No route occupancy data available.</div>`;
+        return;
+    }
+
+    c.innerHTML = `
+        <div style="padding:16px;">
+            <h4 style="margin:0 0 16px 0; color:#0F172A;">📊 Route Seat Occupancy & Capacity Utilization</h4>
+            ${routes.map(r => {
+                const pct = Math.min(100, Math.round((r.assigned_students / (r.total_capacity || 1)) * 100));
+                const barColor = pct >= 90 ? '#DC2626' : pct >= 75 ? '#D97706' : '#16A34A';
+                return `
+                    <div style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:10px; padding:14px; margin-bottom:14px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                            <div>
+                                <strong style="color:#2563EB; font-family:monospace; font-size:14px;">${r.route_code}</strong> -
+                                <strong style="color:#0F172A; font-size:14px;">${r.route_name}</strong>
+                                <small style="color:#64748B; margin-left:8px;">(📍 ${r.stops_count} Stops | 🚌 ${r.vehicles_count} Buses)</small>
+                            </div>
+                            <div>
+                                <span style="font-size:13px; font-weight:800; color:${barColor};">${r.assigned_students} / ${r.total_capacity} Seats Occupied (${pct}%)</span>
+                            </div>
+                        </div>
+                        <div style="width:100%; height:12px; background:#E2E8F0; border-radius:6px; overflow:hidden;">
+                            <div style="width:${pct}%; height:100%; background:${barColor}; transition:width 0.3s ease;"></div>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; margin-top:6px; font-size:11px; color:#64748B;">
+                            <span>Available Free Seats: <strong>${r.available_seats}</strong></span>
+                            <span>Status: <strong style="color:#166534;">${r.available_seats > 0 ? 'Seats Available' : 'FULL'}</strong></span>
+                        </div>
+                    </div>
+                `;
+            }).join('')}
+        </div>
+    `;
+}
+
+/* --- TRANSPORT MODAL HANDLERS --- */
+
+function openTransportVehicleModal(vehId = null) {
+    document.getElementById('trnVehicleForm').reset();
+    document.getElementById('trnVehId').value = '';
+    document.getElementById('trnVehModalTitle').textContent = '🚌 Register New Transport Vehicle';
+
+    populateTransportDropdowns();
+
+    if (vehId) {
+        const v = cachedTransportVehicles.find(item => item.id == vehId);
+        if (v) {
+            document.getElementById('trnVehId').value = v.id;
+            document.getElementById('trnVehNumber').value = v.vehicle_number;
+            document.getElementById('trnRegNumber').value = v.registration_number;
+            document.getElementById('trnVehType').value = v.vehicle_type;
+            document.getElementById('trnVehCapacity').value = v.capacity;
+            document.getElementById('trnVehStatus').value = v.status;
+            document.getElementById('trnVehDriver').value = v.assigned_driver_id || '';
+            document.getElementById('trnVehRoute').value = v.assigned_route_id || '';
+            document.getElementById('trnVehInsExp').value = v.insurance_expiry || '';
+            document.getElementById('trnVehFitExp').value = v.fitness_expiry || '';
+            document.getElementById('trnVehDesc').value = v.description || '';
+            document.getElementById('trnVehModalTitle').textContent = '✏️ Edit Transport Vehicle';
+        }
+    }
+
+    document.getElementById('transportVehicleModal').style.display = 'block';
+}
+
+function closeTransportVehicleModal() {
+    document.getElementById('transportVehicleModal').style.display = 'none';
+}
+
+async function submitTransportVehicleForm(e) {
+    e.preventDefault();
+    const vehId = document.getElementById('trnVehId').value;
+    const payload = {
+        vehicle_number: document.getElementById('trnVehNumber').value,
+        registration_number: document.getElementById('trnRegNumber').value,
+        vehicle_type: document.getElementById('trnVehType').value,
+        capacity: document.getElementById('trnVehCapacity').value,
+        status: document.getElementById('trnVehStatus').value,
+        assigned_driver_id: document.getElementById('trnVehDriver').value,
+        assigned_route_id: document.getElementById('trnVehRoute').value,
+        insurance_expiry: document.getElementById('trnVehInsExp').value,
+        fitness_expiry: document.getElementById('trnVehFitExp').value,
+        description: document.getElementById('trnVehDesc').value
+    };
+
+    const url = vehId ? `/api/transport/vehicles/${vehId}` : '/api/transport/vehicles';
+    const method = vehId ? 'PUT' : 'POST';
+
+    try {
+        const res = await fetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!res.ok) {
+            showToast(data.error || "Vehicle action failed.", "error");
+            return;
+        }
+        showToast(data.message || "Vehicle saved successfully!", "success");
+        closeTransportVehicleModal();
+        loadTransport();
+    } catch (err) {
+        showToast("Server error saving vehicle.", "error");
+    }
+}
+
+async function deleteTransportVehicle(vehId) {
+    if (!confirm("Are you sure you want to delete this vehicle?")) return;
+    try {
+        const res = await fetch(`/api/transport/vehicles/${vehId}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (!res.ok) {
+            showToast(data.error || "Delete failed.", "error");
+            return;
+        }
+        showToast(data.message || "Vehicle deleted.", "success");
+        loadTransport();
+    } catch (err) {
+        showToast("Server error deleting vehicle.", "error");
+    }
+}
+
+function openTransportRouteModal(routeId = null) {
+    document.getElementById('trnRouteForm').reset();
+    document.getElementById('trnRouteId').value = '';
+    document.getElementById('trnRouteModalTitle').textContent = '🗺️ Create Bus Route';
+
+    if (routeId) {
+        const r = cachedTransportRoutes.find(item => item.id == routeId);
+        if (r) {
+            document.getElementById('trnRouteId').value = r.id;
+            document.getElementById('trnRouteCode').value = r.route_code;
+            document.getElementById('trnRouteName').value = r.route_name;
+            document.getElementById('trnRouteStart').value = r.start_point;
+            document.getElementById('trnRouteDest').value = r.destination;
+            document.getElementById('trnRouteDistance').value = r.distance_km;
+            document.getElementById('trnRouteTime').value = r.estimated_time;
+            document.getElementById('trnRouteStatus').value = r.status;
+            document.getElementById('trnRouteModalTitle').textContent = '✏️ Edit Bus Route';
+        }
+    }
+
+    document.getElementById('transportRouteModal').style.display = 'block';
+}
+
+function closeTransportRouteModal() {
+    document.getElementById('transportRouteModal').style.display = 'none';
+}
+
+async function submitTransportRouteForm(e) {
+    e.preventDefault();
+    const routeId = document.getElementById('trnRouteId').value;
+    const payload = {
+        route_code: document.getElementById('trnRouteCode').value,
+        route_name: document.getElementById('trnRouteName').value,
+        start_point: document.getElementById('trnRouteStart').value,
+        destination: document.getElementById('trnRouteDest').value,
+        distance_km: document.getElementById('trnRouteDistance').value,
+        estimated_time: document.getElementById('trnRouteTime').value,
+        status: document.getElementById('trnRouteStatus').value
+    };
+
+    const url = routeId ? `/api/transport/routes/${routeId}` : '/api/transport/routes';
+    const method = routeId ? 'PUT' : 'POST';
+
+    try {
+        const res = await fetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!res.ok) {
+            showToast(data.error || "Route action failed.", "error");
+            return;
+        }
+        showToast(data.message || "Route saved successfully!", "success");
+        closeTransportRouteModal();
+        loadTransport();
+    } catch (err) {
+        showToast("Server error saving route.", "error");
+    }
+}
+
+async function deleteTransportRoute(routeId) {
+    if (!confirm("Are you sure you want to delete this route?")) return;
+    try {
+        const res = await fetch(`/api/transport/routes/${routeId}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (!res.ok) {
+            showToast(data.error || "Delete failed.", "error");
+            return;
+        }
+        showToast(data.message || "Route deleted.", "success");
+        loadTransport();
+    } catch (err) {
+        showToast("Server error deleting route.", "error");
+    }
+}
+
+function openTransportStopModal(routeId) {
+    document.getElementById('trnStopForm').reset();
+    document.getElementById('trnStopRouteId').value = routeId;
+    document.getElementById('transportStopModal').style.display = 'block';
+}
+
+function closeTransportStopModal() {
+    document.getElementById('transportStopModal').style.display = 'none';
+}
+
+async function submitTransportStopForm(e) {
+    e.preventDefault();
+    const payload = {
+        route_id: document.getElementById('trnStopRouteId').value,
+        stop_name: document.getElementById('trnStopName').value,
+        sequence_number: document.getElementById('trnStopSeq').value,
+        pickup_time: document.getElementById('trnStopPickup').value,
+        drop_time: document.getElementById('trnStopDrop').value
+    };
+
+    try {
+        const res = await fetch('/api/transport/stops', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!res.ok) {
+            showToast(data.error || "Failed to add stop.", "error");
+            return;
+        }
+        showToast(data.message || "Stop added successfully!", "success");
+        closeTransportStopModal();
+        loadTransport();
+    } catch (err) {
+        showToast("Server error adding stop.", "error");
+    }
+}
+
+function openTransportDriverModal() {
+    document.getElementById('trnDriverForm').reset();
+    document.getElementById('transportDriverModal').style.display = 'block';
+}
+
+function closeTransportDriverModal() {
+    document.getElementById('transportDriverModal').style.display = 'none';
+}
+
+async function submitTransportDriverForm(e) {
+    e.preventDefault();
+    const payload = {
+        name: document.getElementById('trnDriverName').value,
+        phone: document.getElementById('trnDriverPhone').value,
+        license_number: document.getElementById('trnDriverLic').value,
+        license_expiry: document.getElementById('trnDriverLicExp').value,
+        emergency_contact: document.getElementById('trnDriverEmergency').value
+    };
+
+    try {
+        const res = await fetch('/api/transport/drivers', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!res.ok) {
+            showToast(data.error || "Driver action failed.", "error");
+            return;
+        }
+        showToast(data.message || "Driver registered successfully!", "success");
+        closeTransportDriverModal();
+        loadTransport();
+    } catch (err) {
+        showToast("Server error registering driver.", "error");
+    }
+}
+
+async function deleteTransportDriver(driverId) {
+    if (!confirm("Are you sure you want to delete this driver?")) return;
+    try {
+        const res = await fetch(`/api/transport/drivers/${driverId}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (!res.ok) {
+            showToast(data.error || "Delete failed.", "error");
+            return;
+        }
+        showToast(data.message || "Driver deleted.", "success");
+        loadTransport();
+    } catch (err) {
+        showToast("Server error deleting driver.", "error");
+    }
+}
+
+function openTransportAssignModal(targetZprn = null) {
+    document.getElementById('trnAssignForm').reset();
+    document.getElementById('trnZprnInput').value = '';
+    document.getElementById('trnZprnMessage').style.display = 'none';
+    document.getElementById('trnVerifiedStudentBox').style.display = 'none';
+    document.getElementById('trnVerifiedStudentId').value = '';
+
+    const submitBtn = document.getElementById('btnSubmitTrnAssign');
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.style.background = '#94A3B8';
+        submitBtn.style.cursor = 'not-allowed';
+    }
+
+    populateTransportDropdowns();
+
+    if (targetZprn) {
+        document.getElementById('trnZprnInput').value = targetZprn;
+        verifyTransportStudentZprn();
+    }
+
+    document.getElementById('transportAssignModal').style.display = 'block';
+}
+
+function closeTransportAssignModal() {
+    document.getElementById('transportAssignModal').style.display = 'none';
+}
+
+async function verifyTransportStudentZprn() {
+    const zprnInput = document.getElementById('trnZprnInput')?.value?.trim();
+    const msgBox = document.getElementById('trnZprnMessage');
+    const studentBox = document.getElementById('trnVerifiedStudentBox');
+    const submitBtn = document.getElementById('btnSubmitTrnAssign');
+
+    if (!zprnInput) {
+        if (msgBox) {
+            msgBox.style.display = 'block';
+            msgBox.style.color = '#DC2626';
+            msgBox.textContent = '❌ Please enter ZPRN No. / Enrollment Roll Number.';
+        }
+        return;
+    }
+
+    try {
+        const res = await fetch(`/api/transport/verify-student/${encodeURIComponent(zprnInput)}`);
+        const data = await res.json();
+
+        if (!res.ok) {
+            if (msgBox) {
+                msgBox.style.display = 'block';
+                msgBox.style.color = '#DC2626';
+                msgBox.textContent = `❌ ${data.error || 'Student not found in college records'}`;
+            }
+            if (studentBox) studentBox.style.display = 'none';
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.style.background = '#94A3B8';
+                submitBtn.style.cursor = 'not-allowed';
+            }
+            document.getElementById('trnVerifiedStudentId').value = '';
+            return;
+        }
+
+        const s = data.student;
+        if (msgBox) {
+            msgBox.style.display = 'block';
+            msgBox.style.color = '#166534';
+            msgBox.textContent = '✓ Student officially verified in college records!';
+        }
+
+        document.getElementById('trnVerifiedStudentId').value = s.student_id;
+        document.getElementById('trnCardZprn').textContent = s.zprn;
+        document.getElementById('trnCardName').textContent = s.fullName;
+        document.getElementById('trnCardDept').textContent = s.department;
+        document.getElementById('trnCardCourse').textContent = s.course;
+        document.getElementById('trnCardYear').textContent = `${s.academic_year} (${s.semester})`;
+        document.getElementById('trnCardPassStatus').textContent = s.already_assigned ? `Active (${s.existing_route})` : 'Not Issued';
+
+        if (studentBox) studentBox.style.display = 'block';
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.style.background = '#16A34A';
+            submitBtn.style.cursor = 'pointer';
+        }
+    } catch (err) {
+        if (msgBox) {
+            msgBox.style.display = 'block';
+            msgBox.style.color = '#DC2626';
+            msgBox.textContent = '❌ Connection error while verifying ZPRN.';
+        }
+    }
+}
+
+function onTransportRouteSelectChange() {
+    const routeId = document.getElementById('trnAssignRouteId')?.value;
+    const stopSelect = document.getElementById('trnAssignStopId');
+    const vehSelect = document.getElementById('trnAssignVehicleId');
+
+    if (!routeId || !stopSelect) return;
+
+    const r = cachedTransportRoutes.find(item => item.id == routeId);
+    if (r && r.stops) {
+        stopSelect.innerHTML = '<option value="">-- Choose Stop --</option>' +
+            r.stops.map(s => `<option value="${s.id}">📍 ${s.stop_name} (Pickup: ${s.pickup_time})</option>`).join('');
+    } else {
+        stopSelect.innerHTML = '<option value="">No stops available for this route</option>';
+    }
+
+    if (vehSelect) {
+        const routeVehicles = cachedTransportVehicles.filter(v => v.assigned_route_id == routeId && v.status === 'Active');
+        vehSelect.innerHTML = '<option value="">Auto-assign route bus</option>' +
+            routeVehicles.map(v => `<option value="${v.id}">🚌 ${v.vehicle_number} (Free: ${v.available_seats}/${v.capacity})</option>`).join('');
+    }
+}
+
+async function submitTransportAssignForm(e) {
+    e.preventDefault();
+
+    const zprn = document.getElementById('trnZprnInput')?.value?.trim();
+    const routeId = document.getElementById('trnAssignRouteId')?.value;
+    const stopId = document.getElementById('trnAssignStopId')?.value;
+    const vehicleId = document.getElementById('trnAssignVehicleId')?.value;
+    const feeAmount = document.getElementById('trnAssignFee')?.value;
+
+    if (!zprn || !routeId || !stopId) {
+        showToast("Please complete ZPRN, Route, and Stop selection.", "error");
+        return;
+    }
+
+    const payload = {
+        zprn: zprn,
+        route_id: routeId,
+        stop_id: stopId,
+        vehicle_id: vehicleId || null,
+        fee_amount: feeAmount
+    };
+
+    try {
+        const res = await fetch('/api/transport/assignments', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+            showToast(data.error || "Transport pass issue failed.", "error");
+            return;
+        }
+
+        showToast(data.message || "Transport pass issued successfully!", "success");
+        closeTransportAssignModal();
+        loadTransport();
+    } catch (err) {
+        showToast("Server error issuing transport pass.", "error");
+    }
+}
+
+async function cancelTransportPass(passId) {
+    if (!confirm("Are you sure you want to cancel this student's transport pass?")) return;
+    try {
+        const res = await fetch(`/api/transport/assignments/${passId}/cancel`, { method: 'POST' });
+        const data = await res.json();
+        if (!res.ok) {
+            showToast(data.error || "Cancellation failed.", "error");
+            return;
+        }
+        showToast(data.message || "Pass cancelled successfully.", "success");
+        loadTransport();
+    } catch (err) {
+        showToast("Server error cancelling pass.", "error");
+    }
+}
+
+function exportTransportPDF() {
+    window.open('/api/transport/export/pdf?type=vehicle', '_blank');
+}
+
+function applyTransportFilters() {
+    const searchVal = document.getElementById("trnSearchInput")?.value?.trim().toLowerCase();
+    const statusVal = document.getElementById("trnStatusFilter")?.value;
+    const routeVal = document.getElementById("trnRouteFilter")?.value;
+
+    if (currentTransportTab === "vehicles") {
+        let list = cachedTransportVehicles;
+        if (statusVal && statusVal !== "all") list = list.filter(v => v.status === statusVal);
+        if (routeVal && routeVal !== "all") list = list.filter(v => v.assigned_route_id == routeVal);
+        if (searchVal) list = list.filter(v => v.vehicle_number.toLowerCase().includes(searchVal) || v.registration_number.toLowerCase().includes(searchVal));
+        renderTransportVehiclesTable(list);
+    } else if (currentTransportTab === "routes") {
+        let list = cachedTransportRoutes;
+        if (statusVal && statusVal !== "all") list = list.filter(r => r.status === statusVal);
+        if (searchVal) list = list.filter(r => r.route_name.toLowerCase().includes(searchVal) || r.route_code.toLowerCase().includes(searchVal));
+        renderTransportRoutesTable(list);
+    } else if (currentTransportTab === "passes") {
+        let list = cachedTransportPasses;
+        if (routeVal && routeVal !== "all") list = list.filter(p => p.route_id == routeVal);
+        if (searchVal) list = list.filter(p => p.zprn.toLowerCase().includes(searchVal) || p.student_name.toLowerCase().includes(searchVal));
+        renderTransportPassesTable(list);
+    }
+}
+
+function resetTransportFilters() {
+    if (document.getElementById("trnSearchInput")) document.getElementById("trnSearchInput").value = "";
+    if (document.getElementById("trnStatusFilter")) document.getElementById("trnStatusFilter").value = "all";
+    if (document.getElementById("trnDeptFilter")) document.getElementById("trnDeptFilter").value = "all";
+    if (document.getElementById("trnRouteFilter")) document.getElementById("trnRouteFilter").value = "all";
+    renderActiveTransportTab();
 }

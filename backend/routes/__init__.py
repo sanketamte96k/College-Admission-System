@@ -10,6 +10,7 @@ from .department_routes import department_bp
 from .course_routes import course_bp
 from .examination_routes import examination_bp
 from .library_routes import library_bp
+from .transport_routes import transport_bp
 
 __all__ = [
     "auth_bp",
@@ -23,5 +24,6 @@ __all__ = [
     "department_bp",
     "course_bp",
     "examination_bp",
-    "library_bp"
+    "library_bp",
+    "transport_bp"
 ]

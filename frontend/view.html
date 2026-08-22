@@ -104,12 +104,6 @@
                     </button>
                 </li>
                 <li>
-                    <button class="nav-link" id="nav-hostel" onclick="switchAdminSection('pane-hostel', this, 'Hostel & Housing')">
-                        <span class="nav-icon">🏠</span>
-                        <span class="nav-label">Hostel</span>
-                    </button>
-                </li>
-                <li>
                     <button class="nav-link" id="nav-transport" onclick="switchAdminSection('pane-transport', this, 'Transport Fleet')">
                         <span class="nav-icon">🚌</span>
                         <span class="nav-label">Transport</span>
@@ -1136,34 +1130,36 @@
                         <div class="stu-filter-field">
                             <label class="stu-filter-label">Department</label>
                             <select id="stuDeptFilter" class="stu-control stu-select">
-                                <option value="">All Departments</option>
-                                <option>Computer Engineering</option>
-                                <option>Information Technology</option>
-                                <option>Artificial Intelligence &amp; Data Science</option>
-                                <option>Electronics &amp; Telecommunication</option>
-                                <option>Mechanical Engineering</option>
-                                <option>Civil Engineering</option>
+                                <option value="" selected>All Departments</option>
+                                <option value="Computer Engineering">Computer Engineering</option>
+                                <option value="Information Technology">Information Technology</option>
+                                <option value="Artificial Intelligence &amp; Data Science">Artificial Intelligence &amp; Data Science</option>
+                                <option value="Electronics &amp; Telecommunication">Electronics &amp; Telecommunication</option>
+                                <option value="Mechanical Engineering">Mechanical Engineering</option>
+                                <option value="Civil Engineering">Civil Engineering</option>
+                                <option value="Electrical Engineering">Electrical Engineering</option>
                             </select>
                         </div>
 
                         <div class="stu-filter-field">
                             <label class="stu-filter-label">Course</label>
                             <select id="stuCourseFilter" class="stu-control stu-select">
-                                <option value="">All Courses</option>
-                                <option>B.Tech Computer Science</option>
-                                <option>B.Tech Information Technology</option>
-                                <option>B.Tech AI &amp; Data Science</option>
-                                <option>B.Tech Electronics &amp; Telecom</option>
-                                <option>B.Tech Mechanical</option>
-                                <option>B.Tech Civil</option>
+                                <option value="" selected>All Courses</option>
+                                <option value="B.Tech Computer Engineering">B.Tech Computer Engineering</option>
+                                <option value="B.Tech Information Technology">B.Tech Information Technology</option>
+                                <option value="B.Tech Artificial Intelligence &amp; Data Science">B.Tech Artificial Intelligence &amp; Data Science</option>
+                                <option value="B.Tech Electronics &amp; Telecommunication">B.Tech Electronics &amp; Telecommunication</option>
+                                <option value="B.Tech Mechanical Engineering">B.Tech Mechanical Engineering</option>
+                                <option value="B.Tech Civil Engineering">B.Tech Civil Engineering</option>
+                                <option value="B.Tech Electrical Engineering">B.Tech Electrical Engineering</option>
                             </select>
                         </div>
 
                         <div class="stu-filter-field">
                             <label class="stu-filter-label">Academic Year</label>
                             <select id="stuYearFilter" class="stu-control stu-select">
-                                <option value="">All Academic Years</option>
-                                <option value="2026-27" selected>2026–27</option>
+                                <option value="" selected>All Academic Years</option>
+                                <option value="2026-27">2026–27</option>
                                 <option value="2025-26">2025–26</option>
                             </select>
                         </div>
@@ -1171,7 +1167,7 @@
                         <div class="stu-filter-field">
                             <label class="stu-filter-label">Gender</label>
                             <select id="stuGenderFilter" class="stu-control stu-select">
-                                <option value="">All Genders</option>
+                                <option value="" selected>All Genders</option>
                                 <option value="Male">Male</option>
                                 <option value="Female">Female</option>
                             </select>
@@ -1180,7 +1176,7 @@
                         <div class="stu-filter-field">
                             <label class="stu-filter-label">Status</label>
                             <select id="stuStatusFilter" class="stu-control stu-select">
-                                <option value="">All Statuses</option>
+                                <option value="" selected>All Statuses</option>
                                 <option value="Enrolled">Enrolled</option>
                                 <option value="Approved">Approved</option>
                                 <option value="Pending Verification">Pending Verification</option>
@@ -2806,34 +2802,113 @@
             </div>
 
             <!-- ============================================================ -->
-            <!-- PANE 11: HOSTEL & HOUSING                                    -->
-            <!-- ============================================================ -->
-            <div id="pane-hostel" class="erp-section-pane">
-                <div class="erp-placeholder-card">
-                    <div class="erp-placeholder-icon">🏠</div>
-                    <h3>Campus Hostel & Accommodation</h3>
-                    <p>On-campus accommodation for boys and girls with 24/7 security, high-speed Wi-Fi, and hygienic dining mess.</p>
-                    <div class="erp-badge-grid">
-                        <span class="erp-badge-item">🛏️ 600+ Beds Capacity</span>
-                        <span class="erp-badge-item">🍲 Hygienic Dining Mess</span>
-                        <span class="erp-badge-item">🛡️ 24/7 CCTV & Security</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ============================================================ -->
-            <!-- PANE 12: TRANSPORT FLEET                                     -->
+            <!-- PANE 11: TRANSPORT FLEET & ROUTE MANAGEMENT                  -->
             <!-- ============================================================ -->
             <div id="pane-transport" class="erp-section-pane">
-                <div class="erp-placeholder-card">
-                    <div class="erp-placeholder-icon">🚌</div>
-                    <h3>Campus Transport Fleet & Route Manager</h3>
-                    <p>College bus fleet connecting major routes across Pune, Pimpri-Chinchwad, and suburban zones.</p>
-                    <div class="erp-badge-grid">
-                        <span class="erp-badge-item">🗺️ 15 Bus Routes</span>
-                        <span class="erp-badge-item">📍 GPS Live Tracking</span>
-                        <span class="erp-badge-item">🎫 Transport Pass Records</span>
+                <div class="transport-page">
+                    <!-- HERO DASHBOARD CARD -->
+                    <div class="transport-hero-card" style="background: linear-gradient(135deg, #0F172A 0%, #1E293B 50%, #1E3A8A 100%); border-radius: 16px; padding: 26px 30px; color: #FFFFFF; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.25); margin-bottom: 24px; flex-wrap: wrap; gap: 20px;">
+                        <div>
+                            <div class="transport-hero-badge" style="display: inline-flex; align-items: center; gap: 8px; background: rgba(37, 99, 235, 0.25); border: 1px solid rgba(147, 197, 253, 0.3); color: #93C5FD; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; margin-bottom: 10px;">
+                                <span style="width:8px; height:8px; background:#3B82F6; border-radius:50%; box-shadow:0 0 10px #3B82F6;"></span>
+                                ZEAL CAMPUS FLEET & ROUTE MANAGEMENT
+                            </div>
+                            <h2 style="font-size: 26px; font-weight: 800; color: #FFFFFF; margin: 0 0 6px 0; letter-spacing: -0.02em;">Transport Management Subsystem</h2>
+                            <p style="font-size: 13px; color: #94A3B8; margin: 0; max-width: 520px;">Manage college vehicles, bus routes, driver assignments, stop schedules, and student transport passes.</p>
+                        </div>
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <button type="button" onclick="openTransportVehicleModal()" style="background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%); color: #FFFFFF; border: none; padding: 10px 18px; border-radius: 8px; font-weight: 700; font-size: 13px; cursor: pointer; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35); display: flex; align-items: center; gap: 6px;">+ Add Vehicle</button>
+                            <button type="button" onclick="openTransportRouteModal()" style="background: rgba(255, 255, 255, 0.1); color: #FFFFFF; border: 1px solid rgba(255, 255, 255, 0.2); padding: 10px 16px; border-radius: 8px; font-weight: 700; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 6px;">+ Add Route</button>
+                            <button type="button" onclick="openTransportDriverModal()" style="background: rgba(255, 255, 255, 0.1); color: #FFFFFF; border: 1px solid rgba(255, 255, 255, 0.2); padding: 10px 16px; border-radius: 8px; font-weight: 700; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 6px;">+ Add Driver</button>
+                            <button type="button" onclick="openTransportAssignModal()" style="background: #16A34A; color: #FFFFFF; border: none; padding: 10px 18px; border-radius: 8px; font-weight: 700; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 6px;">🚌 Register Student</button>
+                            <button type="button" onclick="exportTransportPDF()" style="background: rgba(255, 255, 255, 0.1); color: #FFFFFF; border: 1px solid rgba(255, 255, 255, 0.2); padding: 10px 14px; border-radius: 8px; font-weight: 700; font-size: 13px; cursor: pointer;">📄 PDF Report</button>
+                            <button type="button" onclick="loadTransport()" style="background: rgba(255, 255, 255, 0.1); color: #FFFFFF; border: 1px solid rgba(255, 255, 255, 0.2); padding: 10px 14px; border-radius: 8px; font-weight: 700; font-size: 13px; cursor: pointer;">🔄</button>
+                        </div>
                     </div>
+
+                    <!-- 7 KPI METRIC CARDS GRID -->
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; margin-bottom: 22px;">
+                        <div style="background:#FFF; border:1px solid #E2E8F0; border-radius:12px; padding:16px; border-top:4px solid #2563EB;">
+                            <small style="font-size:10px; font-weight:800; color:#64748B; text-transform:uppercase;">Total Vehicles</small>
+                            <h3 id="trnKpiVehicles" style="font-size:22px; font-weight:800; color:#0F172A; margin:4px 0 0 0;">0</h3>
+                        </div>
+                        <div style="background:#FFF; border:1px solid #E2E8F0; border-radius:12px; padding:16px; border-top:4px solid #16A34A;">
+                            <small style="font-size:10px; font-weight:800; color:#64748B; text-transform:uppercase;">Active Vehicles</small>
+                            <h3 id="trnKpiActiveVehicles" style="font-size:22px; font-weight:800; color:#0F172A; margin:4px 0 0 0;">0</h3>
+                        </div>
+                        <div style="background:#FFF; border:1px solid #E2E8F0; border-radius:12px; padding:16px; border-top:4px solid #9333EA;">
+                            <small style="font-size:10px; font-weight:800; color:#64748B; text-transform:uppercase;">Total Routes</small>
+                            <h3 id="trnKpiRoutes" style="font-size:22px; font-weight:800; color:#0F172A; margin:4px 0 0 0;">0</h3>
+                        </div>
+                        <div style="background:#FFF; border:1px solid #E2E8F0; border-radius:12px; padding:16px; border-top:4px solid #4F46E5;">
+                            <small style="font-size:10px; font-weight:800; color:#64748B; text-transform:uppercase;">Total Drivers</small>
+                            <h3 id="trnKpiDrivers" style="font-size:22px; font-weight:800; color:#0F172A; margin:4px 0 0 0;">0</h3>
+                        </div>
+                        <div style="background:#FFF; border:1px solid #E2E8F0; border-radius:12px; padding:16px; border-top:4px solid #0EA5E9;">
+                            <small style="font-size:10px; font-weight:800; color:#64748B; text-transform:uppercase;">Transport Students</small>
+                            <h3 id="trnKpiStudents" style="font-size:22px; font-weight:800; color:#0F172A; margin:4px 0 0 0;">0</h3>
+                        </div>
+                        <div style="background:#FFF; border:1px solid #E2E8F0; border-radius:12px; padding:16px; border-top:4px solid #D97706;">
+                            <small style="font-size:10px; font-weight:800; color:#64748B; text-transform:uppercase;">Available Seats</small>
+                            <h3 id="trnKpiSeats" style="font-size:22px; font-weight:800; color:#0F172A; margin:4px 0 0 0;">0</h3>
+                        </div>
+                        <div style="background:#FFF; border:1px solid #E2E8F0; border-radius:12px; padding:16px; border-top:4px solid #DC2626;">
+                            <small style="font-size:10px; font-weight:800; color:#64748B; text-transform:uppercase;">Pending Fees</small>
+                            <h3 id="trnKpiPendingFees" style="font-size:22px; font-weight:800; color:#0F172A; margin:4px 0 0 0;">₹0</h3>
+                        </div>
+                    </div>
+
+                    <!-- TABS NAVIGATION -->
+                    <div style="display: flex; gap: 10px; border-bottom: 2px solid #E2E8F0; margin-bottom: 20px; padding-bottom: 2px;">
+                        <button type="button" class="trn-tab-btn active" onclick="switchTransportTab('vehicles', this)">🚌 Vehicle Fleet</button>
+                        <button type="button" class="trn-tab-btn" onclick="switchTransportTab('routes', this)">🗺️ Routes & Stops</button>
+                        <button type="button" class="trn-tab-btn" onclick="switchTransportTab('drivers', this)">👨‍✈️ Drivers</button>
+                        <button type="button" class="trn-tab-btn" onclick="switchTransportTab('passes', this)">🎓 Student Passes</button>
+                        <button type="button" class="trn-tab-btn" onclick="switchTransportTab('occupancy', this)">📊 Route Occupancy</button>
+                    </div>
+
+                    <!-- FILTER CARD -->
+                    <div style="background: #FFF; border: 1px solid #E2E8F0; border-radius: 12px; padding: 16px; margin-bottom: 20px;">
+                        <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; align-items: end;">
+                            <div>
+                                <label style="font-size: 11px; font-weight: 700; color: #475569; display: block; margin-bottom: 4px;">Search Record</label>
+                                <input type="text" id="trnSearchInput" placeholder="Vehicle No, ZPRN, Name..." style="width:100%; height:36px; padding:0 10px; border:1px solid #CBD5E1; border-radius:6px; font-size:12px;">
+                            </div>
+                            <div>
+                                <label style="font-size: 11px; font-weight: 700; color: #475569; display: block; margin-bottom: 4px;">Status Filter</label>
+                                <select id="trnStatusFilter" style="width:100%; height:36px; padding:0 10px; border:1px solid #CBD5E1; border-radius:6px; font-size:12px;">
+                                    <option value="all">All Statuses</option>
+                                    <option value="Active">Active</option>
+                                    <option value="Inactive">Inactive</option>
+                                    <option value="Maintenance">Maintenance</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="font-size: 11px; font-weight: 700; color: #475569; display: block; margin-bottom: 4px;">Department</label>
+                                <select id="trnDeptFilter" style="width:100%; height:36px; padding:0 10px; border:1px solid #CBD5E1; border-radius:6px; font-size:12px;">
+                                    <option value="all">All Departments</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="font-size: 11px; font-weight: 700; color: #475569; display: block; margin-bottom: 4px;">Route Filter</label>
+                                <select id="trnRouteFilter" style="width:100%; height:36px; padding:0 10px; border:1px solid #CBD5E1; border-radius:6px; font-size:12px;">
+                                    <option value="all">All Routes</option>
+                                </select>
+                            </div>
+                            <div style="display:flex; gap:6px;">
+                                <button type="button" onclick="applyTransportFilters()" style="flex:1; height:36px; background:#2563EB; color:white; border:none; border-radius:6px; font-weight:700; font-size:12px; cursor:pointer;">Filter</button>
+                                <button type="button" onclick="resetTransportFilters()" style="height:36px; padding:0 12px; background:#F1F5F9; color:#475569; border:1px solid #CBD5E1; border-radius:6px; font-weight:700; font-size:12px; cursor:pointer;">Reset</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- DYNAMIC CONTAINERS -->
+                    <div id="trnVehiclesContainer" class="transport-table-card"></div>
+                    <div id="trnRoutesContainer" class="transport-table-card" style="display:none;"></div>
+                    <div id="trnDriversContainer" class="transport-table-card" style="display:none;"></div>
+                    <div id="trnPassesContainer" class="transport-table-card" style="display:none;"></div>
+                    <div id="trnOccupancyContainer" class="transport-table-card" style="display:none;"></div>
+
                 </div>
             </div>
 
@@ -3954,6 +4029,316 @@
         </div>
         <div class="modal-body" id="feeDetailsModalBody">
             <!-- Dynamically populated -->
+        </div>
+    </div>
+</div>
+
+<!-- TRANSPORT MODALS -->
+<!-- 1. Add/Edit Vehicle Modal -->
+<div id="transportVehicleModal" class="modal transport-modal">
+    <div class="modal-content" style="max-width: 650px;">
+        <div class="modal-header">
+            <h3 id="trnVehModalTitle">🚌 Register / Edit Transport Vehicle</h3>
+            <span class="close-btn" onclick="closeTransportVehicleModal()">&times;</span>
+        </div>
+        <div class="modal-body" style="padding:20px;">
+            <form id="trnVehicleForm" onsubmit="submitTransportVehicleForm(event)">
+                <input type="hidden" id="trnVehId">
+                <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:12px; margin-bottom:12px;">
+                    <div>
+                        <label style="font-size:12px; font-weight:700; color:#334155;">Vehicle Number *</label>
+                        <input type="text" id="trnVehNumber" required placeholder="e.g. MH-12-PQ-1001" class="form-input" style="width:100%; height:38px; padding:0 10px; border:1px solid #CBD5E1; border-radius:6px;">
+                    </div>
+                    <div>
+                        <label style="font-size:12px; font-weight:700; color:#334155;">Registration Number *</label>
+                        <input type="text" id="trnRegNumber" required placeholder="e.g. BUS-REG-1001" class="form-input" style="width:100%; height:38px; padding:0 10px; border:1px solid #CBD5E1; border-radius:6px;">
+                    </div>
+                </div>
+
+                <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:12px; margin-bottom:12px;">
+                    <div>
+                        <label style="font-size:12px; font-weight:700; color:#334155;">Vehicle Type *</label>
+                        <select id="trnVehType" required class="form-select" style="width:100%; height:38px; padding:0 10px; border:1px solid #CBD5E1; border-radius:6px;">
+                            <option value="AC Bus">AC Bus</option>
+                            <option value="Non-AC Bus">Non-AC Bus</option>
+                            <option value="Mini Bus">Mini Bus</option>
+                            <option value="Van">Van</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-size:12px; font-weight:700; color:#334155;">Capacity (Seats) *</label>
+                        <input type="number" id="trnVehCapacity" required min="1" max="100" value="40" class="form-input" style="width:100%; height:38px; padding:0 10px; border:1px solid #CBD5E1; border-radius:6px;">
+                    </div>
+                    <div>
+                        <label style="font-size:12px; font-weight:700; color:#334155;">Status *</label>
+                        <select id="trnVehStatus" required class="form-select" style="width:100%; height:38px; padding:0 10px; border:1px solid #CBD5E1; border-radius:6px;">
+                            <option value="Active">Active</option>
+                            <option value="Inactive">Inactive</option>
+                            <option value="Maintenance">Maintenance</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:12px; margin-bottom:12px;">
+                    <div>
+                        <label style="font-size:12px; font-weight:700; color:#334155;">Assigned Driver</label>
+                        <select id="trnVehDriver" class="form-select" style="width:100%; height:38px; padding:0 10px; border:1px solid #CBD5E1; border-radius:6px;">
+                            <option value="">-- Choose Driver --</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-size:12px; font-weight:700; color:#334155;">Assigned Route</label>
+                        <select id="trnVehRoute" class="form-select" style="width:100%; height:38px; padding:0 10px; border:1px solid #CBD5E1; border-radius:6px;">
+                            <option value="">-- Choose Route --</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:12px; margin-bottom:14px;">
+                    <div>
+                        <label style="font-size:12px; font-weight:700; color:#334155;">Insurance Expiry</label>
+                        <input type="date" id="trnVehInsExp" class="form-input" style="width:100%; height:38px; padding:0 10px; border:1px solid #CBD5E1; border-radius:6px;">
+                    </div>
+                    <div>
+                        <label style="font-size:12px; font-weight:700; color:#334155;">Fitness Expiry</label>
+                        <input type="date" id="trnVehFitExp" class="form-input" style="width:100%; height:38px; padding:0 10px; border:1px solid #CBD5E1; border-radius:6px;">
+                    </div>
+                </div>
+
+                <div style="margin-bottom:16px;">
+                    <label style="font-size:12px; font-weight:700; color:#334155;">Description / Notes</label>
+                    <input type="text" id="trnVehDesc" placeholder="e.g. 40 Seater AC Bus with GPS" class="form-input" style="width:100%; height:38px; padding:0 10px; border:1px solid #CBD5E1; border-radius:6px;">
+                </div>
+
+                <div style="display:flex; justify-content:flex-end; gap:10px; border-top:1px solid #E2E8F0; padding-top:12px;">
+                    <button type="button" onclick="closeTransportVehicleModal()" style="background:#F1F5F9; color:#475569; border:1px solid #CBD5E1; padding:8px 16px; border-radius:6px; font-weight:700; cursor:pointer;">Cancel</button>
+                    <button type="submit" style="background:#2563EB; color:white; border:none; padding:8px 20px; border-radius:6px; font-weight:700; cursor:pointer;">Save Vehicle</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 2. Add/Edit Route Modal -->
+<div id="transportRouteModal" class="modal transport-modal">
+    <div class="modal-content" style="max-width: 600px;">
+        <div class="modal-header">
+            <h3 id="trnRouteModalTitle">🗺️ Create / Edit Bus Route</h3>
+            <span class="close-btn" onclick="closeTransportRouteModal()">&times;</span>
+        </div>
+        <div class="modal-body" style="padding:20px;">
+            <form id="trnRouteForm" onsubmit="submitTransportRouteForm(event)">
+                <input type="hidden" id="trnRouteId">
+
+                <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:12px; margin-bottom:12px;">
+                    <div>
+                        <label style="font-size:12px; font-weight:700; color:#334155;">Route Code *</label>
+                        <input type="text" id="trnRouteCode" required placeholder="e.g. R-01" class="form-input" style="width:100%; height:38px; padding:0 10px; border:1px solid #CBD5E1; border-radius:6px;">
+                    </div>
+                    <div>
+                        <label style="font-size:12px; font-weight:700; color:#334155;">Route Name *</label>
+                        <input type="text" id="trnRouteName" required placeholder="e.g. Route 1 - Swargate Express" class="form-input" style="width:100%; height:38px; padding:0 10px; border:1px solid #CBD5E1; border-radius:6px;">
+                    </div>
+                </div>
+
+                <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:12px; margin-bottom:12px;">
+                    <div>
+                        <label style="font-size:12px; font-weight:700; color:#334155;">Starting Point *</label>
+                        <input type="text" id="trnRouteStart" required value="Swargate Junction" class="form-input" style="width:100%; height:38px; padding:0 10px; border:1px solid #CBD5E1; border-radius:6px;">
+                    </div>
+                    <div>
+                        <label style="font-size:12px; font-weight:700; color:#334155;">Destination *</label>
+                        <input type="text" id="trnRouteDest" required value="Zeal College Narhe" class="form-input" style="width:100%; height:38px; padding:0 10px; border:1px solid #CBD5E1; border-radius:6px;">
+                    </div>
+                </div>
+
+                <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:12px; margin-bottom:16px;">
+                    <div>
+                        <label style="font-size:12px; font-weight:700; color:#334155;">Distance (km)</label>
+                        <input type="number" id="trnRouteDistance" step="0.1" value="15.0" class="form-input" style="width:100%; height:38px; padding:0 10px; border:1px solid #CBD5E1; border-radius:6px;">
+                    </div>
+                    <div>
+                        <label style="font-size:12px; font-weight:700; color:#334155;">Est Travel Time</label>
+                        <input type="text" id="trnRouteTime" value="45 Mins" class="form-input" style="width:100%; height:38px; padding:0 10px; border:1px solid #CBD5E1; border-radius:6px;">
+                    </div>
+                    <div>
+                        <label style="font-size:12px; font-weight:700; color:#334155;">Status</label>
+                        <select id="trnRouteStatus" class="form-select" style="width:100%; height:38px; padding:0 10px; border:1px solid #CBD5E1; border-radius:6px;">
+                            <option value="Active">Active</option>
+                            <option value="Inactive">Inactive</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div style="display:flex; justify-content:flex-end; gap:10px; border-top:1px solid #E2E8F0; padding-top:12px;">
+                    <button type="button" onclick="closeTransportRouteModal()" style="background:#F1F5F9; color:#475569; border:1px solid #CBD5E1; padding:8px 16px; border-radius:6px; font-weight:700; cursor:pointer;">Cancel</button>
+                    <button type="submit" style="background:#2563EB; color:white; border:none; padding:8px 20px; border-radius:6px; font-weight:700; cursor:pointer;">Save Route</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 3. Add Stop Modal -->
+<div id="transportStopModal" class="modal transport-modal">
+    <div class="modal-content" style="max-width: 550px;">
+        <div class="modal-header">
+            <h3>📍 Add Bus Stop to Route</h3>
+            <span class="close-btn" onclick="closeTransportStopModal()">&times;</span>
+        </div>
+        <div class="modal-body" style="padding:20px;">
+            <form id="trnStopForm" onsubmit="submitTransportStopForm(event)">
+                <input type="hidden" id="trnStopRouteId">
+
+                <div style="margin-bottom:12px;">
+                    <label style="font-size:12px; font-weight:700; color:#334155;">Stop Name *</label>
+                    <input type="text" id="trnStopName" required placeholder="e.g. Swargate Bus Stand" class="form-input" style="width:100%; height:38px; padding:0 10px; border:1px solid #CBD5E1; border-radius:6px;">
+                </div>
+
+                <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:12px; margin-bottom:16px;">
+                    <div>
+                        <label style="font-size:12px; font-weight:700; color:#334155;">Seq Number</label>
+                        <input type="number" id="trnStopSeq" value="1" min="1" class="form-input" style="width:100%; height:38px; padding:0 10px; border:1px solid #CBD5E1; border-radius:6px;">
+                    </div>
+                    <div>
+                        <label style="font-size:12px; font-weight:700; color:#334155;">Pickup Time</label>
+                        <input type="text" id="trnStopPickup" value="07:30 AM" class="form-input" style="width:100%; height:38px; padding:0 10px; border:1px solid #CBD5E1; border-radius:6px;">
+                    </div>
+                    <div>
+                        <label style="font-size:12px; font-weight:700; color:#334155;">Drop Time</label>
+                        <input type="text" id="trnStopDrop" value="05:30 PM" class="form-input" style="width:100%; height:38px; padding:0 10px; border:1px solid #CBD5E1; border-radius:6px;">
+                    </div>
+                </div>
+
+                <div style="display:flex; justify-content:flex-end; gap:10px; border-top:1px solid #E2E8F0; padding-top:12px;">
+                    <button type="button" onclick="closeTransportStopModal()" style="background:#F1F5F9; color:#475569; border:1px solid #CBD5E1; padding:8px 16px; border-radius:6px; font-weight:700; cursor:pointer;">Cancel</button>
+                    <button type="submit" style="background:#2563EB; color:white; border:none; padding:8px 20px; border-radius:6px; font-weight:700; cursor:pointer;">Add Stop</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 4. Add Driver Modal -->
+<div id="transportDriverModal" class="modal transport-modal">
+    <div class="modal-content" style="max-width: 550px;">
+        <div class="modal-header">
+            <h3>👨‍✈️ Register Driver</h3>
+            <span class="close-btn" onclick="closeTransportDriverModal()">&times;</span>
+        </div>
+        <div class="modal-body" style="padding:20px;">
+            <form id="trnDriverForm" onsubmit="submitTransportDriverForm(event)">
+                <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:12px; margin-bottom:12px;">
+                    <div>
+                        <label style="font-size:12px; font-weight:700; color:#334155;">Full Name *</label>
+                        <input type="text" id="trnDriverName" required placeholder="e.g. Ramesh Patil" class="form-input" style="width:100%; height:38px; padding:0 10px; border:1px solid #CBD5E1; border-radius:6px;">
+                    </div>
+                    <div>
+                        <label style="font-size:12px; font-weight:700; color:#334155;">Phone Number *</label>
+                        <input type="text" id="trnDriverPhone" required placeholder="e.g. 9822112233" class="form-input" style="width:100%; height:38px; padding:0 10px; border:1px solid #CBD5E1; border-radius:6px;">
+                    </div>
+                </div>
+
+                <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:12px; margin-bottom:12px;">
+                    <div>
+                        <label style="font-size:12px; font-weight:700; color:#334155;">License Number *</label>
+                        <input type="text" id="trnDriverLic" required placeholder="e.g. MH12-2015-001234" class="form-input" style="width:100%; height:38px; padding:0 10px; border:1px solid #CBD5E1; border-radius:6px;">
+                    </div>
+                    <div>
+                        <label style="font-size:12px; font-weight:700; color:#334155;">License Expiry</label>
+                        <input type="date" id="trnDriverLicExp" class="form-input" style="width:100%; height:38px; padding:0 10px; border:1px solid #CBD5E1; border-radius:6px;">
+                    </div>
+                </div>
+
+                <div style="margin-bottom:16px;">
+                    <label style="font-size:12px; font-weight:700; color:#334155;">Emergency Contact</label>
+                    <input type="text" id="trnDriverEmergency" placeholder="Emergency contact phone..." class="form-input" style="width:100%; height:38px; padding:0 10px; border:1px solid #CBD5E1; border-radius:6px;">
+                </div>
+
+                <div style="display:flex; justify-content:flex-end; gap:10px; border-top:1px solid #E2E8F0; padding-top:12px;">
+                    <button type="button" onclick="closeTransportDriverModal()" style="background:#F1F5F9; color:#475569; border:1px solid #CBD5E1; padding:8px 16px; border-radius:6px; font-weight:700; cursor:pointer;">Cancel</button>
+                    <button type="submit" style="background:#2563EB; color:white; border:none; padding:8px 20px; border-radius:6px; font-weight:700; cursor:pointer;">Save Driver</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 5. Register Student Transport Pass Modal -->
+<div id="transportAssignModal" class="modal transport-modal">
+    <div class="modal-content" style="max-width: 680px;">
+        <div class="modal-header">
+            <h3>🚌 Issue Transport Pass to Enrolled Student</h3>
+            <span class="close-btn" onclick="closeTransportAssignModal()">&times;</span>
+        </div>
+        <div class="modal-body" style="padding:20px;">
+
+            <!-- STEP 1: ZPRN VERIFICATION INPUT -->
+            <div style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:10px; padding:16px; margin-bottom:18px;">
+                <label style="font-size:12px; font-weight:800; color:#0F172A; display:block; margin-bottom:6px;">
+                    Enter ZPRN No. / Enrollment Roll Number *
+                </label>
+                <div style="display:flex; gap:10px;">
+                    <input type="text" id="trnZprnInput" placeholder="e.g. 124BT260001, STU-0001, or 1" class="form-input" style="flex:1; height:42px; padding:0 12px; border:1px solid #CBD5E1; border-radius:6px; font-family:monospace; font-weight:700; font-size:13px;" onkeyup="if(event.key==='Enter') verifyTransportStudentZprn()">
+                    <button type="button" onclick="verifyTransportStudentZprn()" style="background:#2563EB; color:white; border:none; padding:0 20px; border-radius:6px; font-weight:700; font-size:13px; cursor:pointer;">
+                        🔍 Verify ZPRN
+                    </button>
+                </div>
+                <div id="trnZprnMessage" style="margin-top:8px; font-size:12px; font-weight:700; display:none;"></div>
+            </div>
+
+            <!-- STEP 2: VERIFIED STUDENT CARD -->
+            <div id="trnVerifiedStudentBox" style="background:#F0FDF4; border:1px solid #BBF7D0; border-radius:10px; padding:16px; margin-bottom:18px; display:none;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                    <span style="font-size:11px; font-weight:800; text-transform:uppercase; color:#166534; background:#DCFCE7; padding:3px 8px; border-radius:12px;">✓ OFFICIALLY ENROLLED STUDENT</span>
+                    <span style="font-size:12px; font-family:monospace; font-weight:700; color:#15803D;" id="trnCardZprn">-</span>
+                </div>
+                <h4 style="margin:0 0 6px 0; font-size:16px; font-weight:800; color:#0F172A;" id="trnCardName">Student Name</h4>
+                <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:8px; font-size:12px; color:#334155;">
+                    <div>🏛️ Department: <strong id="trnCardDept">-</strong></div>
+                    <div>🎓 Program: <strong id="trnCardCourse">-</strong></div>
+                    <div>📅 Academic Context: <strong id="trnCardYear">-</strong></div>
+                    <div>🚌 Transport Pass: <strong id="trnCardPassStatus">Not Issued</strong></div>
+                </div>
+            </div>
+
+            <!-- STEP 3: ROUTE & STOP SELECTION FORM -->
+            <form id="trnAssignForm" onsubmit="submitTransportAssignForm(event)">
+                <input type="hidden" id="trnVerifiedStudentId">
+
+                <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:12px; margin-bottom:12px;">
+                    <div>
+                        <label style="font-size:12px; font-weight:700; color:#334155;">Select Bus Route *</label>
+                        <select id="trnAssignRouteId" required class="form-select" onchange="onTransportRouteSelectChange()" style="width:100%; height:38px; padding:0 10px; border:1px solid #CBD5E1; border-radius:6px;">
+                            <option value="">-- Choose Route --</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-size:12px; font-weight:700; color:#334155;">Select Bus Stop *</label>
+                        <select id="trnAssignStopId" required class="form-select" style="width:100%; height:38px; padding:0 10px; border:1px solid #CBD5E1; border-radius:6px;">
+                            <option value="">-- Select Route First --</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:12px; margin-bottom:16px;">
+                    <div>
+                        <label style="font-size:12px; font-weight:700; color:#334155;">Vehicle (Optional)</label>
+                        <select id="trnAssignVehicleId" class="form-select" style="width:100%; height:38px; padding:0 10px; border:1px solid #CBD5E1; border-radius:6px;">
+                            <option value="">Auto-assign route bus</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-size:12px; font-weight:700; color:#334155;">Annual Transport Fee (₹)</label>
+                        <input type="number" id="trnAssignFee" value="15000" class="form-input" style="width:100%; height:38px; padding:0 10px; border:1px solid #CBD5E1; border-radius:6px;">
+                    </div>
+                </div>
+
+                <div style="display:flex; justify-content:flex-end; gap:10px; border-top:1px solid #E2E8F0; padding-top:12px;">
+                    <button type="button" onclick="closeTransportAssignModal()" style="background:#F1F5F9; color:#475569; border:1px solid #CBD5E1; padding:8px 16px; border-radius:6px; font-weight:700; cursor:pointer;">Cancel</button>
+                    <button type="submit" id="btnSubmitTrnAssign" disabled style="background:#94A3B8; color:white; border:none; padding:8px 22px; border-radius:6px; font-weight:700; cursor:not-allowed;">Issue Transport Pass</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>

@@ -69,13 +69,16 @@ class StudentService:
                 )
 
         if department:
-            query = query.filter(Student.department == department)
+            query = query.filter(db.or_(Student.department == department, Student.department.ilike(f"%{department}%")))
 
         if course:
-            query = query.filter(Student.course == course)
+            query = query.filter(db.or_(Student.course == course, Student.course.ilike(f"%{course}%")))
 
         if academic_year:
-            query = query.filter(Student.academic_year == academic_year)
+            if academic_year == "2026-27":
+                query = query.filter(db.or_(Student.academic_year == "2026-27", Student.academic_year.in_(["1", "2", "3", "4"]), Student.academic_year == None))
+            else:
+                query = query.filter(db.or_(Student.academic_year == academic_year, Student.academic_year.ilike(f"%{academic_year}%")))
 
         if admission_type:
             query = query.filter(Student.admissionType == admission_type)
@@ -972,6 +975,335 @@ class StudentService:
         except Exception as e:
             db.session.rollback()
             raise e
+
+    # =========================================================
+    # SEED DEFAULT INDIAN / MAHARASHTRIAN STUDENTS
+    # =========================================================
+    @staticmethod
+    def seed_default_students():
+        """
+        Seed sample Indian/Maharashtrian students following the official admission workflow:
+        Admission Application -> Approval -> Official ZPRN Generation -> Official Enrolled Record.
+        """
+        try:
+            if Student.query.count() == 0:
+                samples = [
+                    {
+                        "fullName": "Aarav Sharma",
+                        "fatherName": "Rajesh Sharma",
+                        "motherName": "Sunita Sharma",
+                        "dob": "2004-05-15",
+                        "gender": "Male",
+                        "bloodGroup": "B+",
+                        "mobile": "9822001101",
+                        "email": "aarav.sharma@zeal.edu.in",
+                        "aadhaar": "123456789001",
+                        "address": "Kothrud, Pune",
+                        "city": "Pune",
+                        "state": "Maharashtra",
+                        "pincode": "411038",
+                        "nationality": "Indian",
+                        "board10": "CBSE",
+                        "percentage10": 92.5,
+                        "board12": "CBSE",
+                        "percentage12": 90.0,
+                        "entranceExam": "MHT-CET",
+                        "entranceScore": 98.5,
+                        "department": "Computer Engineering",
+                        "course": "B.Tech Computer Engineering",
+                        "academic_year": "2026-27",
+                        "admissionType": "CAP"
+                    },
+                    {
+                        "fullName": "Sneha Deshmukh",
+                        "fatherName": "Prakash Deshmukh",
+                        "motherName": "Anjali Deshmukh",
+                        "dob": "2005-08-20",
+                        "gender": "Female",
+                        "bloodGroup": "O+",
+                        "mobile": "9822001102",
+                        "email": "sneha.deshmukh@zeal.edu.in",
+                        "aadhaar": "123456789002",
+                        "address": "Karve Nagar, Pune",
+                        "city": "Pune",
+                        "state": "Maharashtra",
+                        "pincode": "411052",
+                        "nationality": "Indian",
+                        "board10": "SSC",
+                        "percentage10": 89.0,
+                        "board12": "HSC",
+                        "percentage12": 87.5,
+                        "entranceExam": "MHT-CET",
+                        "entranceScore": 95.2,
+                        "department": "Information Technology",
+                        "course": "B.Tech Information Technology",
+                        "academic_year": "2026-27",
+                        "admissionType": "CAP"
+                    },
+                    {
+                        "fullName": "Rohan Kulkarni",
+                        "fatherName": "Milind Kulkarni",
+                        "motherName": "Madhuri Kulkarni",
+                        "dob": "2006-03-12",
+                        "gender": "Male",
+                        "bloodGroup": "A+",
+                        "mobile": "9822001103",
+                        "email": "rohan.kulkarni@zeal.edu.in",
+                        "aadhaar": "123456789003",
+                        "address": "Deccan, Pune",
+                        "city": "Pune",
+                        "state": "Maharashtra",
+                        "pincode": "411004",
+                        "nationality": "Indian",
+                        "board10": "SSC",
+                        "percentage10": 94.0,
+                        "board12": "HSC",
+                        "percentage12": 91.8,
+                        "entranceExam": "JEE Main",
+                        "entranceScore": 97.4,
+                        "department": "Computer Engineering",
+                        "course": "B.Tech Computer Engineering",
+                        "academic_year": "2026-27",
+                        "admissionType": "CAP"
+                    },
+                    {
+                        "fullName": "Priya Joshi",
+                        "fatherName": "Sanjay Joshi",
+                        "motherName": "Sujata Joshi",
+                        "dob": "2004-11-05",
+                        "gender": "Female",
+                        "bloodGroup": "AB+",
+                        "mobile": "9822001104",
+                        "email": "priya.joshi@zeal.edu.in",
+                        "aadhaar": "123456789004",
+                        "address": "Swargate, Pune",
+                        "city": "Pune",
+                        "state": "Maharashtra",
+                        "pincode": "411042",
+                        "nationality": "Indian",
+                        "board10": "CBSE",
+                        "percentage10": 91.0,
+                        "board12": "CBSE",
+                        "percentage12": 89.4,
+                        "entranceExam": "MHT-CET",
+                        "entranceScore": 96.8,
+                        "department": "Artificial Intelligence & Data Science",
+                        "course": "B.Tech Artificial Intelligence & Data Science",
+                        "academic_year": "2026-27",
+                        "admissionType": "CAP"
+                    },
+                    {
+                        "fullName": "Aditya Patil",
+                        "fatherName": "Suresh Patil",
+                        "motherName": "Shobha Patil",
+                        "dob": "2003-01-25",
+                        "gender": "Male",
+                        "bloodGroup": "B+",
+                        "mobile": "9822001105",
+                        "email": "aditya.patil@zeal.edu.in",
+                        "aadhaar": "123456789005",
+                        "address": "Hadapsar, Pune",
+                        "city": "Pune",
+                        "state": "Maharashtra",
+                        "pincode": "411028",
+                        "nationality": "Indian",
+                        "board10": "SSC",
+                        "percentage10": 86.5,
+                        "board12": "HSC",
+                        "percentage12": 84.0,
+                        "entranceExam": "MHT-CET",
+                        "entranceScore": 93.0,
+                        "department": "Computer Engineering",
+                        "course": "B.Tech Computer Engineering",
+                        "academic_year": "2026-27",
+                        "admissionType": "CAP"
+                    },
+                    {
+                        "fullName": "Ananya Patil",
+                        "fatherName": "Vikram Patil",
+                        "motherName": "Vandana Patil",
+                        "dob": "2005-09-18",
+                        "gender": "Female",
+                        "bloodGroup": "O+",
+                        "mobile": "9822001106",
+                        "email": "ananya.patil@zeal.edu.in",
+                        "aadhaar": "123456789006",
+                        "address": "Baner, Pune",
+                        "city": "Pune",
+                        "state": "Maharashtra",
+                        "pincode": "411045",
+                        "nationality": "Indian",
+                        "board10": "CBSE",
+                        "percentage10": 93.2,
+                        "board12": "CBSE",
+                        "percentage12": 90.6,
+                        "entranceExam": "MHT-CET",
+                        "entranceScore": 96.1,
+                        "department": "Information Technology",
+                        "course": "B.Tech Information Technology",
+                        "academic_year": "2026-27",
+                        "admissionType": "CAP"
+                    },
+                    {
+                        "fullName": "Rahul Jadhav",
+                        "fatherName": "Dnyaneshwar Jadhav",
+                        "motherName": "Usha Jadhav",
+                        "dob": "2004-06-30",
+                        "gender": "Male",
+                        "bloodGroup": "A+",
+                        "mobile": "9822001107",
+                        "email": "rahul.jadhav@zeal.edu.in",
+                        "aadhaar": "123456789007",
+                        "address": "Warje, Pune",
+                        "city": "Pune",
+                        "state": "Maharashtra",
+                        "pincode": "411058",
+                        "nationality": "Indian",
+                        "board10": "SSC",
+                        "percentage10": 85.0,
+                        "board12": "HSC",
+                        "percentage12": 83.2,
+                        "entranceExam": "MHT-CET",
+                        "entranceScore": 91.5,
+                        "department": "Electronics & Telecommunication",
+                        "course": "B.Tech Electronics & Telecommunication",
+                        "academic_year": "2026-27",
+                        "admissionType": "CAP"
+                    },
+                    {
+                        "fullName": "Neha Shinde",
+                        "fatherName": "Eknath Shinde",
+                        "motherName": "Sarita Shinde",
+                        "dob": "2005-04-14",
+                        "gender": "Female",
+                        "bloodGroup": "B-",
+                        "mobile": "9822001108",
+                        "email": "neha.shinde@zeal.edu.in",
+                        "aadhaar": "123456789008",
+                        "address": "Katraj, Pune",
+                        "city": "Pune",
+                        "state": "Maharashtra",
+                        "pincode": "411046",
+                        "nationality": "Indian",
+                        "board10": "SSC",
+                        "percentage10": 88.0,
+                        "board12": "HSC",
+                        "percentage12": 86.0,
+                        "entranceExam": "MHT-CET",
+                        "entranceScore": 92.8,
+                        "department": "Mechanical Engineering",
+                        "course": "B.Tech Mechanical Engineering",
+                        "academic_year": "2026-27",
+                        "admissionType": "CAP"
+                    },
+                    {
+                        "fullName": "Omkar Pawar",
+                        "fatherName": "Ashok Pawar",
+                        "motherName": "Asha Pawar",
+                        "dob": "2006-07-22",
+                        "gender": "Male",
+                        "bloodGroup": "O+",
+                        "mobile": "9822001109",
+                        "email": "omkar.pawar@zeal.edu.in",
+                        "aadhaar": "123456789009",
+                        "address": "Dhankawadi, Pune",
+                        "city": "Pune",
+                        "state": "Maharashtra",
+                        "pincode": "411043",
+                        "nationality": "Indian",
+                        "board10": "SSC",
+                        "percentage10": 87.5,
+                        "board12": "HSC",
+                        "percentage12": 85.0,
+                        "entranceExam": "MHT-CET",
+                        "entranceScore": 90.2,
+                        "department": "Electrical Engineering",
+                        "course": "B.Tech Electrical Engineering",
+                        "academic_year": "2026-27",
+                        "admissionType": "CAP"
+                    },
+                    {
+                        "fullName": "Pooja More",
+                        "fatherName": "Ganesh More",
+                        "motherName": "Geeta More",
+                        "dob": "2004-10-10",
+                        "gender": "Female",
+                        "bloodGroup": "A-",
+                        "mobile": "9822001110",
+                        "email": "pooja.more@zeal.edu.in",
+                        "aadhaar": "123456789010",
+                        "address": "Narhe, Pune",
+                        "city": "Pune",
+                        "state": "Maharashtra",
+                        "pincode": "411041",
+                        "nationality": "Indian",
+                        "board10": "SSC",
+                        "percentage10": 89.2,
+                        "board12": "HSC",
+                        "percentage12": 87.0,
+                        "entranceExam": "MHT-CET",
+                        "entranceScore": 94.1,
+                        "department": "Civil Engineering",
+                        "course": "B.Tech Civil Engineering",
+                        "academic_year": "2026-27",
+                        "admissionType": "CAP"
+                    }
+                ]
+
+                created_students = []
+                for item in samples:
+                    s = Student(**item)
+                    s.status = "Approved"
+                    db.session.add(s)
+                    db.session.commit()
+                    StudentService.convert_to_student(s.id, admin_username="admin")
+                    created_students.append(s)
+
+                # Seed Fee Payments (Paid, Partially Paid, Pending)
+                try:
+                    from services.payment_service import PaymentService
+                    # 1. Aarav Sharma - Fully Paid
+                    PaymentService.record_payment(created_students[0].id, 75000.0, "Tuition Fee", "UPI / Online", "TXN-2026-AR01", "Annual Tuition Fee Paid")
+                    PaymentService.record_payment(created_students[0].id, 35000.0, "Development Fee", "Bank Transfer", "TXN-2026-AR02", "Development & Exam Fee Paid")
+
+                    # 2. Sneha Deshmukh - Fully Paid
+                    PaymentService.record_payment(created_students[1].id, 72000.0, "Tuition Fee", "UPI / Online", "TXN-2026-SN01", "Tuition Fee Paid")
+                    PaymentService.record_payment(created_students[1].id, 34000.0, "Development Fee", "Cash", "TXN-2026-SN02", "Development Fee Paid")
+
+                    # 3. Rohan Kulkarni - Fully Paid
+                    PaymentService.record_payment(created_students[2].id, 75000.0, "Tuition Fee", "Bank Transfer", "TXN-2026-RK01", "Annual Tuition Fee Paid")
+                    PaymentService.record_payment(created_students[2].id, 35000.0, "Development Fee", "Demand Draft", "TXN-2026-RK02", "Development Fee Paid")
+
+                    # 4. Priya Joshi - Partially Paid
+                    PaymentService.record_payment(created_students[3].id, 60000.0, "Tuition Fee", "UPI / Online", "TXN-2026-PJ01", "Installment 1 Tuition Fee Paid")
+
+                    # 5. Aditya Patil - Partially Paid
+                    PaymentService.record_payment(created_students[4].id, 50000.0, "Tuition Fee", "UPI / Online", "TXN-2026-AP01", "Installment 1 Tuition Fee Paid")
+
+                    # 6. Rahul Jadhav - Partially Paid
+                    PaymentService.record_payment(created_students[6].id, 45000.0, "Tuition Fee", "Cash", "TXN-2026-RJ01", "Partial Fee Paid")
+                except Exception as pe:
+                    pass
+
+                # Seed Transport Fleet & Passes
+                try:
+                    from services.transport_service import TransportService
+                    TransportService.initialize_default_transport()
+                    routes = TransportService.get_routes()
+                    if routes and len(routes) >= 4:
+                        r1, r2, r3, r4 = routes[0], routes[1], routes[2], routes[3]
+                        if r1.get("stops") and len(r1["stops"]) > 0:
+                            TransportService.assign_student_transport(created_students[0].enrollment_number, r1["id"], r1["stops"][0]["id"])
+                        if r2.get("stops") and len(r2["stops"]) > 0:
+                            TransportService.assign_student_transport(created_students[1].enrollment_number, r2["id"], r2["stops"][0]["id"])
+                        if r3.get("stops") and len(r3["stops"]) > 0:
+                            TransportService.assign_student_transport(created_students[2].enrollment_number, r3["id"], r3["stops"][0]["id"])
+                        if r4.get("stops") and len(r4["stops"]) > 0:
+                            TransportService.assign_student_transport(created_students[3].enrollment_number, r4["id"], r4["stops"][0]["id"])
+                except Exception as te:
+                    pass
+        except Exception as e:
+            db.session.rollback()
 
     # =========================================================
     # ADMISSIONS REAL ANALYTICS

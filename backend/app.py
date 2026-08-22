@@ -22,9 +22,10 @@ from config import config_by_name
 from models import db, Admin
 from email_service import init_mail_config
 from utils import setup_logger
+from services import StudentService
 from routes import (
     auth_bp, student_bp, analytics_bp, ai_bp,
-    admin_erp_bp, payment_bp, ticket_bp, attendance_bp, department_bp, course_bp, examination_bp, library_bp
+    admin_erp_bp, payment_bp, ticket_bp, attendance_bp, department_bp, course_bp, examination_bp, library_bp, transport_bp
 )
 
 def create_app(config_name=None):
@@ -98,6 +99,7 @@ def create_app(config_name=None):
     app.register_blueprint(course_bp)
     app.register_blueprint(examination_bp)
     app.register_blueprint(library_bp)
+    app.register_blueprint(transport_bp)
 
     # Custom HTTP Error Handlers
     @app.errorhandler(404)
@@ -208,7 +210,7 @@ def create_app(config_name=None):
         except Exception as e:
             app.logger.info(f"Migration note: {e}")
 
-        # Seed Default Admin
+        # Seed Default Admin & Sample Enrolled Indian Students
         try:
             admin_user = Admin.query.filter_by(username="admin").first()
             if not admin_user:
@@ -220,8 +222,11 @@ def create_app(config_name=None):
                 db.session.add(default_admin)
                 db.session.commit()
                 app.logger.info("Default admin user created successfully (username: admin, password: admin123)")
+
+            if not app.config.get("TESTING") and not app.testing and os.getenv("TESTING") != "True":
+                StudentService.seed_default_students()
         except Exception as ae:
-            app.logger.info(f"Admin seeding note: {ae}")
+            app.logger.info(f"Seeding note: {ae}")
 
     return app
 
